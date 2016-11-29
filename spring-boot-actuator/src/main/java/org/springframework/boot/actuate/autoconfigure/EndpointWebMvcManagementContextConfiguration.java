@@ -36,6 +36,7 @@ import org.springframework.boot.actuate.endpoint.mvc.LogFileMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.LoggersMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MetricsMvcEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.MvcEndpoint;
+import org.springframework.boot.actuate.endpoint.mvc.MvcEndpointSecurityInterceptor;
 import org.springframework.boot.actuate.endpoint.mvc.MvcEndpoints;
 import org.springframework.boot.actuate.endpoint.mvc.ShutdownMvcEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
@@ -87,6 +88,10 @@ public class EndpointWebMvcManagementContextConfiguration {
 		EndpointHandlerMapping mapping = new EndpointHandlerMapping(endpoints,
 				corsConfiguration);
 		mapping.setPrefix(this.managementServerProperties.getContextPath());
+		MvcEndpointSecurityInterceptor securityInterceptor = new MvcEndpointSecurityInterceptor(
+				this.managementServerProperties.getSecurity().isEnabled(),
+				this.managementServerProperties.getSecurity().getRoles());
+		mapping.setSecurityInterceptor(securityInterceptor);
 		if (this.mappingCustomizers != null) {
 			for (EndpointHandlerMappingCustomizer customizer : this.mappingCustomizers) {
 				customizer.customize(mapping);

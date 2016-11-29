@@ -38,7 +38,7 @@ import org.springframework.web.servlet.HandlerMapping;
  * @author Christian Dupuis
  * @author Dave Syer
  */
-public class EndpointHandlerMapping extends AbstractEndpointHandlerMapping<MvcEndpoint> {
+public class EndpointHandlerMapping extends SecureEndpointHandlerMapping<MvcEndpoint> {
 
 	/**
 	 * Create a new {@link EndpointHandlerMapping} instance. All {@link Endpoint}s will be

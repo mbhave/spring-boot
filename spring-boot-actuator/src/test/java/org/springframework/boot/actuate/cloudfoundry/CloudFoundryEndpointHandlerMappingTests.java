@@ -19,7 +19,6 @@ package org.springframework.boot.actuate.cloudfoundry;
 import java.util.Collections;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import org.springframework.boot.actuate.endpoint.AbstractEndpoint;
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
@@ -33,16 +32,15 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.OrderedHealthAggregator;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsProcessor;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link CloudFoundryEndpointHandlerMapping}.
@@ -53,33 +51,19 @@ public class CloudFoundryEndpointHandlerMappingTests
 		extends AbstractEndpointHandlerMappingTests {
 
 	@Test
-	public void corsInterceptorShouldBeFirstAndCallCorsProcessor() throws Exception {
-		TestMvcEndpoint endpoint = new TestMvcEndpoint(new TestEndpoint("a"));
-		CorsConfiguration corsConfiguration = new CorsConfiguration();
-		CloudFoundryEndpointHandlerMapping handlerMapping = new CloudFoundryEndpointHandlerMapping(
-				Collections.singleton(endpoint), corsConfiguration, null);
-		CorsProcessor corsProcessor = mock(CorsProcessor.class);
-		handlerMapping.setCorsProcessor(corsProcessor);
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		HandlerExecutionChain handlerExecutionChain = handlerMapping
-				.getHandlerExecutionChain(endpoint, request);
-		HandlerInterceptor[] interceptors = handlerExecutionChain.getInterceptors();
-		CloudFoundryEndpointHandlerMapping.CorsInterceptor corsInterceptor = (CloudFoundryEndpointHandlerMapping.CorsInterceptor) interceptors[0];
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		corsInterceptor.preHandle(request, response, new Object());
-		verify(corsProcessor).processRequest(corsConfiguration, request, response);
-	}
-
-	@Test
 	public void getHandlerExecutionChainShouldHaveSecurityInterceptor() throws Exception {
-		CloudFoundrySecurityInterceptor securityInterceptor = Mockito
-				.mock(CloudFoundrySecurityInterceptor.class);
+		CloudFoundrySecurityInterceptor securityInterceptor =
+				mock(CloudFoundrySecurityInterceptor.class);
 		TestMvcEndpoint endpoint = new TestMvcEndpoint(new TestEndpoint("a"));
 		CloudFoundryEndpointHandlerMapping handlerMapping = new CloudFoundryEndpointHandlerMapping(
 				Collections.singleton(endpoint), null, securityInterceptor);
-		HandlerExecutionChain handlerExecutionChain = handlerMapping
-				.getHandlerExecutionChain(endpoint, new MockHttpServletRequest());
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		HandlerExecutionChain chain = mock(HandlerExecutionChain.class);
+		CorsConfiguration corsConfiguration = mock(CorsConfiguration.class);
+		given(chain.getInterceptors()).willReturn(new HandlerInterceptor[]{mock(HandlerInterceptor.class)});
+		HandlerExecutionChain handlerExecutionChain = ReflectionTestUtils.invokeMethod(handlerMapping, "getCorsHandlerExecutionChain", request, chain, corsConfiguration);
 		HandlerInterceptor[] interceptors = handlerExecutionChain.getInterceptors();
+		//security interceptor needs to be last so that CORS interceptor always kicks in before
 		assertThat(interceptors[1]).isEqualTo(securityInterceptor);
 	}
 
