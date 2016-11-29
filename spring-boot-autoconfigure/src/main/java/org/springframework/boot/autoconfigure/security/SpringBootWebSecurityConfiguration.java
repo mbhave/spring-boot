@@ -41,6 +41,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity.IgnoredRequestConfigurer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -48,7 +49,9 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.security.web.header.writers.HstsHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -96,6 +99,11 @@ public class SpringBootWebSecurityConfiguration {
 	@ConditionalOnMissingBean({ IgnoredPathsWebSecurityConfigurerAdapter.class })
 	public IgnoredPathsWebSecurityConfigurerAdapter ignoredPathsWebSecurityConfigurerAdapter() {
 		return new IgnoredPathsWebSecurityConfigurerAdapter();
+	}
+
+	@Bean
+	public IgnoredRequestCustomizer defaultIgnoredRequestsCustomizer() {
+		return new DefaultIgnoredRequestCustomizer();
 	}
 
 	public static void configureHeaders(HeadersConfigurer<?> configurer,
@@ -146,14 +154,8 @@ public class SpringBootWebSecurityConfiguration {
 	private static class IgnoredPathsWebSecurityConfigurerAdapter
 			implements WebSecurityConfigurer<WebSecurity> {
 
-		@Autowired(required = false)
-		private ErrorController errorController;
-
 		@Autowired
-		private SecurityProperties security;
-
-		@Autowired
-		private ServerProperties server;
+		List<IgnoredRequestCustomizer> ignoredRequestCustomizers;
 
 		@Override
 		public void configure(WebSecurity builder) throws Exception {
@@ -161,13 +163,39 @@ public class SpringBootWebSecurityConfiguration {
 
 		@Override
 		public void init(WebSecurity builder) throws Exception {
+			for (IgnoredRequestCustomizer ignoredRequestCustomizer : this.ignoredRequestCustomizers) {
+				ignoredRequestCustomizer.customize(builder.ignoring());
+			}
+		}
+
+	}
+
+	private class DefaultIgnoredRequestCustomizer implements IgnoredRequestCustomizer {
+
+		@Autowired
+		private ServerProperties server;
+
+		@Autowired
+		private SecurityProperties security;
+
+		@Autowired(required = false)
+		private ErrorController errorController;
+
+		@Override
+		public void customize(IgnoredRequestConfigurer configurer) {
 			List<String> ignored = getIgnored(this.security);
 			if (this.errorController != null) {
 				ignored.add(normalizePath(this.errorController.getErrorPath()));
 			}
 			String[] paths = this.server.getPathsArray(ignored);
+			List<RequestMatcher> matchers = new ArrayList<RequestMatcher>();
 			if (!ObjectUtils.isEmpty(paths)) {
-				builder.ignoring().antMatchers(paths);
+				for (String pattern : paths) {
+					matchers.add(new AntPathRequestMatcher(pattern, null));
+				}
+			}
+			if (!matchers.isEmpty()) {
+				configurer.requestMatchers(new OrRequestMatcher(matchers));
 			}
 		}
 
@@ -178,7 +206,6 @@ public class SpringBootWebSecurityConfiguration {
 			}
 			return result;
 		}
-
 	}
 
 	@Configuration

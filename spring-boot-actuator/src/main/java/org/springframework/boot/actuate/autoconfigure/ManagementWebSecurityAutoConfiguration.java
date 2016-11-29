@@ -42,11 +42,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
 import org.springframework.boot.autoconfigure.security.AuthenticationManagerConfiguration;
 import org.springframework.boot.autoconfigure.security.FallbackWebSecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.IgnoredRequestCustomizer;
 import org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.SecurityPrerequisite;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.autoconfigure.security.SpringBootWebSecurityConfiguration;
-import org.springframework.boot.autoconfigure.web.ErrorController;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -56,9 +56,7 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.type.AnnotatedTypeMetadata;
-import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity.IgnoredRequestConfigurer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
@@ -72,7 +70,6 @@ import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -96,15 +93,32 @@ import org.springframework.util.StringUtils;
 @EnableConfigurationProperties
 public class ManagementWebSecurityAutoConfiguration {
 
-	private static final String[] NO_PATHS = new String[0];
-
 	private static final RequestMatcher MATCH_NONE = new NegatedRequestMatcher(
 			AnyRequestMatcher.INSTANCE);
 
 	@Bean
-	@ConditionalOnMissingBean({ IgnoredPathsWebSecurityConfigurerAdapter.class })
-	public IgnoredPathsWebSecurityConfigurerAdapter ignoredPathsWebSecurityConfigurerAdapter() {
-		return new IgnoredPathsWebSecurityConfigurerAdapter();
+	public IgnoredRequestCustomizer actuatorIgnoredPathsDunno() {
+		return new ActuatorIgnoredRequestCustomizer();
+	}
+
+	private class ActuatorIgnoredRequestCustomizer implements IgnoredRequestCustomizer {
+
+		@Autowired
+		private ManagementServerProperties management;
+
+		@Autowired(required = false)
+		private ManagementContextResolver contextResolver;
+
+		@Override
+		public void customize(IgnoredRequestConfigurer configurer) {
+
+			if (!this.management.getSecurity().isEnabled()) {
+				RequestMatcher requestMatcher = LazyEndpointPathRequestMatcher
+						.getRequestMatcher(this.contextResolver);
+				configurer.requestMatchers(requestMatcher);
+			}
+
+		}
 	}
 
 	@Configuration
@@ -128,80 +142,6 @@ public class ManagementWebSecurityAutoConfiguration {
 				this.security.getUser().getRole()
 						.addAll(this.management.getSecurity().getRoles());
 			}
-		}
-
-	}
-
-	// Get the ignored paths in early
-	@Order(SecurityProperties.IGNORED_ORDER + 1)
-	private static class IgnoredPathsWebSecurityConfigurerAdapter
-			implements WebSecurityConfigurer<WebSecurity> {
-
-		@Autowired(required = false)
-		private ErrorController errorController;
-
-		@Autowired
-		private SecurityProperties security;
-
-		@Autowired
-		private ManagementServerProperties management;
-
-		@Autowired(required = false)
-		private ManagementContextResolver contextResolver;
-
-		@Autowired(required = false)
-		private ServerProperties server;
-
-		@Override
-		public void configure(WebSecurity builder) throws Exception {
-		}
-
-		@Override
-		public void init(WebSecurity builder) throws Exception {
-			if (this.server == null) {
-				return;
-			}
-			IgnoredRequestConfigurer ignoring = builder.ignoring();
-			// The ignores are not cumulative, so to prevent overwriting the defaults
-			// we add them back.
-			Set<String> ignored = new LinkedHashSet<String>(
-					SpringBootWebSecurityConfiguration.getIgnored(this.security));
-			if (ignored.contains("none")) {
-				ignored.remove("none");
-			}
-			if (this.errorController != null) {
-				ignored.add(normalizePath(this.errorController.getErrorPath()));
-			}
-			RequestMatcher requestMatcher = getRequestMatcher();
-			String[] paths = this.server.getPathsArray(ignored);
-			if (!ObjectUtils.isEmpty(paths)) {
-				List<RequestMatcher> matchers = new ArrayList<RequestMatcher>();
-				for (String pattern : paths) {
-					matchers.add(new AntPathRequestMatcher(pattern, null));
-				}
-				if (requestMatcher != null) {
-					matchers.add(requestMatcher);
-				}
-				requestMatcher = new OrRequestMatcher(matchers);
-			}
-			if (requestMatcher != null) {
-				ignoring.requestMatchers(requestMatcher);
-			}
-		}
-
-		private RequestMatcher getRequestMatcher() {
-			if (this.management.getSecurity().isEnabled()) {
-				return null;
-			}
-			return LazyEndpointPathRequestMatcher.getRequestMatcher(this.contextResolver);
-		}
-
-		private String normalizePath(String errorPath) {
-			String result = StringUtils.cleanPath(errorPath);
-			if (!result.startsWith("/")) {
-				result = "/" + result;
-			}
-			return result;
 		}
 
 	}
@@ -310,9 +250,7 @@ public class ManagementWebSecurityAutoConfiguration {
 			// Permit access to the non-sensitive endpoints
 			requests.requestMatchers(new LazyEndpointPathRequestMatcher(
 					this.contextResolver, EndpointPaths.NON_SENSITIVE)).permitAll();
-			// Restrict the rest to the configured roles
-			List<String> roles = this.management.getSecurity().getRoles();
-			requests.anyRequest().hasAnyRole(roles.toArray(new String[roles.size()]));
+			requests.anyRequest().authenticated();
 		}
 
 	}
@@ -332,7 +270,7 @@ public class ManagementWebSecurityAutoConfiguration {
 
 		public String[] getPaths(EndpointHandlerMapping endpointHandlerMapping) {
 			if (endpointHandlerMapping == null) {
-				return NO_PATHS;
+				return new String[0];
 			}
 			Set<? extends MvcEndpoint> endpoints = endpointHandlerMapping.getEndpoints();
 			Set<String> paths = new LinkedHashSet<String>(endpoints.size());
