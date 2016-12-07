@@ -65,14 +65,25 @@ public class SpringPhysicalNamingStrategy implements PhysicalNamingStrategy {
 		if (name == null) {
 			return null;
 		}
-		StringBuilder text = new StringBuilder(name.getText().replace('.', '_'));
-		for (int i = 1; i < text.length() - 1; i++) {
-			if (isUnderscoreRequired(text.charAt(i - 1), text.charAt(i),
-					text.charAt(i + 1))) {
-				text.insert(i++, '_');
+		StringBuilder builder = new StringBuilder(name.getText().replace('.', '_'));
+		for (int i = 1; i < builder.length() - 1; i++) {
+			if (isUnderscoreRequired(builder.charAt(i - 1), builder.charAt(i),
+					builder.charAt(i + 1))) {
+				builder.insert(i++, '_');
 			}
 		}
-		return new Identifier(text.toString().toLowerCase(Locale.ROOT), name.isQuoted());
+
+		String text = builder.toString();
+		String finalText = isCaseSensitive() ? text : text.toLowerCase(Locale.ROOT);
+		return new Identifier(finalText, name.isQuoted());
+	}
+
+	/**
+	 * Specify whether the database is case sensitive.
+	 * @return true if the database is case sensitive
+	 */
+	protected boolean isCaseSensitive() {
+		return false;
 	}
 
 	private boolean isUnderscoreRequired(char before, char current, char after) {

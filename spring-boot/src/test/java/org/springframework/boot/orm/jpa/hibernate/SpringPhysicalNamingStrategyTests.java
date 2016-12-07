@@ -39,12 +39,16 @@ public class SpringPhysicalNamingStrategyTests {
 
 	private Metadata metadata;
 
+	private MetadataSources metadataSources;
+
+	private StandardServiceRegistry serviceRegistry;
+
 	@Before
 	public void setup() throws Exception {
-		MetadataSources metadataSources = new MetadataSources();
-		metadataSources.addAnnotatedClass(TelephoneNumber.class);
-		StandardServiceRegistry serviceRegistry = getServiceRegistry(metadataSources);
-		this.metadata = metadataSources.getMetadataBuilder(serviceRegistry)
+		this.metadataSources = new MetadataSources();
+		this.metadataSources.addAnnotatedClass(TelephoneNumber.class);
+		this.serviceRegistry = getServiceRegistry(this.metadataSources);
+		this.metadata = this.metadataSources.getMetadataBuilder(this.serviceRegistry)
 				.applyPhysicalNamingStrategy(new SpringPhysicalNamingStrategy()).build();
 	}
 
@@ -61,4 +65,22 @@ public class SpringPhysicalNamingStrategyTests {
 		assertThat(binding.getTable().getQuotedName()).isEqualTo("telephone_number");
 	}
 
+	@Test
+	public void tableNameShouldNotBeLowerCaseIfIsCaseSensitiveTrue() throws Exception {
+		this.metadata = this.metadataSources.getMetadataBuilder(this.serviceRegistry)
+				.applyPhysicalNamingStrategy(new TestSpringPhysicalNamingStrategy()).build();
+		PersistentClass binding = this.metadata
+				.getEntityBinding(TelephoneNumber.class.getName());
+		assertThat(binding.getTable().getQuotedName()).isEqualTo("Telephone_Number");
+
+	}
+
+	private class TestSpringPhysicalNamingStrategy extends SpringPhysicalNamingStrategy  {
+
+		@Override
+		protected boolean isCaseSensitive() {
+			return true;
+		}
+
+	}
 }
