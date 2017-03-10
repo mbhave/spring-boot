@@ -442,6 +442,15 @@ public abstract class AbstractEmbeddedServletContainerFactoryTests {
 	}
 
 	@Test
+	public void sslKeyAlias() throws Exception {
+		AbstractEmbeddedServletContainerFactory factory = getFactory();
+		factory.setSsl(getSsl(null, "password", "test-alias", "src/test/resources/test.jks"));
+		this.container = factory.getEmbeddedServletContainer(
+				new ServletRegistrationBean(new ExampleServlet(true, false), "/hello"));
+		this.container.start();
+	}
+
+	@Test
 	public void serverHeaderIsDisabledByDefaultWhenUsingSsl() throws Exception {
 		AbstractEmbeddedServletContainerFactory factory = getFactory();
 		factory.setSsl(getSsl(null, "password", "src/test/resources/test.jks"));
@@ -654,12 +663,24 @@ public abstract class AbstractEmbeddedServletContainerFactoryTests {
 		return getSsl(clientAuth, keyPassword, keyStore, null, null, null);
 	}
 
+	private Ssl getSsl(ClientAuth clientAuth, String keyPassword, String keyAlias, String keyStore) {
+		return getSsl(clientAuth, keyPassword, keyAlias, keyStore, null, null, null);
+	}
+
 	private Ssl getSsl(ClientAuth clientAuth, String keyPassword, String keyStore,
+			String trustStore, String[] supportedProtocols, String[] ciphers) {
+		return getSsl(clientAuth, keyPassword, null, keyStore, trustStore, supportedProtocols, ciphers);
+	}
+
+	private Ssl getSsl(ClientAuth clientAuth, String keyPassword, String keyAlias, String keyStore,
 			String trustStore, String[] supportedProtocols, String[] ciphers) {
 		Ssl ssl = new Ssl();
 		ssl.setClientAuth(clientAuth);
 		if (keyPassword != null) {
 			ssl.setKeyPassword(keyPassword);
+		}
+		if (keyAlias != null) {
+			ssl.setKeyAlias(keyAlias);
 		}
 		if (keyStore != null) {
 			ssl.setKeyStore(keyStore);
