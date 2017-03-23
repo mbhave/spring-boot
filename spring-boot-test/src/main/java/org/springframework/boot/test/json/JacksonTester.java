@@ -22,6 +22,8 @@ import java.io.Reader;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.core.ResolvableType;
@@ -59,6 +61,8 @@ public class JacksonTester<T> extends AbstractJsonMarshalTester<T> {
 
 	private final ObjectMapper objectMapper;
 
+	private Class<?> view;
+
 	/**
 	 * Create a new {@link JacksonTester} instance.
 	 * @param objectMapper the Jackson object mapper
@@ -76,25 +80,43 @@ public class JacksonTester<T> extends AbstractJsonMarshalTester<T> {
 	 */
 	public JacksonTester(Class<?> resourceLoadClass, ResolvableType type,
 			ObjectMapper objectMapper) {
+		this(resourceLoadClass, type, objectMapper, null);
+	}
+
+	public JacksonTester(Class<?> resourceLoadClass, ResolvableType type,
+			ObjectMapper objectMapper, Class<?> view) {
 		super(resourceLoadClass, type);
 		Assert.notNull(objectMapper, "ObjectMapper must not be null");
 		this.objectMapper = objectMapper;
+		this.view = view;
 	}
 
 	@Override
 	protected T readObject(InputStream inputStream, ResolvableType type)
 			throws IOException {
-		return this.objectMapper.readValue(inputStream, getType(type));
+		return getObjectReader(type).readValue(inputStream);
 	}
 
 	@Override
 	protected T readObject(Reader reader, ResolvableType type) throws IOException {
-		return this.objectMapper.readerFor(getType(type)).readValue(reader);
+		return getObjectReader(type).readValue(reader);
+	}
+
+	private ObjectReader getObjectReader(ResolvableType type) {
+		ObjectReader objectReader = this.objectMapper.readerFor(getType(type));
+		if (this.view != null) {
+			return objectReader.withView(this.view);
+		}
+		return objectReader;
 	}
 
 	@Override
 	protected String writeObject(T value, ResolvableType type) throws IOException {
-		return this.objectMapper.writerFor(getType(type)).writeValueAsString(value);
+		ObjectWriter objectWriter = this.objectMapper.writerFor(getType(type));
+		if (this.view != null) {
+			return objectWriter.withView(this.view).writeValueAsString(value);
+		}
+		return objectWriter.writeValueAsString(value);
 	}
 
 	private JavaType getType(ResolvableType type) {
@@ -122,6 +144,16 @@ public class JacksonTester<T> extends AbstractJsonMarshalTester<T> {
 	public static void initFields(Object testInstance,
 			ObjectFactory<ObjectMapper> objectMapperFactory) {
 		new JacksonFieldInitializer().initFields(testInstance, objectMapperFactory);
+	}
+
+	/**
+	 * Returns a new instance of {@link JacksonTester} with the view
+	 * that should be used for json serialization/deserialization.
+	 * @param view the view class
+	 * @return the new instance
+	 */
+	public JacksonTester<T> forView(Class<?> view) {
+		return new JacksonTester<T>(this.getResourceLoadClass(), this.getType(), this.objectMapper, view);
 	}
 
 	/**

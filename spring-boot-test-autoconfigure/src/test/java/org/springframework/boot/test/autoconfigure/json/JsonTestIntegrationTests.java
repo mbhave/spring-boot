@@ -43,6 +43,9 @@ public class JsonTestIntegrationTests {
 	private JacksonTester<ExampleBasicObject> jacksonBasicJson;
 
 	@Autowired
+	private JacksonTester<ExampleJsonObjectWithView> jacksonWithViewJson;
+
+	@Autowired
 	private JacksonTester<ExampleCustomObject> jacksonCustomJson;
 
 	@Autowired
@@ -73,4 +76,13 @@ public class JsonTestIntegrationTests {
 		assertThat(this.gsonJson.write(object)).isEqualToJson("example.json");
 	}
 
+	@Test
+	public void customView() throws Exception {
+		ExampleJsonObjectWithView object = new ExampleJsonObjectWithView();
+		object.setValue("spring");
+		assertThat(this.jacksonWithViewJson.forView(ExampleJsonObjectWithView.TestView.class)
+				.write(object)).doesNotHaveJsonPathValue("id");
+		assertThat(this.jacksonWithViewJson.forView(ExampleJsonObjectWithView.TestView.class)
+				.write(object)).isEqualToJson("example.json");
+	}
 }
