@@ -16,6 +16,7 @@
 
 package org.springframework.boot.context.properties;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,8 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.PropertySource;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.context.support.TestPropertySourceUtils;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -353,6 +356,35 @@ public class ConfigurationPropertiesBindingPostProcessorTests {
 		this.context.refresh();
 		assertThat(this.context.getBean(PropertiesWithMap.class).getMap())
 				.containsEntry("foo", "bar");
+	}
+
+	@Test
+	public void nestedPropertiesWithNonEnumerableSource() throws Exception {
+		Map<String, Object> source = new HashMap<>();
+		source.put("TEST_NESTED_VALUE","test1");
+		MapPropertySource test = new MapPropertySource("test", source);
+		this.context = new AnnotationConfigApplicationContext();
+		this.context.getEnvironment().getPropertySources().addFirst(new NonEnumerablePropertySource<>(test));
+		this.context.register(PropertyWithNestedValue.class);
+		this.context.refresh();
+		assertThat(this.context.getBean(PropertyWithNestedValue.class).getNested()
+				.getValue()).isEqualTo("test1");
+	}
+
+	private static class NonEnumerablePropertySource<T> extends PropertySource<T> {
+
+		private final PropertySource<T> propertySource;
+
+		NonEnumerablePropertySource(PropertySource<T> propertySource) {
+			super(propertySource.getName(), propertySource.getSource());
+			this.propertySource = propertySource;
+		}
+
+		@Override
+		public Object getProperty(String name) {
+			return this.propertySource.getProperty(name);
+		}
+
 	}
 
 	private void assertBindingFailure(int errorCount) {
