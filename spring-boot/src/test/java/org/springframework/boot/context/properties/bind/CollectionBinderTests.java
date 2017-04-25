@@ -252,4 +252,13 @@ public class CollectionBinderTests {
 		assertThat(result).containsExactly("1,2", "3");
 	}
 
+	@Test
+	public void bindToCollectionWhenEmptyStringShouldReturnEmptyCollection() throws Exception {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo", "");
+		this.sources.add(source);
+		List<String> result = this.binder.bind("foo", STRING_LIST).get();
+		assertThat(result).isNotNull().isEmpty();
+	}
+
 }

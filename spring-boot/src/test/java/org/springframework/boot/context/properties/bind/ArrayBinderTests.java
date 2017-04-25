@@ -262,4 +262,12 @@ public class ArrayBinderTests {
 		assertThat(result).containsExactly("word".toCharArray());
 	}
 
+	@Test
+	public void bindToArrayWhenEmptyStringShouldPopulateArray() throws Exception {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo", "");
+		this.sources.add(source);
+		String[] result = this.binder.bind("foo", Bindable.of(String[].class)).get();
+		assertThat(result).isNotNull().isEmpty();
+	}
 }

@@ -50,7 +50,7 @@ class ArrayBinder extends IndexedElementsBinder<Object> {
 			for (int i = 0; i < list.size(); i++) {
 				Array.set(array, i, list.get(i));
 			}
-			return (ObjectUtils.isEmpty(array) ? null : array);
+			return array;
 		}
 		return null;
 	}
