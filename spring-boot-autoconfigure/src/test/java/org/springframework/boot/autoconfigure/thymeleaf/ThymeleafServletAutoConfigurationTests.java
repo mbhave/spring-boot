@@ -107,13 +107,12 @@ public class ThymeleafServletAutoConfigurationTests {
 	public void overrideViewNames() throws Exception {
 		load(BaseConfiguration.class, "spring.thymeleaf.viewNames:foo,bar");
 		ThymeleafViewResolver views = this.context.getBean(ThymeleafViewResolver.class);
-		assertThat(views.getViewNames()).isEqualTo(new String[] { "foo", "bar" });
+		assertThat(views.getViewNames()).isEqualTo(new String[] {"foo", "bar"});
 	}
 
 	@Test
 	public void templateLocationDoesNotExist() throws Exception {
-		load(BaseConfiguration.class,
-				"spring.thymeleaf.prefix:classpath:/no-such-directory/");
+		load(BaseConfiguration.class, "spring.thymeleaf.prefix:classpath:/no-such-directory/");
 		this.output.expect(containsString("Cannot find template location"));
 	}
 
@@ -231,8 +230,8 @@ public class ThymeleafServletAutoConfigurationTests {
 	}
 
 	@Configuration
-	@ImportAutoConfiguration({ ThymeleafAutoConfiguration.class,
-			PropertyPlaceholderAutoConfiguration.class })
+	@ImportAutoConfiguration({ThymeleafAutoConfiguration.class,
+			PropertyPlaceholderAutoConfiguration.class})
 	static class BaseConfiguration {
 
 	}
