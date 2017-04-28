@@ -24,6 +24,8 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.artifacts.publish.ArchivePublishArtifact;
+import org.gradle.api.plugins.ApplicationPlugin;
+import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
@@ -52,15 +54,29 @@ final class JavaPluginAction implements PluginApplicationAction {
 
 	@Override
 	public void execute(Project project) {
+		disableJarTask(project);
+		configureBuildTask(project);
 		BootJar bootJar = configureBootJarTask(project);
 		configureArtifactPublication(project, bootJar);
 		configureBootRunTask(project);
 		configureUtf8Encoding(project);
 	}
 
+	private void disableJarTask(Project project) {
+		project.getTasks().getByName(JavaPlugin.JAR_TASK_NAME).setEnabled(false);
+	}
+
+	private void configureBuildTask(Project project) {
+		project.getTasks().getByName(BasePlugin.ASSEMBLE_TASK_NAME)
+				.dependsOn(this.singlePublishedArtifact);
+	}
+
 	private BootJar configureBootJarTask(Project project) {
 		BootJar bootJar = project.getTasks().create(SpringBootPlugin.BOOT_JAR_TASK_NAME,
 				BootJar.class);
+		bootJar.setDescription("Assembles an executable jar archive containing the main"
+				+ " classes and their dependencies.");
+		bootJar.setGroup(BasePlugin.BUILD_GROUP);
 		bootJar.classpath((Callable<FileCollection>) () -> {
 			JavaPluginConvention convention = project.getConvention()
 					.getPlugin(JavaPluginConvention.class);
@@ -84,9 +100,8 @@ final class JavaPluginAction implements PluginApplicationAction {
 		JavaPluginConvention javaConvention = project.getConvention()
 				.getPlugin(JavaPluginConvention.class);
 		BootRun run = project.getTasks().create("bootRun", BootRun.class);
-		run.setDescription("Run the project with support for "
-				+ "auto-detecting main class and reloading static resources");
-		run.setGroup("application");
+		run.setDescription("Runs this project as a Spring Boot application.");
+		run.setGroup(ApplicationPlugin.APPLICATION_GROUP);
 		run.classpath(javaConvention.getSourceSets()
 				.findByName(SourceSet.MAIN_SOURCE_SET_NAME).getRuntimeClasspath());
 		run.getConventionMapping().map("jvmArgs", () -> {
