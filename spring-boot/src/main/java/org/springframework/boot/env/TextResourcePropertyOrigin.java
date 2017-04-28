@@ -86,7 +86,7 @@ public class TextResourcePropertyOrigin implements PropertyOrigin {
 		result.append(this.resource == null ? "unknown resource [?]"
 				: this.resource.getDescription());
 		if (this.location != null) {
-			result.append(":" + this.location);
+			result.append(":").append(this.location);
 		}
 		return result.toString();
 	}
