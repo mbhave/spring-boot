@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.autoconfigure.web;
+package org.springframework.boot.autoconfigure.web.servlet;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -39,15 +39,18 @@ import org.junit.rules.ExpectedException;
 import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter;
-import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration.WelcomePageHandlerMapping;
-import org.springframework.boot.context.embedded.AnnotationConfigEmbeddedWebApplicationContext;
-import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizerBeanPostProcessor;
-import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
-import org.springframework.boot.context.embedded.MockEmbeddedServletContainerFactory;
+import org.springframework.boot.autoconfigure.validation.ValidatorAdapter;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration.WelcomePageHandlerMapping;
 import org.springframework.boot.test.util.EnvironmentTestUtils;
-import org.springframework.boot.web.filter.OrderedHttpPutFormContentFilter;
+import org.springframework.boot.web.server.WebServerFactoryCustomizerBeanPostProcessor;
+import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
+import org.springframework.boot.web.servlet.filter.OrderedHttpPutFormContentFilter;
+import org.springframework.boot.web.servlet.server.MockServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -65,7 +68,6 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 import org.springframework.web.accept.ContentNegotiationManager;
 import org.springframework.web.bind.support.ConfigurableWebBindingInitializer;
 import org.springframework.web.filter.HttpPutFormContentFilter;
@@ -76,7 +78,7 @@ import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.handler.HandlerExceptionResolverComposite;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
@@ -117,12 +119,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 public class WebMvcAutoConfigurationTests {
 
-	private static final MockEmbeddedServletContainerFactory containerFactory = new MockEmbeddedServletContainerFactory();
+	private static final MockServletWebServerFactory webServerFactory = new MockServletWebServerFactory();
 
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
 
-	private AnnotationConfigEmbeddedWebApplicationContext context;
+	private AnnotationConfigServletWebServerApplicationContext context;
 
 	@After
 	public void close() {
@@ -330,7 +332,7 @@ public class WebMvcAutoConfigurationTests {
 
 	@Test
 	public void overrideDateFormat() throws Exception {
-		load(AllResources.class, "spring.mvc.dateFormat:dd*MM*yyyy");
+		load(AllResources.class, "spring.mvc.date-format:dd*MM*yyyy");
 		FormattingConversionService cs = this.context
 				.getBean(FormattingConversionService.class);
 		Date date = new DateTime(1988, 6, 25, 20, 30).toDate();
@@ -385,7 +387,7 @@ public class WebMvcAutoConfigurationTests {
 	@SuppressWarnings("unchecked")
 	protected Map<String, List<Resource>> getMappingLocations(HandlerMapping mapping)
 			throws IllegalAccessException {
-		Map<String, List<Resource>> mappingLocations = new LinkedHashMap<String, List<Resource>>();
+		Map<String, List<Resource>> mappingLocations = new LinkedHashMap<>();
 		if (mapping instanceof SimpleUrlHandlerMapping) {
 			Field locationsField = ReflectionUtils
 					.findField(ResourceHttpRequestHandler.class, "locations");
@@ -412,7 +414,7 @@ public class WebMvcAutoConfigurationTests {
 
 	@Test
 	public void overrideIgnoreDefaultModelOnRedirect() throws Exception {
-		this.context = new AnnotationConfigEmbeddedWebApplicationContext();
+		this.context = new AnnotationConfigServletWebServerApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context,
 				"spring.mvc.ignore-default-model-on-redirect:false");
 		this.context.register(Config.class, WebMvcAutoConfiguration.class,
@@ -675,9 +677,9 @@ public class WebMvcAutoConfigurationTests {
 		assertThat(jsrValidatorBeans).containsExactly("defaultValidator");
 		assertThat(springValidatorBeans).containsExactly("defaultValidator", "mvcValidator");
 		Validator validator = this.context.getBean("mvcValidator", Validator.class);
-		assertThat(validator).isInstanceOf(WebMvcValidator.class);
+		assertThat(validator).isInstanceOf(ValidatorAdapter.class);
 		Object defaultValidator = this.context.getBean("defaultValidator");
-		assertThat(((WebMvcValidator) validator).getTarget()).isSameAs(defaultValidator);
+		assertThat(((ValidatorAdapter) validator).getTarget()).isSameAs(defaultValidator);
 		// Primary Spring validator is the one use by MVC behind the scenes
 		assertThat(this.context.getBean(Validator.class)).isEqualTo(defaultValidator);
 	}
@@ -703,8 +705,8 @@ public class WebMvcAutoConfigurationTests {
 		String[] springValidatorBeans = this.context.getBeanNamesForType(Validator.class);
 		assertThat(springValidatorBeans).containsExactly("mvcValidator");
 		Validator validator = this.context.getBean("mvcValidator", Validator.class);
-		assertThat(validator).isInstanceOf(WebMvcValidator.class);
-		assertThat(((WebMvcValidator) validator).getTarget())
+		assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+		assertThat(((ValidatorAdapter) validator).getTarget())
 				.isSameAs(this.context.getBean(MvcJsr303Validator.class).validator);
 	}
 
@@ -734,9 +736,9 @@ public class WebMvcAutoConfigurationTests {
 		assertThat(springValidatorBeans).containsExactly(
 				"customSpringValidator", "defaultValidator", "mvcValidator");
 		Validator validator = this.context.getBean("mvcValidator", Validator.class);
-		assertThat(validator).isInstanceOf(WebMvcValidator.class);
+		assertThat(validator).isInstanceOf(ValidatorAdapter.class);
 		Object defaultValidator = this.context.getBean("defaultValidator");
-		assertThat(((WebMvcValidator) validator).getTarget())
+		assertThat(((ValidatorAdapter) validator).getTarget())
 				.isSameAs(defaultValidator);
 		// Primary Spring validator is the one use by MVC behind the scenes
 		assertThat(this.context.getBean(Validator.class)).isEqualTo(defaultValidator);
@@ -752,9 +754,8 @@ public class WebMvcAutoConfigurationTests {
 		assertThat(jsrValidatorBeans).containsExactly("customJsr303Validator");
 		assertThat(springValidatorBeans).containsExactly("mvcValidator");
 		Validator validator = this.context.getBean(Validator.class);
-		assertThat(validator).isInstanceOf(WebMvcValidator.class);
-		SpringValidatorAdapter target = ((WebMvcValidator) validator)
-				.getTarget();
+		assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+		Validator target = ((ValidatorAdapter) validator).getTarget();
 		assertThat(new DirectFieldAccessor(target).getPropertyValue("targetValidator"))
 				.isSameAs(this.context.getBean("customJsr303Validator"));
 	}
@@ -764,9 +765,9 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	private void load(Class<?> config, Class<?>[] exclude, String... environment) {
-		this.context = new AnnotationConfigEmbeddedWebApplicationContext();
+		this.context = new AnnotationConfigServletWebServerApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context, environment);
-		List<Class<?>> configClasses = new ArrayList<Class<?>>();
+		List<Class<?>> configClasses = new ArrayList<>();
 		if (config != null) {
 			configClasses.add(config);
 		}
@@ -804,7 +805,7 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Configuration
-	protected static class WebJars extends WebMvcConfigurerAdapter {
+	protected static class WebJars implements WebMvcConfigurer {
 
 		@Override
 		public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -815,7 +816,7 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Configuration
-	protected static class AllResources extends WebMvcConfigurerAdapter {
+	protected static class AllResources implements WebMvcConfigurer {
 
 		@Override
 		public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -828,13 +829,13 @@ public class WebMvcAutoConfigurationTests {
 	public static class Config {
 
 		@Bean
-		public EmbeddedServletContainerFactory containerFactory() {
-			return containerFactory;
+		public ServletWebServerFactory webServerFactory() {
+			return webServerFactory;
 		}
 
 		@Bean
-		public EmbeddedServletContainerCustomizerBeanPostProcessor embeddedServletContainerCustomizerBeanPostProcessor() {
-			return new EmbeddedServletContainerCustomizerBeanPostProcessor();
+		public WebServerFactoryCustomizerBeanPostProcessor ServletWebServerCustomizerBeanPostProcessor() {
+			return new WebServerFactoryCustomizerBeanPostProcessor();
 		}
 
 	}
@@ -946,7 +947,7 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Configuration
-	protected static class MvcValidator extends WebMvcConfigurerAdapter {
+	protected static class MvcValidator implements WebMvcConfigurer {
 
 		private final Validator validator = mock(Validator.class);
 
@@ -958,7 +959,7 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Configuration
-	protected static class MvcJsr303Validator extends WebMvcConfigurerAdapter {
+	protected static class MvcJsr303Validator implements WebMvcConfigurer {
 
 		private final LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
 
