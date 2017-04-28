@@ -27,45 +27,37 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import org.thymeleaf.spring5.ISpringWebFluxTemplateEngine;
 import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
-import org.thymeleaf.spring5.view.ThymeleafView;
-import org.thymeleaf.spring5.view.ThymeleafViewResolver;
+import org.thymeleaf.spring5.view.reactive.ThymeleafReactiveViewResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.test.rule.OutputCapture;
 import org.springframework.boot.test.util.EnvironmentTestUtils;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.web.reactive.context.GenericReactiveWebApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockServletContext;
+import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
-import org.springframework.web.servlet.ViewResolver;
-import org.springframework.web.servlet.resource.ResourceUrlEncodingFilter;
-import org.springframework.web.servlet.support.RequestContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 /**
- * Tests for {@link ThymeleafAutoConfiguration} in Servlet-based applications.
+ * Tests for {@link ThymeleafAutoConfiguration} in Reactive applications.
  *
- * @author Dave Syer
- * @author Stephane Nicoll
- * @author Eddú Meléndez
  * @author Brian Clozel
  */
-public class ThymeleafServletAutoConfigurationTests {
+public class ThymeleafReactiveAutoConfigurationTests {
 
 	@Rule
 	public OutputCapture output = new OutputCapture();
 
-	private AnnotationConfigWebApplicationContext context;
+	private GenericReactiveWebApplicationContext context;
 
 	@After
 	public void close() {
@@ -76,11 +68,10 @@ public class ThymeleafServletAutoConfigurationTests {
 
 	@Test
 	public void createFromConfigClass() throws Exception {
-		load(BaseConfiguration.class, "spring.thymeleaf.mode:XHTML",
-				"spring.thymeleaf.suffix:");
+		load(BaseConfiguration.class, "spring.thymeleaf.suffix:.txt");
 		TemplateEngine engine = this.context.getBean(TemplateEngine.class);
 		Context attrs = new Context(Locale.UK, Collections.singletonMap("foo", "bar"));
-		String result = engine.process("template.txt", attrs);
+		String result = engine.process("template", attrs);
 		assertThat(result).isEqualTo("<html>bar</html>");
 	}
 
@@ -91,9 +82,19 @@ public class ThymeleafServletAutoConfigurationTests {
 		assertThat(resolver instanceof SpringResourceTemplateResolver).isTrue();
 		assertThat(((SpringResourceTemplateResolver) resolver).getCharacterEncoding())
 				.isEqualTo("UTF-16");
-		ThymeleafViewResolver views = this.context.getBean(ThymeleafViewResolver.class);
-		assertThat(views.getCharacterEncoding()).isEqualTo("UTF-16");
-		assertThat(views.getContentType()).isEqualTo("text/html;charset=UTF-16");
+		ThymeleafReactiveViewResolver views = this.context
+				.getBean(ThymeleafReactiveViewResolver.class);
+		assertThat(views.getDefaultCharset().name()).isEqualTo("UTF-16");
+	}
+
+	@Test
+	public void overrideMediaTypes() throws Exception {
+		load(BaseConfiguration.class,
+				"spring.thymeleaf.reactive.media-types:text/html,text/plain");
+		ThymeleafReactiveViewResolver views = this.context
+				.getBean(ThymeleafReactiveViewResolver.class);
+		assertThat(views.getSupportedMediaTypes()).contains(MediaType.TEXT_HTML,
+				MediaType.TEXT_PLAIN);
 	}
 
 	@Test
@@ -106,7 +107,8 @@ public class ThymeleafServletAutoConfigurationTests {
 	@Test
 	public void overrideViewNames() throws Exception {
 		load(BaseConfiguration.class, "spring.thymeleaf.viewNames:foo,bar");
-		ThymeleafViewResolver views = this.context.getBean(ThymeleafViewResolver.class);
+		ThymeleafReactiveViewResolver views = this.context
+				.getBean(ThymeleafReactiveViewResolver.class);
 		assertThat(views.getViewNames()).isEqualTo(new String[] { "foo", "bar" });
 	}
 
@@ -122,32 +124,14 @@ public class ThymeleafServletAutoConfigurationTests {
 		new File("target/test-classes/templates/empty-directory").mkdir();
 		load(BaseConfiguration.class,
 				"spring.thymeleaf.prefix:classpath:/templates/empty-directory/");
-	}
-
-	@Test
-	public void createLayoutFromConfigClass() throws Exception {
-		AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
-		context.register(ThymeleafAutoConfiguration.class,
-				PropertyPlaceholderAutoConfiguration.class);
-		MockServletContext servletContext = new MockServletContext();
-		context.setServletContext(servletContext);
-		context.refresh();
-		ThymeleafView view = (ThymeleafView) context.getBean(ThymeleafViewResolver.class)
-				.resolveViewName("view", Locale.UK);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setAttribute(RequestContext.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context);
-		view.render(Collections.singletonMap("foo", "bar"), request, response);
-		String result = response.getContentAsString();
-		assertThat(result).contains("<title>Content</title>");
-		assertThat(result).contains("<span>bar</span>");
-		context.close();
+		this.output.expect(not(containsString("Cannot find template location")));
 	}
 
 	@Test
 	public void useDataDialect() throws Exception {
 		load(BaseConfiguration.class);
-		TemplateEngine engine = this.context.getBean(TemplateEngine.class);
+		ISpringWebFluxTemplateEngine engine = this.context
+				.getBean(ISpringWebFluxTemplateEngine.class);
 		Context attrs = new Context(Locale.UK, Collections.singletonMap("foo", "bar"));
 		String result = engine.process("data-dialect", attrs);
 		assertThat(result).isEqualTo("<html><body data-foo=\"bar\"></body></html>");
@@ -156,7 +140,8 @@ public class ThymeleafServletAutoConfigurationTests {
 	@Test
 	public void useJava8TimeDialect() throws Exception {
 		load(BaseConfiguration.class);
-		TemplateEngine engine = this.context.getBean(TemplateEngine.class);
+		ISpringWebFluxTemplateEngine engine = this.context
+				.getBean(ISpringWebFluxTemplateEngine.class);
 		Context attrs = new Context(Locale.UK);
 		String result = engine.process("java8time-dialect", attrs);
 		assertThat(result).isEqualTo("<html><body>2015-11-24</body></html>");
@@ -165,42 +150,11 @@ public class ThymeleafServletAutoConfigurationTests {
 	@Test
 	public void renderTemplate() throws Exception {
 		load(BaseConfiguration.class);
-		TemplateEngine engine = this.context.getBean(TemplateEngine.class);
+		ISpringWebFluxTemplateEngine engine = this.context
+				.getBean(ISpringWebFluxTemplateEngine.class);
 		Context attrs = new Context(Locale.UK, Collections.singletonMap("foo", "bar"));
 		String result = engine.process("home", attrs);
 		assertThat(result).isEqualTo("<html><body>bar</body></html>");
-	}
-
-	@Test
-	public void renderNonWebAppTemplate() throws Exception {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
-				ThymeleafAutoConfiguration.class,
-				PropertyPlaceholderAutoConfiguration.class);
-		assertThat(context.getBeanNamesForType(ViewResolver.class).length).isEqualTo(0);
-		try {
-			TemplateEngine engine = context.getBean(TemplateEngine.class);
-			Context attrs = new Context(Locale.UK,
-					Collections.singletonMap("greeting", "Hello World"));
-			String result = engine.process("message", attrs);
-			assertThat(result).contains("Hello World");
-		}
-		finally {
-			context.close();
-		}
-	}
-
-	@Test
-	public void registerResourceHandlingFilterDisabledByDefault() throws Exception {
-		load(BaseConfiguration.class);
-		assertThat(this.context.getBeansOfType(ResourceUrlEncodingFilter.class))
-				.isEmpty();
-	}
-
-	@Test
-	public void registerResourceHandlingFilterOnlyIfResourceChainIsEnabled()
-			throws Exception {
-		load(BaseConfiguration.class, "spring.resources.chain.enabled:true");
-		assertThat(this.context.getBean(ResourceUrlEncodingFilter.class)).isNotNull();
 	}
 
 	@Test
@@ -211,17 +165,8 @@ public class ThymeleafServletAutoConfigurationTests {
 				.isInstanceOf(GroupingStrategy.class);
 	}
 
-	@Test
-	public void cachingCanBeDisabled() {
-		load(BaseConfiguration.class, "spring.thymeleaf.cache:false");
-		assertThat(this.context.getBean(ThymeleafViewResolver.class).isCache()).isFalse();
-		SpringResourceTemplateResolver templateResolver = this.context
-				.getBean(SpringResourceTemplateResolver.class);
-		assertThat(templateResolver.isCacheable()).isFalse();
-	}
-
 	private void load(Class<?> config, String... envVariables) {
-		this.context = new AnnotationConfigWebApplicationContext();
+		this.context = new GenericReactiveWebApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context, envVariables);
 		if (config != null) {
 			this.context.register(config);
@@ -233,7 +178,7 @@ public class ThymeleafServletAutoConfigurationTests {
 	@Configuration
 	@ImportAutoConfiguration({ ThymeleafAutoConfiguration.class,
 			PropertyPlaceholderAutoConfiguration.class })
-	static class BaseConfiguration {
+	protected static class BaseConfiguration {
 
 	}
 
