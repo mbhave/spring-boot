@@ -336,8 +336,23 @@ public class ConfigurationMetadataAnnotationProcessor extends AbstractProcessor 
 		if (hasAnnotation(field, nestedConfigurationPropertyAnnotation())) {
 			return true;
 		}
-		return this.typeUtils.isEnclosedIn(returnType, element)
+		return (isParentTheSame(returnType, element))
 				&& returnType.getKind() != ElementKind.ENUM;
+	}
+
+	private boolean isParentTheSame(Element returnType, TypeElement element) {
+		if (returnType == null || element == null) {
+			return false;
+		}
+		return getParentType(returnType).equals(getParentType(element));
+	}
+
+	private Element getParentType(Element element) {
+		while ((element.getEnclosingElement() != null) &&
+				(element.getEnclosingElement() instanceof TypeElement)) {
+			element = element.getEnclosingElement();
+		}
+		return element;
 	}
 
 	private boolean isDeprecated(Element element) {
