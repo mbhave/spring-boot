@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -427,6 +428,103 @@ public class MapBinderTests {
 				eq(Bindable.of(String.class)), any(), eq("1"));
 		inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")),
 				eq(target), any(), isA(Map.class));
+	}
+
+	@Test
+	public void bindToMapStringArrayWithDotKeysShouldPreserveDot() throws Exception {
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo.bar.baz[0]", "a");
+		mockSource.put("foo.bar.baz[1]", "b");
+		mockSource.put("foo.bar.baz[2]", "c");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		Bindable<Map<String, String[]>> target = STRING_ARRAY_MAP;
+		Map<String, String[]> map = this.binder.bind("foo", target, handler).get();
+		assertThat(map.get("bar.baz")).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	public void bindToMapStringArrayWithDotKeysAndCommaSeparatedShouldPreserveDot() throws Exception {
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo.bar.baz", "a,b,c");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		Bindable<Map<String, String[]>> target = STRING_ARRAY_MAP;
+		Map<String, String[]> map = this.binder.bind("foo", target, handler).get();
+		assertThat(map.get("bar.baz")).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	public void bindToMapStringCollectionWithDotKeysShouldPreserveDot() throws Exception {
+		Bindable<List<String>> valueType = Bindable.listOf(String.class);
+		ResolvableType mapType = ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), valueType.getType());
+		Bindable<Map<String, List<String>>> target = Bindable.of(mapType);
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo.bar.baz[0]", "a");
+		mockSource.put("foo.bar.baz[1]", "b");
+		mockSource.put("foo.bar.baz[2]", "c");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		Map<String, List<String>> map = this.binder.bind("foo", target, handler).get();
+		List<String> values = map.get("bar.baz");
+		assertThat(values).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	public void bindToMapNonScalarCollectionWithDotKeysShouldBind() throws Exception {
+		Bindable<List<JavaBean>> valueType = Bindable.listOf(JavaBean.class);
+		ResolvableType mapType = ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), valueType.getType());
+		Bindable<Map<String, List<JavaBean>>> target = Bindable.of(mapType);
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo.bar.baz[0].value", "a");
+		mockSource.put("foo.bar.baz[1].value", "b");
+		mockSource.put("foo.bar.baz[2].value", "c");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		Map<String, List<JavaBean>> map = this.binder.bind("foo", target, handler).get();
+		List<JavaBean> values = map.get("bar.baz");
+		assertThat(values.stream().map(JavaBean::getValue).collect(Collectors.toList())).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	public void bindToListOfMaps() throws Exception {
+		Bindable<List<Integer>> listBindable = Bindable.of(ResolvableType.forClassWithGenerics(List.class, Integer.class));
+		Bindable<Map<String, List<Integer>>> mapBindable = Bindable.of(ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), listBindable.getType()));
+		Bindable<List<Map<String, List<Integer>>>> target = Bindable.of(ResolvableType.forClassWithGenerics(List.class, mapBindable.getType()));
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo[0].a", "1,2,3");
+		mockSource.put("foo[1].b", "4,5,6");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		List<Map<String, List<Integer>>> list = this.binder.bind("foo", target, handler).get();
+		assertThat(list.get(0).get("a")).containsExactly(1, 2, 3);
+		assertThat(list.get(1).get("b")).containsExactly(4, 5, 6);
+	}
+
+	@Test
+	public void bindToMapWithNumberKey() throws Exception {
+		Bindable<List<String>> listBindable = Bindable.of(ResolvableType.forClassWithGenerics(List.class, String.class));
+		Bindable<Map<Integer, List<String>>> target = Bindable.of(ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(Integer.class), listBindable.getType()));
+		MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+		mockSource.put("foo[0]", "a,b,c");
+		mockSource.put("foo[1]", "e,f,g");
+		this.sources
+				.add(mockSource);
+		BindHandler handler = mock(BindHandler.class,
+				withSettings().defaultAnswer(Answers.CALLS_REAL_METHODS));
+		Map<Integer, List<String>> map = this.binder.bind("foo", target, handler).get();
+		assertThat(map.get(0)).containsExactly("a", "b", "c");
+		assertThat(map.get(1)).containsExactly("e", "f", "g");
 	}
 
 	public static class Foo {
