@@ -33,6 +33,7 @@ import org.springframework.core.env.MutablePropertySources;
  * @author Stephane Nicoll
  * @since 1.4.0
  */
+@Deprecated
 public abstract class EnvironmentTestUtils {
 
 	/**
