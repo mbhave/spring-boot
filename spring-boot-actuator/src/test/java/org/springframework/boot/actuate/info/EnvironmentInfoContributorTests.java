@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.springframework.boot.test.util.EnvironmentTestUtils;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.StandardEnvironment;
@@ -40,8 +40,8 @@ public class EnvironmentInfoContributorTests {
 
 	@Test
 	public void extractOnlyInfoProperty() {
-		EnvironmentTestUtils.addEnvironment(this.environment, "info.app=my app",
-				"info.version=1.0.0", "foo=bar");
+		TestPropertyValues.of("info.app=my app",
+				"info.version=1.0.0", "foo=bar").applyTo(this.environment);
 		Info actual = contributeFrom(this.environment);
 		assertThat(actual.get("app", String.class)).isEqualTo("my app");
 		assertThat(actual.get("version", String.class)).isEqualTo("1.0.0");
@@ -50,7 +50,7 @@ public class EnvironmentInfoContributorTests {
 
 	@Test
 	public void extractNoEntry() {
-		EnvironmentTestUtils.addEnvironment(this.environment, "foo=bar");
+		TestPropertyValues.of("foo=bar").applyTo(this.environment);
 		Info actual = contributeFrom(this.environment);
 		assertThat(actual.getDetails().size()).isEqualTo(0);
 	}
