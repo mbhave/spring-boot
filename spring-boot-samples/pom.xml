@@ -1,21 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.0.0.BUILD-SNAPSHOT</version>
-		<relativePath>../spring-boot-starters/spring-boot-starter-parent</relativePath>
+		<version>${revision}</version>
+		<relativePath>../spring-boot-build/spring-boot-starters/spring-boot-starter-parent</relativePath>
 	</parent>
 	<artifactId>spring-boot-samples</artifactId>
 	<packaging>pom</packaging>
 	<name>Spring Boot Samples</name>
 	<description>Spring Boot Samples</description>
-	<url>http://projects.spring.io/spring-boot/</url>
-	<organization>
-		<name>Pivotal Software, Inc.</name>
-		<url>http://www.spring.io</url>
-	</organization>
 	<properties>
 		<main.basedir>${basedir}/..</main.basedir>
 		<java.version>1.8</java.version>
@@ -120,11 +116,11 @@
 					<additionalConfig>
 						<file>
 							<name>.settings/org.eclipse.jdt.ui.prefs</name>
-							<location>${main.basedir}/eclipse/org.eclipse.jdt.ui.prefs</location>
+							<location>${main.basedir}/../eclipse/org.eclipse.jdt.ui.prefs</location>
 						</file>
 						<file>
 							<name>.settings/org.eclipse.jdt.core.prefs</name>
-							<location>${main.basedir}/eclipse/org.eclipse.jdt.core.prefs</location>
+							<location>${main.basedir}/../eclipse/org.eclipse.jdt.core.prefs</location>
 						</file>
 					</additionalConfig>
 				</configuration>
@@ -168,10 +164,18 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-install-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+				<!--This plugin's configuration is used to store Eclipse m2e settings
+					only. It has no influence on the Maven build itself. -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
@@ -224,48 +228,4 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-	<repositories>
-		<repository>
-			<id>spring-snapshots</id>
-			<name>Spring Snapshots</name>
-			<url>http://repo.spring.io/snapshot</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>spring-milestones</id>
-			<name>Spring Milestones</name>
-			<url>http://repo.spring.io/milestone</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>spring-snapshots</id>
-			<name>Spring Snapshots</name>
-			<url>http://repo.spring.io/snapshot</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</pluginRepository>
-		<pluginRepository>
-			<id>spring-milestones</id>
-			<name>Spring Milestones</name>
-			<url>http://repo.spring.io/milestone</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-		<pluginRepository>
-			<id>spring-releases</id>
-			<name>Spring Releases</name>
-			<url>http://repo.spring.io/release</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
 </project>
