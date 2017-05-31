@@ -1,0 +1,58 @@
+# maven-cache-resource
+a Concourse resource for caching dependencies downloaded by Maven.
+
+
+## Resource Configuration
+[source,yml]
+----
+resource_types:
+
+  - name: maven-cache
+    type: docker-image
+    source: {repository: springboot/maven-cache-resource, tag: latest}
+----
+
+
+## Source Configuration
+* `<<:`: *Required.* The source is the same as the corresponding git resource
+
+Support the same configuration as https://github.com/concourse/git-resource[git-resource] except the `paths` property is implicitly set to `"**/pom.xml"`.
+
+
+### Example
+[source,yml]
+----
+resources:
+  - name: repo
+    type: git
+    source: &repo-source # Use YAML anchor
+      uri: https://github.com/ymedlop/npm-cache-resource.git
+      branch: npm-package-example
+
+  - name: maven-repo-cache
+    type: maven-cache
+    source:
+      <<: *repo-source # Reference anchor above
+----
+
+
+## Behavior
+
+
+### `check`: Check for new commits
+The repository is cloned (or pulled if already present), and any `pom.xml` commits from the given version on are returned.
+
+Any commits that contain the string  `[ci skip]`` will be ignored.
+This allows you to commit to your repository without triggering a new version.
+
+
+### `in`: Pulls a package from npm
+Clones the repository to a temporary folder then runs the specified script to populate `.m2/repository`.
+
+
+### `out`: Nothing to do here....
+
+
+## Credits:
+* https://github.com/ymedlop/npm-cache-resource[npm-cache-resource]
+* https://github.com/concourse/git-resource[concourse git resource]

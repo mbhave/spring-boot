@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+[ "$TRACE" == "true" ] && set -x
+set -e
+set -o pipefail
+
+source $(dirname $0)/git/common.sh
+destination="$1"
+
+echo "Delegating to git-resource /in" >&2
+gitDestination="$(mktemp -d -t git-resource-destination.XXXXXX)"
+$(dirname $0)/git/in "${gitDestination}"
+
+
+runCommand() {
+  return
+}
+
+payload=$(echo /${TMPDIR}/git-resource-request.*)
+
+echo "Linking .m2 to ${destination}" >&2
+if [ -d "~/.m2" ]; then
+  rm -fr ~/.m2
+fi
+ln -s "$destination" ~/.m2
+
+log=$(mktemp ${TMPDIR}/maven-cache-resource-request-log.XXXXXX)
+commands="$(jq -r '(.source.commands // [""])[]' < $payload)"
+if [ -z "$commands" ]; then
+  echo "Invalid payload (missing commands):" >&2
+  cat "${payload}" >&2
+  exit 1
+fi
+
+while read -r command; do
+  cd "${gitDestination}"
+  echo "Running ${command}" >&2
+  result=0
+  (eval "${command}" 2>&1 > "${log}") || result=$?
+  if [ $result > 0 ]; then
+  	tail -n 400 "${log}" >&2
+  	echo "\n${command} failed with exit code ${result}"  >&2
+    exit 1
+  fi
+done <<< "${commands}"
