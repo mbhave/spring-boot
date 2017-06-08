@@ -9,6 +9,5 @@ inputs:
   - name: maven-repo-cache
 outputs:
   - name: m2
-    path: ~/.m2
 run:
   path: git-repo/ci/scripts/run-build.sh
