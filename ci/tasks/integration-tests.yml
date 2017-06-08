@@ -1,0 +1,11 @@
+---
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: springboot/8-jdk-alpine-maven
+inputs:
+  - name: git-repo
+  - name: maven-repo-cache
+run:
+  path: git-repo/ci/scripts/integration-tests.sh

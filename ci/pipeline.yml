@@ -36,14 +36,16 @@ jobs:
     plan:
       - get: git-repo
         passed: [build]
+        trigger: true
       - get: maven-repo-cache
         passed: [build]
       - task: samples
-        file: git-repo/ci/tasks/run-samples.yml
+        file: git-repo/ci/tasks/samples.yml
   - name: integration-tests
     plan:
       - get: git-repo
         passed: [build]
+        trigger: true
       - get: maven-repo-cache
         passed: [build]
       - task: samples
