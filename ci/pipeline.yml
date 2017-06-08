@@ -48,6 +48,6 @@ jobs:
         trigger: true
       - get: maven-repo-cache
         passed: [build]
-      - task: samples
+      - task: integration-tests
         file: git-repo/ci/tasks/integration-tests.yml
 
