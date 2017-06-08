@@ -32,22 +32,27 @@ jobs:
       - get: maven-repo-cache
       - task: run-build
         file: git-repo/ci/tasks/run-build.yml
-  - name: samples
-    plan:
-      - get: git-repo
-        passed: [build]
-        trigger: true
-      - get: maven-repo-cache
-        passed: [build]
-      - task: samples
-        file: git-repo/ci/tasks/samples.yml
-  - name: integration-tests
-    plan:
-      - get: git-repo
-        passed: [build]
-        trigger: true
-      - get: maven-repo-cache
-        passed: [build]
-      - task: integration-tests
-        file: git-repo/ci/tasks/integration-tests.yml
+      - aggregate:
+          - task: samples
+            file: git-repo/ci/tasks/samples.yml
+          - task: integration-tests
+            file: git-repo/ci/tasks/integration-tests.yml
+#  - name: samples
+#    plan:
+#      - get: git-repo
+#        passed: [build]
+#        trigger: true
+#      - get: maven-repo-cache
+#        passed: [build]
+#      - task: samples
+#        file: git-repo/ci/tasks/samples.yml
+#  - name: integration-tests
+#    plan:
+#      - get: git-repo
+#        passed: [build]
+#        trigger: true
+#      - get: maven-repo-cache
+#        passed: [build]
+#      - task: integration-tests
+#        file: git-repo/ci/tasks/integration-tests.yml
 
