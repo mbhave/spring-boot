@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd spring-boot/spring-boot
+cd git-repo
 mvn install -DskipTests
 

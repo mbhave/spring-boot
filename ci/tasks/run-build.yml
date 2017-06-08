@@ -5,9 +5,7 @@ image_resource:
   source:
     repository: springboot/build
 inputs:
-  - name: git
-    path: /src
+  - name: git-repo
   - name: maven-repo-cache
-    path: /cache
 run:
-  path: spring-boot/ci/scripts/run-build.sh
+  path: git-repo/ci/scripts/run-build.sh
