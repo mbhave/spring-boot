@@ -31,7 +31,7 @@ jobs:
         trigger: true
       - get: maven-repo-cache
       - task: run-build
-        file: spring-boot/ci/tasks/run-build.yml
+        file: git-repo/ci/tasks/run-build.yml
   - name: samples
     plan:
       - get: git-repo
@@ -39,7 +39,7 @@ jobs:
       - get: maven-repo-cache
         passed: [build]
       - task: samples
-        file: spring-boot/ci/tasks/run-samples.yml
+        file: git-repo/ci/tasks/run-samples.yml
   - name: integration-tests
     plan:
       - get: git-repo
@@ -47,5 +47,5 @@ jobs:
       - get: maven-repo-cache
         passed: [build]
       - task: samples
-        file: spring-boot/ci/tasks/integration-tests.yml
+        file: git-repo/ci/tasks/integration-tests.yml
 
