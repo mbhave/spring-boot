@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cd java-cache-test
 docker build -t springio/java-cache-resource .
