@@ -8,11 +8,6 @@ resources:
     source: &repo-source
       uri: https://github.com/mbhave/spring-boot.git
       branch: maven-restruct
-  - name: java-cache-test
-    type: git
-    source:
-      uri: https://github.com/philwebb/java-cache-resource.git
-      branch: master
   - name: maven-repo-cache
     type: java-cache-resource
     source:
@@ -34,7 +29,6 @@ jobs:
     plan:
       - get: git-repo
         trigger: true
-      - get: java-cache-test
       - get: maven-repo-cache
       - task: run-build
         file: git-repo/ci/tasks/run-build.yml
