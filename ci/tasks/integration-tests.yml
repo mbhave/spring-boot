@@ -6,7 +6,6 @@ image_resource:
     repository: springboot/8-jdk-alpine-maven
 inputs:
   - name: git-repo
-  - name: maven-repo-cache
   - name: m2
 run:
   path: git-repo/ci/scripts/integration-tests.sh
