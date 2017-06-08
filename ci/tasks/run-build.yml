@@ -3,9 +3,11 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: springboot/8-jdk-alpine-maven
+    repository: docker
+    tag: 17.05
 inputs:
   - name: git-repo
+  - name: java-cache-test
   - name: maven-repo-cache
 outputs:
   - name: m2
