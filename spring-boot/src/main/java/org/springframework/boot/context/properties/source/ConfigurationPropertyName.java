@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -182,9 +183,10 @@ public final class ConfigurationPropertyName
 		process(elementValue, '.', (value, start, end, indexed) -> Assert.isTrue(
 				start == 0,
 				() -> "Element value '" + elementValue + "' must be a single item"));
+		List<Character> invalidChars = ElementValidator.getInvalidChars(elementValue);
 		Assert.isTrue(
-				isIndexed(elementValue) || ElementValidator.isValidElement(elementValue),
-				() -> "Element value '" + elementValue + "' is not valid");
+				isIndexed(elementValue) || invalidChars.isEmpty(),
+				() -> buildMessage("Element value '" + elementValue + "'", invalidChars));
 		int length = this.elements.length;
 		CharSequence[] elements = new CharSequence[length + 1];
 		System.arraycopy(this.elements, 0, elements, 0, length);
@@ -451,13 +453,24 @@ public final class ConfigurationPropertyName
 		List<CharSequence> elements = new ArrayList<CharSequence>(10);
 		process(name, '.', (elementValue, start, end, indexed) -> {
 			if (elementValue.length() > 0) {
-				Assert.isTrue(indexed || ElementValidator.isValidElement(elementValue),
-						() -> "Configuration property name '" + name + "' is not valid");
+				List<Character> invalidChars = ElementValidator.getInvalidChars(elementValue);
+				Assert.isTrue(indexed || invalidChars.isEmpty(),
+						() -> buildMessage("Configuration property name '" + name + "'", invalidChars));
 				elements.add(elementValue);
 			}
 		});
 		return new ConfigurationPropertyName(
 				elements.toArray(new CharSequence[elements.size()]));
+	}
+
+	private static String buildMessage(String message, List<Character> invalidChars) {
+		StringBuilder builder = new StringBuilder(message +
+				" is not valid because of the following character(s): ");
+		String invalid = invalidChars.stream().map(c -> "'" + c.toString() + "'").collect(Collectors.joining(","));
+		builder.append(invalid).append(". ");
+		builder.append("A configuration property name can only contain lowercase alpha-numeric characters and must start with a letter. ");
+		builder.append("('-' can be used for formatting.)");
+		return builder.toString();
 	}
 
 	/**
@@ -651,12 +664,7 @@ public final class ConfigurationPropertyName
 		}
 
 		public static boolean isValidElement(CharSequence elementValue) {
-			for (int i = 0; i < elementValue.length(); i++) {
-				if (!isValidChar(elementValue.charAt(i), i)) {
-					return false;
-				}
-			}
-			return true;
+			return getInvalidChars(elementValue).isEmpty();
 		}
 
 		public static boolean isValidChar(char ch, int index) {
@@ -666,6 +674,17 @@ public final class ConfigurationPropertyName
 				return isAlpha;
 			}
 			return isAlpha || isNumeric || ch == '-';
+		}
+
+		private static List<Character> getInvalidChars(CharSequence elementValue) {
+			List<Character> chars = new ArrayList<>();
+			for (int i = 0; i < elementValue.length(); i++) {
+				char ch = elementValue.charAt(i);
+				if (!isValidChar(ch, i)) {
+					chars.add(ch);
+				}
+			}
+			return chars;
 		}
 
 	}
