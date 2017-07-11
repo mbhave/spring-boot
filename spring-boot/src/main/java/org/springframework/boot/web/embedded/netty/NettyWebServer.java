@@ -19,11 +19,13 @@ package org.springframework.boot.web.embedded.netty;
 import java.net.BindException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import reactor.ipc.netty.NettyContext;
 import reactor.ipc.netty.http.server.HttpServer;
+import reactor.ipc.netty.tcp.BlockingNettyContext;
 
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.WebServerException;
@@ -42,13 +44,11 @@ public class NettyWebServer implements WebServer {
 
 	private static final Log logger = LogFactory.getLog(NettyWebServer.class);
 
-	private CountDownLatch latch;
-
 	private final ReactorHttpHandlerAdapter handlerAdapter;
 
 	private final HttpServer reactorServer;
 
-	private AtomicReference<NettyContext> nettyContext = new AtomicReference<>();
+	private BlockingNettyContext nettyContext;
 
 	public NettyWebServer(HttpServer reactorServer,
 			ReactorHttpHandlerAdapter handlerAdapter) {
@@ -58,11 +58,14 @@ public class NettyWebServer implements WebServer {
 
 	@Override
 	public void start() throws WebServerException {
-		if (this.nettyContext.get() == null) {
-			this.latch = new CountDownLatch(1);
+		if (this.nettyContext == null) {
 			try {
-				this.nettyContext
-						.set(this.reactorServer.newHandler(this.handlerAdapter).block());
+				Consumer<BlockingNettyContext> onStart = blockingNettyContext -> {
+					this.nettyContext = blockingNettyContext;
+					NettyWebServer.logger.info(
+							"Netty started on port(s): " + getPort());
+				};
+				this.reactorServer.startAndAwait(this.handlerAdapter, onStart);
 			}
 			catch (Exception ex) {
 				if (findBindException(ex) != null) {
@@ -70,8 +73,6 @@ public class NettyWebServer implements WebServer {
 				}
 				throw new WebServerException("Unable to start Netty", ex);
 			}
-			NettyWebServer.logger.info("Netty started on port(s): " + getPort());
-			startDaemonAwaitThread();
 		}
 	}
 
@@ -86,39 +87,17 @@ public class NettyWebServer implements WebServer {
 		return null;
 	}
 
-	private void startDaemonAwaitThread() {
-		Thread awaitThread = new Thread("server") {
-
-			@Override
-			public void run() {
-				try {
-					NettyWebServer.this.latch.await();
-				}
-				catch (InterruptedException e) {
-				}
-			}
-
-		};
-		awaitThread.setContextClassLoader(getClass().getClassLoader());
-		awaitThread.setDaemon(false);
-		awaitThread.start();
-	}
-
 	@Override
 	public void stop() throws WebServerException {
-		NettyContext context = this.nettyContext.getAndSet(null);
-		if (context != null) {
-			context.dispose();
-		}
-		if (this.latch != null) {
-			this.latch.countDown();
+		if (this.nettyContext != null) {
+			this.nettyContext.shutdown();
 		}
 	}
 
 	@Override
 	public int getPort() {
-		if (this.nettyContext.get() != null) {
-			return this.nettyContext.get().address().getPort();
+		if (this.nettyContext != null) {
+			return this.nettyContext.getPort();
 		}
 		return 0;
 	}
