@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.boot.endpoint.Endpoint;
-import org.springframework.boot.endpoint.jmx.EndpointDynamicMBean;
+import org.springframework.boot.endpoint.jmx.EndpointMBean;
 import org.springframework.boot.endpoint.jmx.JmxAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.jmx.JmxEndpointMBeanFactory;
 import org.springframework.jmx.JmxException;
@@ -61,25 +61,26 @@ class JmxEndpointExporter {
 
 	@PostConstruct
 	public void exportMBeans() {
-		this.mBeanFactory.createMBeans(
-				this.endpointDiscoverer.discoverEndpoints()).forEach(this::register);
+		this.mBeanFactory.createMBeans(this.endpointDiscoverer.discoverEndpoints())
+				.forEach(this::register);
 	}
 
-	private void register(EndpointDynamicMBean mBean) {
+	private void register(EndpointMBean mBean) {
 		try {
 			ObjectName objectName = createObjectName(mBean);
 			this.mBeanExporter.registerManagedResource(mBean, objectName);
 		}
 		catch (MalformedObjectNameException | JmxException ex) {
-			throw new IllegalStateException(String.format(
-					"Failed to register Endpoint with id '%s'",
-					mBean.getEndpointId()), ex);
+			throw new IllegalStateException(
+					String.format("Failed to register Endpoint with id '%s'",
+							mBean.getEndpointId()),
+					ex);
 		}
 	}
 
 	private String domain = "org.springframework.boot";
 
-	private ObjectName createObjectName(EndpointDynamicMBean mBean)
+	private ObjectName createObjectName(EndpointMBean mBean)
 			throws MalformedObjectNameException {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.domain);
@@ -97,7 +98,8 @@ class JmxEndpointExporter {
 		private final JavaType mapStringObject;
 
 		DataConverter(ObjectMapper objectMapper) {
-			this.objectMapper = (objectMapper == null ? new ObjectMapper() : objectMapper);
+			this.objectMapper = (objectMapper == null ? new ObjectMapper()
+					: objectMapper);
 			this.listObject = this.objectMapper.getTypeFactory()
 					.constructParametricType(List.class, Object.class);
 			this.mapStringObject = this.objectMapper.getTypeFactory()
