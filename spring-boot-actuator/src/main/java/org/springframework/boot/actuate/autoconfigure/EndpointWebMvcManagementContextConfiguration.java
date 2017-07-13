@@ -21,8 +21,10 @@ import java.util.List;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.condition.ConditionalOnEnabledEndpoint;
+import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.WebEndpointHandlerMappingCustomizer;
+import org.springframework.boot.actuate.endpoint.web.AuditEventsWebEndpointExtension;
 import org.springframework.boot.actuate.endpoint.web.HealthWebEndpointExtension;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
@@ -141,6 +143,14 @@ public class EndpointWebMvcManagementContextConfiguration {
 		return healthMvcEndpoint;
 	}
 
+	@Bean
+	@ConditionalOnBean(AuditEventsEndpoint.class)
+	@ConditionalOnMissingBean
+	public AuditEventsWebEndpointExtension auditEventsWebEndpointExtension(
+			AuditEventsEndpoint delegate) {
+		return new AuditEventsWebEndpointExtension(delegate);
+	}
+
 	// TODO Port to new infrastructure
 
 	// @Bean
@@ -148,14 +158,6 @@ public class EndpointWebMvcManagementContextConfiguration {
 	// @Conditional(LogFileCondition.class)
 	// public LogFileMvcEndpoint logfileMvcEndpoint() {
 	// return new LogFileMvcEndpoint();
-	// }
-	//
-	// @Bean
-	// @ConditionalOnBean(AuditEventRepository.class)
-	// @ConditionalOnEnabledEndpoint("auditevents")
-	// public AuditEventsMvcEndpoint auditEventMvcEndpoint(
-	// AuditEventRepository auditEventRepository) {
-	// return new AuditEventsMvcEndpoint(auditEventRepository);
 	// }
 
 	private static class LogFileCondition extends SpringBootCondition {

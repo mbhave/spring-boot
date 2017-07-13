@@ -26,6 +26,8 @@ import liquibase.integration.spring.SpringLiquibase;
 import org.flywaydb.core.Flyway;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.actuate.audit.AuditEventRepository;
+import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.AutoConfigurationReportEndpoint;
 import org.springframework.boot.actuate.endpoint.BeansEndpoint;
 import org.springframework.boot.actuate.endpoint.ConfigurationPropertiesReportEndpoint;
@@ -185,6 +187,14 @@ public class EndpointAutoConfiguration {
 	@ConditionalOnMissingBean
 	public ConfigurationPropertiesReportEndpoint configurationPropertiesReportEndpoint() {
 		return new ConfigurationPropertiesReportEndpoint();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnBean(AuditEventRepository.class)
+	public AuditEventsEndpoint auditEventsEndpoint(
+			AuditEventRepository auditEventRepository) {
+		return new AuditEventsEndpoint(auditEventRepository);
 	}
 
 	@Configuration

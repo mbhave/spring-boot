@@ -16,12 +16,53 @@
 
 package org.springframework.boot.actuate.endpoint;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.boot.actuate.audit.AuditEvent;
+import org.springframework.boot.actuate.audit.AuditEventRepository;
+import org.springframework.boot.endpoint.Endpoint;
+import org.springframework.boot.endpoint.ReadOperation;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
+
 /**
  * {@link Endpoint} to expose audit events.
  *
  * @author Andy Wilkinson
  * @since 2.0.0
  */
+@Endpoint(id = "auditevents")
 public class AuditEventsEndpoint {
+
+	private final AuditEventRepository auditEventRepository;
+
+	public AuditEventsEndpoint(AuditEventRepository auditEventRepository) {
+		Assert.notNull(auditEventRepository, "AuditEventRepository must not be null");
+		this.auditEventRepository = auditEventRepository;
+	}
+
+	@ReadOperation
+	public List<AuditEvent> eventsWithPrincipalDateAfterAndType(String principal,
+			String after, String type) {
+		return this.auditEventRepository.find(principal, parseDate(after), type);
+	}
+
+	private Date parseDate(String date) {
+		try {
+			if (StringUtils.hasLength(date)) {
+				OffsetDateTime offsetDateTime = OffsetDateTime.parse(date,
+						DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+				return new Date(offsetDateTime.toEpochSecond() * 1000);
+			}
+			return null;
+		}
+		catch (DateTimeParseException ex) {
+			throw new IllegalArgumentException(ex);
+		}
+	}
 
 }
