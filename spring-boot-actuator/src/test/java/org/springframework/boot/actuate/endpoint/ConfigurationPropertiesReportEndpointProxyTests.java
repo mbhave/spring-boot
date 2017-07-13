@@ -20,13 +20,11 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.test.context.ContextLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -48,27 +46,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ConfigurationPropertiesReportEndpointProxyTests {
 
-	private AnnotationConfigApplicationContext context;
-
-	@Before
-	public void setup() {
-		this.context = new AnnotationConfigApplicationContext();
-	}
-
-	@After
-	public void close() {
-		if (this.context != null) {
-			this.context.close();
-		}
-	}
-
 	@Test
 	public void testWithProxyClass() throws Exception {
-		this.context.register(Config.class, SqlExecutor.class);
-		this.context.refresh();
-		Map<String, Object> report = this.context
-				.getBean(ConfigurationPropertiesReportEndpoint.class).invoke();
-		assertThat(report.toString()).contains("prefix=executor.sql");
+		ContextLoader.standard().config(Config.class, SqlExecutor.class).load(context -> {
+			Map<String, Object> report = context
+					.getBean(ConfigurationPropertiesReportEndpoint.class)
+					.configurationProperties();
+			assertThat(report.toString()).contains("prefix=executor.sql");
+		});
 	}
 
 	@Configuration

@@ -18,14 +18,12 @@ package org.springframework.boot.actuate.endpoint;
 
 import java.util.Map;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.util.TestPropertyValues;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.StandardContextLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,50 +36,38 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ConfigurationPropertiesReportEndpointMethodAnnotationsTests {
 
-	private AnnotationConfigApplicationContext context;
-
-	@Before
-	public void setup() {
-		this.context = new AnnotationConfigApplicationContext();
-	}
-
-	@After
-	public void close() {
-		if (this.context != null) {
-			this.context.close();
-		}
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testNaming() {
+		StandardContextLoader contextLoader = ContextLoader.standard()
+				.config(Config.class).env("other.name:foo", "first.name:bar");
+		contextLoader.load(context -> {
+			ConfigurationPropertiesReportEndpoint endpoint = context
+					.getBean(ConfigurationPropertiesReportEndpoint.class);
+			Map<String, Object> properties = endpoint.configurationProperties();
+			Map<String, Object> nestedProperties = (Map<String, Object>) properties
+					.get("other");
+			assertThat(nestedProperties).isNotNull();
+			assertThat(nestedProperties.get("prefix")).isEqualTo("other");
+			assertThat(nestedProperties.get("properties")).isNotNull();
+		});
 	}
 
 	@Test
 	@SuppressWarnings("unchecked")
-	public void testNaming() throws Exception {
-		this.context.register(Config.class);
-		TestPropertyValues.of("other.name:foo", "first.name:bar").applyTo(this.context);
-		this.context.refresh();
-		ConfigurationPropertiesReportEndpoint report = this.context
-				.getBean(ConfigurationPropertiesReportEndpoint.class);
-		Map<String, Object> properties = report.invoke();
-		Map<String, Object> nestedProperties = (Map<String, Object>) properties
-				.get("other");
-		assertThat(nestedProperties).isNotNull();
-		assertThat(nestedProperties.get("prefix")).isEqualTo("other");
-		assertThat(nestedProperties.get("properties")).isNotNull();
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	public void testOverride() throws Exception {
-		this.context.register(Other.class);
-		TestPropertyValues.of("other.name:foo").applyTo(this.context);
-		this.context.refresh();
-		ConfigurationPropertiesReportEndpoint report = this.context
-				.getBean(ConfigurationPropertiesReportEndpoint.class);
-		Map<String, Object> properties = report.invoke();
-		Map<String, Object> nestedProperties = (Map<String, Object>) properties
-				.get("bar");
-		assertThat(nestedProperties).isNotNull();
-		assertThat(nestedProperties.get("prefix")).isEqualTo("other");
-		assertThat(nestedProperties.get("properties")).isNotNull();
+	public void prefixFromBeanMethodConfigurationPropertiesCanOverridePrefixOnClass() {
+		StandardContextLoader contextLoader = ContextLoader.standard()
+				.config(OverriddenPrefix.class).env("other.name:foo");
+		contextLoader.load(context -> {
+			ConfigurationPropertiesReportEndpoint endpoint = context
+					.getBean(ConfigurationPropertiesReportEndpoint.class);
+			Map<String, Object> properties = endpoint.configurationProperties();
+			Map<String, Object> nestedProperties = (Map<String, Object>) properties
+					.get("bar");
+			assertThat(nestedProperties).isNotNull();
+			assertThat(nestedProperties.get("prefix")).isEqualTo("other");
+			assertThat(nestedProperties.get("properties")).isNotNull();
+		});
 	}
 
 	@Configuration
@@ -109,7 +95,7 @@ public class ConfigurationPropertiesReportEndpointMethodAnnotationsTests {
 
 	@Configuration
 	@EnableConfigurationProperties
-	public static class Other {
+	public static class OverriddenPrefix {
 
 		@Bean
 		public ConfigurationPropertiesReportEndpoint endpoint() {
