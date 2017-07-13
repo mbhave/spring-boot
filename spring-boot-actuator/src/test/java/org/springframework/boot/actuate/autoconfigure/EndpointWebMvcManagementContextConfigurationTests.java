@@ -16,25 +16,21 @@
 
 package org.springframework.boot.actuate.autoconfigure;
 
-import java.util.List;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
-import org.springframework.boot.actuate.endpoint.mvc.EndpointHandlerMapping;
-import org.springframework.boot.actuate.endpoint.mvc.MvcEndpointSecurityInterceptor;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +51,9 @@ public class EndpointWebMvcManagementContextConfigurationTests {
 		this.context.register(SecurityAutoConfiguration.class,
 				WebMvcAutoConfiguration.class, JacksonAutoConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class,
-				EndpointAutoConfiguration.class, EndpointServletWebAutoConfiguration.class,
+				EndpointInfrastructureAutoConfiguration.class,
+				EndpointAutoConfiguration.class,
+				EndpointServletWebAutoConfiguration.class,
 				PropertyPlaceholderAutoConfiguration.class,
 				RestTemplateAutoConfiguration.class,
 				EndpointWebMvcManagementContextConfiguration.class);
@@ -70,25 +68,26 @@ public class EndpointWebMvcManagementContextConfigurationTests {
 
 	@Test
 	public void endpointHandlerMapping() throws Exception {
-		TestPropertyValues
-				.of("management.security.enabled=false",
-						"management.security.roles=my-role,your-role")
-				.applyTo(this.context);
+		// TODO Security for new web endpoints
+		// TestPropertyValues
+		// .of("management.security.enabled=false",
+		// "management.security.roles=my-role,your-role")
+		// .applyTo(this.context);
 		this.context.refresh();
-		EndpointHandlerMapping mapping = this.context.getBean("endpointHandlerMapping",
-				EndpointHandlerMapping.class);
-		assertThat(mapping.getPrefix()).isEqualTo("/application");
-		MvcEndpointSecurityInterceptor securityInterceptor = (MvcEndpointSecurityInterceptor) ReflectionTestUtils
-				.getField(mapping, "securityInterceptor");
-		Object secure = ReflectionTestUtils.getField(securityInterceptor, "secure");
-		List<String> roles = getRoles(securityInterceptor);
-		assertThat(secure).isEqualTo(false);
-		assertThat(roles).containsExactly("my-role", "your-role");
+		assertThat(this.context.getBeansOfType(WebEndpointHandlerMapping.class))
+				.hasSize(1);
+		// MvcEndpointSecurityInterceptor securityInterceptor =
+		// (MvcEndpointSecurityInterceptor) ReflectionTestUtils
+		// .getField(mapping, "securityInterceptor");
+		// Object secure = ReflectionTestUtils.getField(securityInterceptor, "secure");
+		// List<String> roles = getRoles(securityInterceptor);
+		// assertThat(secure).isEqualTo(false);
+		// assertThat(roles).containsExactly("my-role", "your-role");
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<String> getRoles(MvcEndpointSecurityInterceptor securityInterceptor) {
-		return (List<String>) ReflectionTestUtils.getField(securityInterceptor, "roles");
-	}
+	// @SuppressWarnings("unchecked")
+	// private List<String> getRoles(MvcEndpointSecurityInterceptor securityInterceptor) {
+	// return (List<String>) ReflectionTestUtils.getField(securityInterceptor, "roles");
+	// }
 
 }

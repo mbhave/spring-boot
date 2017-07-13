@@ -20,7 +20,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import org.springframework.boot.actuate.autoconfigure.AuditAutoConfiguration;
-import org.springframework.boot.actuate.autoconfigure.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -249,8 +248,7 @@ public class MvcEndpointIntegrationTests {
 	}
 
 	@Import(DefaultConfiguration.class)
-	@ImportAutoConfiguration({ SecurityAutoConfiguration.class,
-			ManagementWebSecurityAutoConfiguration.class })
+	@ImportAutoConfiguration({ SecurityAutoConfiguration.class })
 	static class SecureConfiguration {
 
 	}

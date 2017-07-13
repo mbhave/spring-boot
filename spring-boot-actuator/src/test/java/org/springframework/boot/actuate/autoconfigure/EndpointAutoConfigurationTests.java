@@ -116,7 +116,7 @@ public class EndpointAutoConfigurationTests {
 				HealthIndicatorAutoConfiguration.class);
 		HealthEndpoint bean = this.context.getBean(HealthEndpoint.class);
 		assertThat(bean).isNotNull();
-		Health result = bean.getHealth();
+		Health result = bean.health();
 		assertThat(result).isNotNull();
 		assertThat(result.getDetails().containsKey("db")).isTrue();
 	}
@@ -126,7 +126,7 @@ public class EndpointAutoConfigurationTests {
 		load(EndpointAutoConfiguration.class, HealthIndicatorAutoConfiguration.class);
 		HealthEndpoint bean = this.context.getBean(HealthEndpoint.class);
 		assertThat(bean).isNotNull();
-		Health result = bean.getHealth();
+		Health result = bean.health();
 		assertThat(result).isNotNull();
 	}
 
@@ -134,7 +134,7 @@ public class EndpointAutoConfigurationTests {
 	public void loggersEndpointHasLoggers() throws Exception {
 		load(CustomLoggingConfig.class, EndpointAutoConfiguration.class);
 		LoggersEndpoint endpoint = this.context.getBean(LoggersEndpoint.class);
-		Map<String, Object> result = endpoint.getLoggers();
+		Map<String, Object> result = endpoint.loggers();
 		assertThat((Map<?, ?>) result.get("loggers")).size().isGreaterThan(0);
 	}
 
@@ -142,7 +142,7 @@ public class EndpointAutoConfigurationTests {
 	public void metricEndpointsHasSystemMetricsByDefault() {
 		load(PublicMetricsAutoConfiguration.class, EndpointAutoConfiguration.class);
 		MetricsEndpoint endpoint = this.context.getBean(MetricsEndpoint.class);
-		Map<String, Object> metrics = endpoint.getMetrics();
+		Map<String, Object> metrics = endpoint.metrics();
 		assertThat(metrics.containsKey("mem")).isTrue();
 		assertThat(metrics.containsKey("heap.used")).isTrue();
 	}
@@ -152,7 +152,7 @@ public class EndpointAutoConfigurationTests {
 		load(CustomPublicMetricsConfig.class, PublicMetricsAutoConfiguration.class,
 				EndpointAutoConfiguration.class);
 		MetricsEndpoint endpoint = this.context.getBean(MetricsEndpoint.class);
-		Map<String, Object> metrics = endpoint.getMetrics();
+		Map<String, Object> metrics = endpoint.metrics();
 
 		// Custom metrics
 		assertThat(metrics.containsKey("foo")).isTrue();
@@ -180,8 +180,8 @@ public class EndpointAutoConfigurationTests {
 
 		InfoEndpoint endpoint = this.context.getBean(InfoEndpoint.class);
 		assertThat(endpoint).isNotNull();
-		assertThat(endpoint.getInfo().get("git")).isNotNull();
-		assertThat(endpoint.getInfo().get("foo")).isEqualTo("bar");
+		assertThat(endpoint.info().get("git")).isNotNull();
+		assertThat(endpoint.info().get("foo")).isEqualTo("bar");
 	}
 
 	@Test
@@ -194,7 +194,7 @@ public class EndpointAutoConfigurationTests {
 		this.context.refresh();
 		InfoEndpoint endpoint = this.context.getBean(InfoEndpoint.class);
 		assertThat(endpoint).isNotNull();
-		assertThat(endpoint.getInfo().get("git")).isNull();
+		assertThat(endpoint.info().get("git")).isNull();
 	}
 
 	@Test
@@ -207,7 +207,7 @@ public class EndpointAutoConfigurationTests {
 		this.context.refresh();
 
 		InfoEndpoint endpoint = this.context.getBean(InfoEndpoint.class);
-		Map<String, Object> info = endpoint.getInfo();
+		Map<String, Object> info = endpoint.info();
 		assertThat(info).isNotNull();
 		assertThat(info.get("name")).isEqualTo("foo");
 		assertThat(info.get("version")).isEqualTo("1.0");
@@ -244,7 +244,7 @@ public class EndpointAutoConfigurationTests {
 		this.context.refresh();
 		LiquibaseEndpoint endpoint = this.context.getBean(LiquibaseEndpoint.class);
 		assertThat(endpoint).isNotNull();
-		assertThat(endpoint.getLiquibaseReports()).hasSize(1);
+		assertThat(endpoint.liquibaseReports()).hasSize(1);
 	}
 
 	@Test
