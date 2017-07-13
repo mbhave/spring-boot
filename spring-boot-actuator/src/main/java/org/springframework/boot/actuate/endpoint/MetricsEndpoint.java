@@ -89,7 +89,7 @@ public class MetricsEndpoint {
 
 	@ReadOperation
 	public Object getSelectedMetrics(@Selector String name) {
-		return new NamePatternMapFilter(getMetrics()).getResults(name);
+		return new NamePatternMapFilter(metrics()).getResults(name);
 	}
 
 	/**

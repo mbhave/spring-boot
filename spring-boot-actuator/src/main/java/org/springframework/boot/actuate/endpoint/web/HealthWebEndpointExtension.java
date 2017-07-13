@@ -98,7 +98,7 @@ public class HealthWebEndpointExtension {
 
 	@ReadOperation
 	public WebEndpointResponse<Health> getHealth() {
-		Health health = this.delegate.getHealth();
+		Health health = this.delegate.health();
 		Integer status = getStatus(health);
 		return new WebEndpointResponse<Health>(health, status);
 	}

@@ -44,7 +44,7 @@ public class MetricsEndpointMetricReader implements MetricReader {
 	@Override
 	public Metric<?> findOne(String metricName) {
 		Metric<Number> metric = null;
-		Object value = this.endpoint.getMetrics().get(metricName);
+		Object value = this.endpoint.metrics().get(metricName);
 		if (value != null) {
 			metric = new Metric<>(metricName, (Number) value);
 		}
@@ -54,7 +54,7 @@ public class MetricsEndpointMetricReader implements MetricReader {
 	@Override
 	public Iterable<Metric<?>> findAll() {
 		List<Metric<?>> metrics = new ArrayList<>();
-		Map<String, Object> values = this.endpoint.getMetrics();
+		Map<String, Object> values = this.endpoint.metrics();
 		Date timestamp = new Date();
 		for (Entry<String, Object> entry : values.entrySet()) {
 			String name = entry.getKey();
@@ -66,7 +66,7 @@ public class MetricsEndpointMetricReader implements MetricReader {
 
 	@Override
 	public long count() {
-		return this.endpoint.getMetrics().size();
+		return this.endpoint.metrics().size();
 	}
 
 }
