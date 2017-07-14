@@ -80,7 +80,6 @@ public class JmxEndpointInfrastructureAutoConfigurationTests {
 	private void checkEndpointMBeans(MBeanServer mBeanServer, String[] enabledEndpoints,
 			String[] disabledEndpoints) {
 		for (String enabledEndpoint : enabledEndpoints) {
-			System.out.println(enabledEndpoint);
 			assertThat(isRegistered(mBeanServer, getDefaultObjectName(enabledEndpoint)))
 					.as(String.format("Endpoint %s", enabledEndpoint)).isTrue();
 		}
