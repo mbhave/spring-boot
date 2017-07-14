@@ -19,6 +19,7 @@ package org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.management.MalformedObjectNameException;
@@ -27,10 +28,15 @@ import javax.management.ObjectName;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.boot.actuate.autoconfigure.endpoint.support.EndpointEnablementProvider;
 import org.springframework.boot.endpoint.Endpoint;
+import org.springframework.boot.endpoint.EndpointInfo;
+import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.endpoint.jmx.EndpointMBean;
 import org.springframework.boot.endpoint.jmx.JmxAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.jmx.JmxEndpointMBeanFactory;
+import org.springframework.boot.endpoint.jmx.JmxEndpointOperation;
+import org.springframework.core.env.Environment;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.MBeanExporter;
 import org.springframework.jmx.support.ObjectNameManager;
@@ -44,15 +50,18 @@ import org.springframework.util.StringUtils;
  */
 class JmxEndpointExporter {
 
+	private final EndpointEnablementProvider endpointEnablementProvider;
+
 	private final MBeanExporter mBeanExporter;
 
 	private final JmxAnnotationEndpointDiscoverer endpointDiscoverer;
 
 	private final JmxEndpointMBeanFactory mBeanFactory;
 
-	JmxEndpointExporter(MBeanExporter mBeanExporter,
+	JmxEndpointExporter(Environment environment, MBeanExporter mBeanExporter,
 			JmxAnnotationEndpointDiscoverer endpointDiscoverer,
 			ObjectMapper objectMapper) {
+		this.endpointEnablementProvider = new EndpointEnablementProvider(environment);
 		this.mBeanExporter = mBeanExporter;
 		this.endpointDiscoverer = endpointDiscoverer;
 		DataConverter dataConverter = new DataConverter(objectMapper);
@@ -61,8 +70,14 @@ class JmxEndpointExporter {
 
 	@PostConstruct
 	public void exportMBeans() {
-		this.mBeanFactory.createMBeans(this.endpointDiscoverer.discoverEndpoints())
-				.forEach(this::register);
+		this.mBeanFactory.createMBeans(getEnabledJmxEndpoints()).forEach(this::register);
+	}
+
+	private Collection<EndpointInfo<JmxEndpointOperation>> getEnabledJmxEndpoints() {
+		return this.endpointDiscoverer.discoverEndpoints().stream()
+				.filter(endpoint -> this.endpointEnablementProvider.getEndpointEnablement(
+						endpoint.getId(), endpoint.isEnabledByDefault(),
+						EndpointType.JMX).isEnabled()).collect(Collectors.toList());
 	}
 
 	private void register(EndpointMBean mBean) {

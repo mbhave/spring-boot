@@ -110,12 +110,14 @@ public class EndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public EnvironmentEndpoint environmentEndpoint(Environment environment) {
 		return new EnvironmentEndpoint(environment);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public HealthEndpoint healthEndpoint() {
 		return new HealthEndpoint(
 				this.healthAggregator == null ? new OrderedHealthAggregator()
@@ -127,12 +129,14 @@ public class EndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public BeansEndpoint beansEndpoint() {
 		return new BeansEndpoint();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public InfoEndpoint infoEndpoint() throws Exception {
 		return new InfoEndpoint(this.infoContributors == null
 				? Collections.<InfoContributor>emptyList() : this.infoContributors);
@@ -141,12 +145,14 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnBean(LoggingSystem.class)
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public LoggersEndpoint loggersEndpoint(LoggingSystem loggingSystem) {
 		return new LoggersEndpoint(loggingSystem);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public MetricsEndpoint metricsEndpoint() {
 		List<PublicMetrics> publicMetrics = new ArrayList<>();
 		if (this.publicMetrics != null) {
@@ -158,6 +164,7 @@ public class EndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public TraceEndpoint traceEndpoint() {
 		return new TraceEndpoint(this.traceRepository == null
 				? new InMemoryTraceRepository() : this.traceRepository);
@@ -165,6 +172,7 @@ public class EndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public ThreadDumpEndpoint dumpEndpoint() {
 		return new ThreadDumpEndpoint();
 	}
@@ -172,6 +180,7 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnBean(ConditionEvaluationReport.class)
 	@ConditionalOnMissingBean(search = SearchStrategy.CURRENT)
+	@ConditionalOnEnabledEndpoint
 	public AutoConfigurationReportEndpoint autoConfigurationReportEndpoint(
 			ConditionEvaluationReport conditionEvaluationReport) {
 		return new AutoConfigurationReportEndpoint(conditionEvaluationReport);
@@ -179,12 +188,14 @@ public class EndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public ShutdownEndpoint shutdownEndpoint() {
 		return new ShutdownEndpoint();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	public ConfigurationPropertiesReportEndpoint configurationPropertiesReportEndpoint() {
 		return new ConfigurationPropertiesReportEndpoint();
 	}
@@ -192,6 +203,7 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnBean(AuditEventRepository.class)
+	@ConditionalOnEnabledEndpoint
 	public AuditEventsEndpoint auditEventsEndpoint(
 			AuditEventRepository auditEventRepository) {
 		return new AuditEventsEndpoint(auditEventRepository);
@@ -204,6 +216,7 @@ public class EndpointAutoConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
+		@ConditionalOnEnabledEndpoint
 		public FlywayEndpoint flywayEndpoint(Map<String, Flyway> flyways) {
 			return new FlywayEndpoint(flyways);
 		}
@@ -217,6 +230,7 @@ public class EndpointAutoConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
+		@ConditionalOnEnabledEndpoint
 		public LiquibaseEndpoint liquibaseEndpoint(
 				Map<String, SpringLiquibase> liquibases) {
 			return new LiquibaseEndpoint(liquibases);

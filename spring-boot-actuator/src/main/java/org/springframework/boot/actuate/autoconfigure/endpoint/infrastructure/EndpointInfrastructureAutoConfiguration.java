@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.core.env.Environment;
 import org.springframework.jmx.export.MBeanExporter;
 
 /**
@@ -46,6 +47,12 @@ import org.springframework.jmx.export.MBeanExporter;
 @Configuration
 public class EndpointInfrastructureAutoConfiguration {
 
+	private final Environment environment;
+
+	public EndpointInfrastructureAutoConfiguration(Environment environment) {
+		this.environment = environment;
+	}
+
 	@Bean
 	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer(
 			ApplicationContext applicationContext) {
@@ -58,7 +65,7 @@ public class EndpointInfrastructureAutoConfiguration {
 	public JmxEndpointExporter jmxMBeanExporter(MBeanExporter mBeanExporter,
 			JmxAnnotationEndpointDiscoverer endpointDiscoverer,
 			ObjectProvider<ObjectMapper> objectMapper) {
-		return new JmxEndpointExporter(mBeanExporter, endpointDiscoverer,
+		return new JmxEndpointExporter(this.environment, mBeanExporter, endpointDiscoverer,
 				objectMapper.getIfAvailable(ObjectMapper::new));
 	}
 
