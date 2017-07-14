@@ -75,7 +75,7 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 
 		private final List<WebEndpointHandlerMappingCustomizer> mappingCustomizers;
 
-		public MvcWebEndpointConfiguration(
+		MvcWebEndpointConfiguration(
 				ObjectProvider<List<WebEndpointHandlerMappingCustomizer>> mappingCustomizers) {
 			this.mappingCustomizers = mappingCustomizers
 					.getIfUnique(Collections::emptyList);

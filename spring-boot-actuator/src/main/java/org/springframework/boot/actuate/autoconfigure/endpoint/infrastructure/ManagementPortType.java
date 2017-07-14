@@ -26,12 +26,12 @@ enum ManagementPortType {
 	DISABLED,
 
 	/**
-	 * The management port is the same as the server port
+	 * The management port is the same as the server port.
 	 */
 	SAME,
 
 	/**
-	 * The management port and server port are different
+	 * The management port and server port are different.
 	 */
 	DIFFERENT;
 
