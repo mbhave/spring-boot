@@ -94,19 +94,16 @@ public class AuditEventsEndpointMvcIntegrationTests {
 
 	@Test
 	public void eventsWithDateAfter() throws Exception {
-		this.mvc.perform(
-				get("/application/auditevents").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"after\":\"2016-11-01T13:00:00+00:00\"}"))
-				.andExpect(status().isOk())
+		this.mvc.perform(get("/application/auditevents").param("after",
+				"2016-11-01T13:00:00+00:00")).andExpect(status().isOk())
 				.andExpect(content().string("{\"events\":[]}"));
 	}
 
 	@Test
 	public void eventsWithPrincipalAndDateAfter() throws Exception {
-		this.mvc.perform(
-				get("/application/auditevents").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"after\":\"2016-11-01T10:00:00+00:00\","
-								+ "\"principal\":\"user\"}"))
+		this.mvc.perform(get("/application/auditevents")
+				.contentType(MediaType.APPLICATION_JSON)
+				.param("after", "2016-11-01T10:00:00+00:00").param("principal", "user"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(
 						containsString("\"principal\":\"user\",\"type\":\"login\"")))
@@ -115,10 +112,9 @@ public class AuditEventsEndpointMvcIntegrationTests {
 
 	@Test
 	public void eventsWithPrincipalDateAfterAndType() throws Exception {
-		this.mvc.perform(
-				get("/application/auditevents").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"after\":\"2016-11-01T10:00:00+00:00\","
-								+ "\"principal\":\"admin\", \"type\":\"logout\"}"))
+		this.mvc.perform(get("/application/auditevents")
+				.param("after", "2016-11-01T10:00:00+00:00").param("principal", "admin")
+				.param("type", "logout"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(
 						containsString("\"principal\":\"admin\",\"type\":\"logout\"")))
