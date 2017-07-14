@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
 import org.springframework.boot.endpoint.Endpoint;
+import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -48,7 +49,8 @@ class OnEnabledEndpointCondition extends SpringBootCondition {
 		EndpointEnablementProvider enablementProvider = new EndpointEnablementProvider(
 				context.getEnvironment());
 		EndpointEnablement endpointEnablement = enablementProvider
-				.getEndpointEnablement(endpoint.id, endpoint.enabled);
+				.getEndpointEnablement(endpoint.id, endpoint.enabled,
+						endpoint.endpointType);
 		return new ConditionOutcome(endpointEnablement.isEnabled(),
 				ConditionMessage.forCondition(ConditionalOnEnabledEndpoint.class)
 						.because(endpointEnablement.getReason()));
@@ -78,7 +80,11 @@ class OnEnabledEndpointCondition extends SpringBootCondition {
 	protected EndpointAttributes extractEndpointAttributes(Class<?> type) {
 		Endpoint annotation = AnnotationUtils.findAnnotation(type, Endpoint.class);
 		if (annotation != null) {
-			return new EndpointAttributes(annotation.id(), annotation.enabledByDefault());
+			// If both types are set, all techs are exposed
+			EndpointType endpointType = (annotation.types().length == 1
+					? annotation.types()[0] : null);
+			return new EndpointAttributes(annotation.id(),
+					annotation.enabledByDefault(), endpointType);
 		}
 		return null;
 	}
@@ -89,9 +95,13 @@ class OnEnabledEndpointCondition extends SpringBootCondition {
 
 		private final boolean enabled;
 
-		EndpointAttributes(String id, boolean enabled) {
+		private final EndpointType endpointType;
+
+		EndpointAttributes(String id, boolean enabled,
+				EndpointType endpointType) {
 			this.id = id;
 			this.enabled = enabled;
+			this.endpointType = endpointType;
 		}
 
 	}

@@ -19,6 +19,7 @@ package org.springframework.boot.actuate.autoconfigure.endpoint;
 import org.junit.Test;
 
 import org.springframework.boot.endpoint.Endpoint;
+import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.test.context.ContextConsumer;
 import org.springframework.boot.test.context.ContextLoader;
 import org.springframework.boot.test.context.StandardContextLoader;
@@ -153,6 +154,53 @@ public class ConditionalOnEnabledEndpointTests {
 	}
 
 	@Test
+	public void enabledOnlyWebByDefault() {
+		this.contextLoader.config(OnlyWebConfig.class).load(expectEndpoint("onlyweb",
+				true));
+	}
+
+	@Test
+	public void disabledOnlyWebViaEndpointProperty() {
+		this.contextLoader.config(OnlyWebConfig.class).env(
+				"endpoints.onlyweb.enabled=false").load(expectEndpoint("onlyweb", false));
+	}
+
+	@Test
+	public void disabledOnlyWebViaSpecificTechProperty() {
+		this.contextLoader.config(OnlyWebConfig.class).env(
+				"endpoints.onlyweb.web.enabled=false").load(expectEndpoint("onlyweb",
+				false));
+	}
+
+	@Test
+	public void enableOverridesOnlyWebViaGeneralJmxPropertyHasNoEffect() {
+		this.contextLoader.config(OnlyWebConfig.class).env("endpoints.all.enabled=false",
+				"endpoints.all.jmx.enabled=true").load(expectEndpoint("onlyweb", false));
+	}
+
+	@Test
+	public void enableOverridesOnlyWebViaSpecificJmxPropertyHasNoEffect() {
+		this.contextLoader.config(OnlyWebConfig.class).env("endpoints.all.enabled=false",
+				"endpoints.onlyweb.jmx.enabled=false").load(expectEndpoint("onlyweb",
+				false));
+	}
+
+	@Test
+	public void enableOverridesOnlyWebViaSpecificWebProperty() {
+		this.contextLoader.config(OnlyWebConfig.class).env("endpoints.all.enabled=false",
+				"endpoints.onlyweb.web.enabled=true").load(expectEndpoint("onlyweb",
+				true));
+	}
+
+	@Test
+	public void disabledOnlyWebEvenWithEnabledGeneralProperties() {
+		this.contextLoader.config(OnlyWebConfig.class).env("endpoints.all.enabled=true",
+				"endpoints.all.web.enabled=true", "endpoints.onlyweb.enabled=true",
+				"endpoints.onlyweb.web.enabled=false")
+				.load(expectEndpoint("foo", false));
+	}
+
+	@Test
 	public void contextFailIfEndpointTypeIsNotDetected() {
 		this.contextLoader.config(InvalidConfig.class).loadAndFail(ex ->
 				assertThat(ex.getMessage().contains("InvalidConfig.foo")));
@@ -189,8 +237,25 @@ public class ConditionalOnEnabledEndpointTests {
 
 	}
 
-	@Endpoint(id = "bar", enabledByDefault = false)
+	@Endpoint(id = "bar", types = { EndpointType.WEB, EndpointType.JMX },
+			enabledByDefault = false)
 	static class BarEndpoint {
+
+	}
+
+	@Configuration
+	static class OnlyWebConfig {
+
+		@Bean(name = "onlyweb")
+		@ConditionalOnEnabledEndpoint
+		public OnlyWebEndpoint onlyWeb() {
+			return new OnlyWebEndpoint();
+		}
+
+	}
+
+	@Endpoint(id = "onlyweb", types = EndpointType.WEB)
+	static class OnlyWebEndpoint {
 
 	}
 
