@@ -76,9 +76,9 @@ public class LoggersEndpoint {
 	}
 
 	@WriteOperation
-	public void configureLogLevel(String name, LogLevel level) {
+	public void configureLogLevel(@Selector String name, LogLevel configuredLogLevel) {
 		Assert.notNull(name, "Name must not be empty");
-		this.loggingSystem.setLogLevel(name, level);
+		this.loggingSystem.setLogLevel(name, configuredLogLevel);
 	}
 
 	private NavigableSet<LogLevel> getLevels() {

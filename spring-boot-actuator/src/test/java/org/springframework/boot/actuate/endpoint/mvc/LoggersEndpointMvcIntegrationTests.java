@@ -26,10 +26,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.LoggersEndpoint;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggerConfiguration;
@@ -40,7 +42,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
@@ -59,17 +60,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests for {@link LoggersMvcEndpoint}.
+ * Integration tests for {@link LoggersEndpoint} when exposed via Spring MVC.
  *
  * @author Ben Hale
  * @author Phillip Webb
  * @author Eddú Meléndez
  * @author Stephane Nicoll
+ * @author Andy Wilkinson
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@TestPropertySource(properties = "management.security.enabled=false")
-public class LoggersMvcEndpointTests {
+public class LoggersEndpointMvcIntegrationTests {
 
 	private static final String PATH = "/application/loggers";
 
@@ -83,7 +84,6 @@ public class LoggersMvcEndpointTests {
 
 	@Before
 	public void setUp() {
-		this.context.getBean(LoggersEndpoint.class).setEnabled(true);
 		this.mvc = MockMvcBuilders.webAppContextSetup(this.context)
 				.alwaysDo(MockMvcResultHandlers.print()).build();
 	}
@@ -107,24 +107,12 @@ public class LoggersMvcEndpointTests {
 	}
 
 	@Test
-	public void getLoggersWhenDisabledShouldReturnNotFound() throws Exception {
-		this.context.getBean(LoggersEndpoint.class).setEnabled(false);
-		this.mvc.perform(get(PATH + "")).andExpect(status().isNotFound());
-	}
-
-	@Test
 	public void getLoggerShouldReturnLogLevels() throws Exception {
 		given(this.loggingSystem.getLoggerConfiguration("ROOT"))
 				.willReturn(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG));
 		this.mvc.perform(get(PATH + "/ROOT")).andExpect(status().isOk())
 				.andExpect(content().string(equalTo(
 						"{\"configuredLevel\":null,\"effectiveLevel\":\"DEBUG\"}")));
-	}
-
-	@Test
-	public void getLoggersRootWhenDisabledShouldReturnNotFound() throws Exception {
-		this.context.getBean(LoggersEndpoint.class).setEnabled(false);
-		this.mvc.perform(get(PATH + "/ROOT")).andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -166,15 +154,6 @@ public class LoggersMvcEndpointTests {
 	}
 
 	@Test
-	public void setLoggerWhenDisabledShouldReturnNotFound() throws Exception {
-		this.context.getBean(LoggersEndpoint.class).setEnabled(false);
-		this.mvc.perform(post(PATH + "/ROOT").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"configuredLevel\":\"DEBUG\"}"))
-				.andExpect(status().isNotFound());
-		verifyZeroInteractions(this.loggingSystem);
-	}
-
-	@Test
 	public void setLoggerWithWrongLogLevel() throws Exception {
 		this.mvc.perform(post(PATH + "/ROOT").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"configuredLevel\":\"other\"}"))
@@ -209,8 +188,10 @@ public class LoggersMvcEndpointTests {
 
 	@Configuration
 	@Import({ JacksonAutoConfiguration.class,
-			HttpMessageConvertersAutoConfiguration.class,
-			EndpointServletWebAutoConfiguration.class, WebMvcAutoConfiguration.class })
+			HttpMessageConvertersAutoConfiguration.class, WebMvcAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class,
+			EndpointInfrastructureAutoConfiguration.class,
+			EndpointServletWebAutoConfiguration.class })
 	public static class TestConfiguration {
 
 		@Bean

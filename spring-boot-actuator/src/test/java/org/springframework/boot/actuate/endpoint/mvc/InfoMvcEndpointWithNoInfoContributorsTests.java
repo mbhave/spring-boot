@@ -23,12 +23,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.AuditAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.InfoEndpoint;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -47,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@link InfoContributor InfoContributors}.
  *
  * @author Meang Akira Tanaka
+ * @author Andy Wilkinson
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -59,7 +61,6 @@ public class InfoMvcEndpointWithNoInfoContributorsTests {
 
 	@Before
 	public void setUp() {
-		this.context.getBean(InfoEndpoint.class).setEnabled(true);
 		this.mvc = MockMvcBuilders.webAppContextSetup(this.context).build();
 	}
 
@@ -68,10 +69,12 @@ public class InfoMvcEndpointWithNoInfoContributorsTests {
 		this.mvc.perform(get("/application/info")).andExpect(status().isOk());
 	}
 
-	@Import({ JacksonAutoConfiguration.class, AuditAutoConfiguration.class,
-			HttpMessageConvertersAutoConfiguration.class,
-			EndpointServletWebAutoConfiguration.class, WebMvcAutoConfiguration.class })
 	@Configuration
+	@Import({ JacksonAutoConfiguration.class,
+			HttpMessageConvertersAutoConfiguration.class, WebMvcAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class,
+			EndpointInfrastructureAutoConfiguration.class,
+			EndpointServletWebAutoConfiguration.class })
 	public static class TestConfiguration {
 
 		@Bean

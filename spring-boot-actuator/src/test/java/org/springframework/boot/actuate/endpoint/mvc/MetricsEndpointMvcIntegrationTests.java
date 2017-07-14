@@ -25,13 +25,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.AuditAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.MetricsEndpoint;
 import org.springframework.boot.actuate.endpoint.PublicMetrics;
 import org.springframework.boot.actuate.metrics.Metric;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -40,7 +41,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Tests for {@link MetricsMvcEndpoint}
+ * Integration tests for {@link MetricsEndpoint} when exposed via Spring MVC
  *
  * @author Andy Wilkinson
  * @author Sergei Egorov
@@ -62,8 +62,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @DirtiesContext
 @SpringBootTest
-@TestPropertySource(properties = "management.security.enabled=false")
-public class MetricsMvcEndpointTests {
+public class MetricsEndpointMvcIntegrationTests {
 
 	@Autowired
 	private WebApplicationContext context;
@@ -72,7 +71,6 @@ public class MetricsMvcEndpointTests {
 
 	@Before
 	public void setUp() {
-		this.context.getBean(MetricsEndpoint.class).setEnabled(true);
 		this.mvc = MockMvcBuilders.webAppContextSetup(this.context).build();
 	}
 
@@ -113,12 +111,6 @@ public class MetricsMvcEndpointTests {
 	}
 
 	@Test
-	public void homeWhenDisabled() throws Exception {
-		this.context.getBean(MetricsEndpoint.class).setEnabled(false);
-		this.mvc.perform(get("/application/metrics")).andExpect(status().isNotFound());
-	}
-
-	@Test
 	public void specificMetric() throws Exception {
 		this.mvc.perform(get("/application/metrics/foo")).andExpect(status().isOk())
 				.andExpect(content().string(equalTo("{\"foo\":1}")));
@@ -129,13 +121,6 @@ public class MetricsMvcEndpointTests {
 			throws Exception {
 		this.mvc.perform(get("/application/metrics/bar.png")).andExpect(status().isOk())
 				.andExpect(content().string(equalTo("{\"bar.png\":1}")));
-	}
-
-	@Test
-	public void specificMetricWhenDisabled() throws Exception {
-		this.context.getBean(MetricsEndpoint.class).setEnabled(false);
-		this.mvc.perform(get("/application/metrics/foo"))
-				.andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -174,10 +159,12 @@ public class MetricsMvcEndpointTests {
 				.andExpect(content().string(containsString("1")));
 	}
 
-	@Import({ JacksonAutoConfiguration.class, AuditAutoConfiguration.class,
-			HttpMessageConvertersAutoConfiguration.class,
-			EndpointServletWebAutoConfiguration.class, WebMvcAutoConfiguration.class })
 	@Configuration
+	@Import({ JacksonAutoConfiguration.class,
+			HttpMessageConvertersAutoConfiguration.class, WebMvcAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class,
+			EndpointInfrastructureAutoConfiguration.class,
+			EndpointServletWebAutoConfiguration.class })
 	public static class TestConfiguration {
 
 		@Bean

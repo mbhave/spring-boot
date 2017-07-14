@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class InfoEndpointTests {
 
 	@Test
-	public void info() throws Exception {
+	public void info() {
 		InfoEndpoint endpoint = new InfoEndpoint(
 				Arrays.asList(builder -> builder.withDetail("key1", "value1"),
 						builder -> builder.withDetail("key2", "value2")));
