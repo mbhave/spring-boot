@@ -16,208 +16,124 @@
 
 package org.springframework.boot.actuate.endpoint.mvc;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.endpoint.web.HealthWebEndpointExtension;
 import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.Status;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.actuate.health.OrderedHealthAggregator;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Integration tests for {@link HealthEndpoint} and {@link HealthWebEndpointExtension}
- * exposed via Spring MVC.
+ * exposed by Spring MVC.
  *
- * @author Christian Dupuis
- * @author Dave Syer
  * @author Andy Wilkinson
- * @author Eddú Meléndez
- * @author Madhura Bhave
  */
+@RunWith(SpringRunner.class)
+@SpringBootTest
 public class HealthEndpointMvcIntegrationTests {
 
-	private static final List<String> SECURITY_ROLES = new ArrayList<>(
-			Arrays.asList("HERO"));
+	// TODO Test Jersey and WebFlux too?
 
-	private HttpServletRequest request = new MockHttpServletRequest();
+	@Autowired
+	private WebApplicationContext context;
 
-	private HealthEndpoint endpoint = null;
-
-	private HttpServletRequest defaultUser = createAuthenticationRequest("ROLE_ACTUATOR");
-
-	private HttpServletRequest hero = createAuthenticationRequest("HERO");
-
-	private HttpServletRequest createAuthenticationRequest(String role) {
-		MockServletContext servletContext = new MockServletContext();
-		servletContext.declareRoles(role);
-		return new MockHttpServletRequest(servletContext);
-	}
+	private MockMvc mvc;
 
 	@Before
-	public void init() {
-		this.endpoint = mock(HealthEndpoint.class);
-		given(this.endpoint.isEnabled()).willReturn(true);
-		this.mvc = new HealthWebEndpointExtension(this.endpoint);
+	public void setUp() {
+		this.mvc = MockMvcBuilders.webAppContextSetup(this.context).build();
 	}
 
 	@Test
-	public void up() {
-		given(this.endpoint.invoke()).willReturn(new Health.Builder().up().build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-	}
-
-	@SuppressWarnings("unchecked")
-	@Test
-	public void down() {
-		given(this.endpoint.invoke()).willReturn(new Health.Builder().down().build());
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
-		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus() == Status.DOWN).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+	public void whenHealthIsUp200ResponseIsReturned() throws Exception {
+		this.mvc.perform(get("/application/health")).andExpect(status().isOk())
+				.andExpect(jsonPath("status", equalTo("UP")))
+				.andExpect(jsonPath("alpha.status", equalTo("UP")))
+				.andExpect(jsonPath("bravo.status", equalTo("UP")));
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
-	public void customMapping() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().status("OK").build());
-		this.mvc.setStatusMapping(
-				Collections.singletonMap("OK", HttpStatus.INTERNAL_SERVER_ERROR));
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
-		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus().equals(new Status("OK"))).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+	public void whenHealthIsDown503ResponseIsReturned() throws Exception {
+		this.context.getBean("alphaHealthIndicator", TestHealthIndicator.class)
+				.setHealth(Health.down().build());
+		this.mvc.perform(get("/application/health"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("status", equalTo("DOWN")))
+				.andExpect(jsonPath("alpha.status", equalTo("DOWN")))
+				.andExpect(jsonPath("bravo.status", equalTo("UP")));
 	}
 
-	@Test
-	@SuppressWarnings("unchecked")
-	public void customMappingWithRelaxedName() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().outOfService().build());
-		this.mvc.setStatusMapping(Collections.singletonMap("out-OF-serVice",
-				HttpStatus.INTERNAL_SERVER_ERROR));
-		Object result = this.mvc.invoke(this.request, null);
-		assertThat(result instanceof ResponseEntity).isTrue();
-		ResponseEntity<Health> response = (ResponseEntity<Health>) result;
-		assertThat(response.getBody().getStatus().equals(Status.OUT_OF_SERVICE)).isTrue();
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+	@Configuration
+	@Import({ JacksonAutoConfiguration.class,
+			HttpMessageConvertersAutoConfiguration.class, WebMvcAutoConfiguration.class,
+			DispatcherServletAutoConfiguration.class,
+			EndpointInfrastructureAutoConfiguration.class,
+			EndpointServletWebAutoConfiguration.class })
+	public static class TestConfiguration {
+
+		@Bean
+		public HealthEndpoint healthEndpoint(
+				Map<String, HealthIndicator> healthIndicators) {
+			return new HealthEndpoint(new OrderedHealthAggregator(), healthIndicators);
+		}
+
+		@Bean
+		public HealthWebEndpointExtension healthWebEndpointExtension(
+				HealthEndpoint delegate) {
+			return new HealthWebEndpointExtension(delegate);
+		}
+
+		@Bean
+		public TestHealthIndicator alphaHealthIndicator() {
+			return new TestHealthIndicator();
+		}
+
+		@Bean
+		public TestHealthIndicator bravoHealthIndicator() {
+			return new TestHealthIndicator();
+		}
+
 	}
 
-	@Test
-	public void presenceOfRightRoleShouldExposeDetails() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
+	private static class TestHealthIndicator implements HealthIndicator {
 
-	@Test
-	public void managementSecurityDisabledShouldExposeDetails() throws Exception {
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, false);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
+		private Health health = Health.up().build();
 
-	@Test
-	public void rightRoleNotPresentShouldNotExposeDetails() {
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
-	}
+		@Override
+		public Health health() {
+			return this.health;
+		}
 
-	@Test
-	public void rightAuthorityPresentShouldExposeDetails() throws Exception {
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, true, SECURITY_ROLES);
-		Authentication principal = mock(Authentication.class);
-		Set<SimpleGrantedAuthority> authorities = Collections
-				.singleton(new SimpleGrantedAuthority("HERO"));
-		doReturn(authorities).when(principal).getAuthorities();
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, principal);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
+		public void setHealth(Health health) {
+			this.health = health;
+		}
 
-	@Test
-	public void customRolePresentShouldExposeDetails() {
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, true, SECURITY_ROLES);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void customRoleShouldNotExposeDetailsForDefaultRole() {
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, true, SECURITY_ROLES);
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
-	}
-
-	@Test
-	public void customRoleFromListShouldExposeDetails() {
-		// gh-8314
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, true,
-				Arrays.asList("HERO", "USER"));
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.hero, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isEqualTo("bar");
-	}
-
-	@Test
-	public void customRoleFromListShouldNotExposeDetailsForDefaultRole() {
-		// gh-8314
-		this.mvc = new HealthWebEndpointExtension(this.endpoint, true,
-				Arrays.asList("HERO", "USER"));
-		given(this.endpoint.invoke())
-				.willReturn(new Health.Builder().up().withDetail("foo", "bar").build());
-		Object result = this.mvc.invoke(this.defaultUser, null);
-		assertThat(result instanceof Health).isTrue();
-		assertThat(((Health) result).getStatus() == Status.UP).isTrue();
-		assertThat(((Health) result).getDetails().get("foo")).isNull();
 	}
 
 }
