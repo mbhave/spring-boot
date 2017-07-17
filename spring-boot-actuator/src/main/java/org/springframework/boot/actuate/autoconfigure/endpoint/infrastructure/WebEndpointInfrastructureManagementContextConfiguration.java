@@ -32,6 +32,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
+import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.jersey.JerseyEndpointResourceFactory;
 import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
 import org.springframework.boot.endpoint.web.reactive.ReactiveEndpointRouterFunctionFactory;
@@ -58,11 +59,11 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 
 		@Bean
 		public ResourceConfigCustomizer webEndpointRegistrar(
-				WebAnnotationEndpointDiscoverer discoverer) {
+				EndpointProvider<WebEndpointOperation> provider) {
 			return resourceConfig -> {
 				resourceConfig.registerResources(new HashSet<>(
 						new JerseyEndpointResourceFactory().createEndpointResources(
-								discoverer.discoverEndpoints())));
+								provider.getEndpoints())));
 			};
 		}
 
@@ -84,9 +85,9 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public WebEndpointHandlerMapping webEndpointHandlerMapping(
-				WebAnnotationEndpointDiscoverer discoverer) {
+				EndpointProvider<WebEndpointOperation> provider) {
 			WebEndpointHandlerMapping handlerMapping = new WebEndpointHandlerMapping(
-					discoverer.discoverEndpoints());
+					provider.getEndpoints());
 			for (WebEndpointHandlerMappingCustomizer customizer : this.mappingCustomizers) {
 				customizer.customize(handlerMapping);
 			}
@@ -100,9 +101,9 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 
 		@Bean
 		public RouterFunction<ServerResponse> webEndpointRouterFunction(
-				WebAnnotationEndpointDiscoverer discoverer) {
+				EndpointProvider<WebEndpointOperation> provider) {
 			return new ReactiveEndpointRouterFunctionFactory()
-					.createRouterFunction(discoverer.discoverEndpoints());
+					.createRouterFunction(provider.getEndpoints());
 		}
 
 	}

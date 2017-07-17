@@ -20,8 +20,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import com.fasterxml.jackson.databind.JavaType;
@@ -29,42 +29,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.actuate.autoconfigure.endpoint.support.EndpointEnablementProvider;
 import org.springframework.boot.endpoint.Endpoint;
-import org.springframework.boot.endpoint.EndpointInfo;
-import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.endpoint.jmx.EndpointMBean;
 import org.springframework.boot.endpoint.jmx.EndpointMBeanRegistrar;
-import org.springframework.boot.endpoint.jmx.JmxAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.jmx.JmxEndpointMBeanFactory;
 import org.springframework.boot.endpoint.jmx.JmxEndpointOperation;
-import org.springframework.core.env.Environment;
 
 /**
- * Exports all available {@link Endpoint}.
+ * Exports all available {@link Endpoint} to a configurable {@link MBeanServer}.
  *
  * @author Stephane Nicoll
  * @since 2.0.0
  */
 class JmxEndpointExporter implements InitializingBean, DisposableBean {
 
-	private final EndpointEnablementProvider endpointEnablementProvider;
+	private final EndpointProvider<JmxEndpointOperation> endpointProvider;
 
 	private final EndpointMBeanRegistrar endpointMBeanRegistrar;
-
-	private final JmxAnnotationEndpointDiscoverer endpointDiscoverer;
 
 	private final JmxEndpointMBeanFactory mBeanFactory;
 
 	private Collection<ObjectName> registeredObjectNames;
 
-	JmxEndpointExporter(Environment environment,
+	JmxEndpointExporter(EndpointProvider<JmxEndpointOperation> endpointProvider,
 			EndpointMBeanRegistrar endpointMBeanRegistrar,
-			JmxAnnotationEndpointDiscoverer endpointDiscoverer,
 			ObjectMapper objectMapper) {
-		this.endpointEnablementProvider = new EndpointEnablementProvider(environment);
+		this.endpointProvider = endpointProvider;
 		this.endpointMBeanRegistrar = endpointMBeanRegistrar;
-		this.endpointDiscoverer = endpointDiscoverer;
 		DataConverter dataConverter = new DataConverter(objectMapper);
 		this.mBeanFactory = new JmxEndpointMBeanFactory(dataConverter::convert);
 	}
@@ -81,7 +72,8 @@ class JmxEndpointExporter implements InitializingBean, DisposableBean {
 
 	private Collection<ObjectName> registerEndpointMBeans() {
 		List<ObjectName> objectNames = new ArrayList<>();
-		Collection<EndpointMBean> mBeans = this.mBeanFactory.createMBeans(getEnabledJmxEndpoints());
+		Collection<EndpointMBean> mBeans = this.mBeanFactory.createMBeans(
+				this.endpointProvider.getEndpoints());
 		for (EndpointMBean mBean : mBeans) {
 			objectNames.add(this.endpointMBeanRegistrar.registerEndpointMBean(mBean));
 		}
@@ -91,13 +83,6 @@ class JmxEndpointExporter implements InitializingBean, DisposableBean {
 	private void unregisterEndpointMBeans(Collection<ObjectName> objectNames) {
 		objectNames.forEach(this.endpointMBeanRegistrar::unregisterEndpointMbean);
 
-	}
-
-	private Collection<EndpointInfo<JmxEndpointOperation>> getEnabledJmxEndpoints() {
-		return this.endpointDiscoverer.discoverEndpoints().stream()
-				.filter(endpoint -> this.endpointEnablementProvider.getEndpointEnablement(
-						endpoint.getId(), endpoint.isEnabledByDefault(),
-						EndpointType.JMX).isEnabled()).collect(Collectors.toList());
 	}
 
 	static class DataConverter {

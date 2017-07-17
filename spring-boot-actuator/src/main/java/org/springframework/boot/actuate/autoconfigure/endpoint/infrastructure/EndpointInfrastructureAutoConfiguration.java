@@ -28,15 +28,17 @@ import org.springframework.boot.actuate.endpoint.mvc.ActuatorMediaTypes;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.endpoint.jmx.EndpointMBeanRegistrar;
 import org.springframework.boot.endpoint.jmx.JmxAnnotationEndpointDiscoverer;
+import org.springframework.boot.endpoint.jmx.JmxEndpointOperation;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
+import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.core.env.Environment;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for the endpoint infrastructure used
@@ -49,16 +51,16 @@ import org.springframework.core.env.Environment;
 @Configuration
 public class EndpointInfrastructureAutoConfiguration {
 
-	private final Environment environment;
+	private final ApplicationContext applicationContext;
 
-	public EndpointInfrastructureAutoConfiguration(Environment environment) {
-		this.environment = environment;
+	public EndpointInfrastructureAutoConfiguration(
+			ApplicationContext applicationContext) {
+		this.applicationContext = applicationContext;
 	}
 
 	@Bean
-	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer(
-			ApplicationContext applicationContext) {
-		return new JmxAnnotationEndpointDiscoverer(applicationContext,
+	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer() {
+		return new JmxAnnotationEndpointDiscoverer(this.applicationContext,
 				DefaultConversionService.getSharedInstance());
 	}
 
@@ -67,10 +69,13 @@ public class EndpointInfrastructureAutoConfiguration {
 	public JmxEndpointExporter jmxMBeanExporter(MBeanServer mBeanServer,
 			JmxAnnotationEndpointDiscoverer endpointDiscoverer,
 			ObjectProvider<ObjectMapper> objectMapper) {
+		EndpointProvider<JmxEndpointOperation> endpointProvider = new EndpointProvider<>(
+				this.applicationContext.getEnvironment(), endpointDiscoverer,
+				EndpointType.JMX);
 		EndpointMBeanRegistrar endpointMBeanRegistrar = new EndpointMBeanRegistrar(
 				mBeanServer, new DefaultEndpointObjectNameFactory());
-		return new JmxEndpointExporter(this.environment, endpointMBeanRegistrar,
-				endpointDiscoverer, objectMapper.getIfAvailable(ObjectMapper::new));
+		return new JmxEndpointExporter(endpointProvider, endpointMBeanRegistrar,
+				objectMapper.getIfAvailable(ObjectMapper::new));
 	}
 
 	@ConditionalOnWebApplication
@@ -78,7 +83,13 @@ public class EndpointInfrastructureAutoConfiguration {
 	static class WebInfrastructureConfiguration {
 
 		@Bean
-		public WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
+		public EndpointProvider<WebEndpointOperation> webEndpointProvider(
+				ApplicationContext applicationContext) {
+			return new EndpointProvider(applicationContext.getEnvironment(),
+					webEndpointDiscoverer(applicationContext), EndpointType.WEB);
+		}
+
+		private WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
 				ApplicationContext applicationContext) {
 			List<String> mediaTypes = Arrays.asList(
 					ActuatorMediaTypes.APPLICATION_ACTUATOR_V2_JSON_VALUE,
