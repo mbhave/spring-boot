@@ -16,7 +16,6 @@
 
 package org.springframework.boot.actuate.autoconfigure;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.ObjectProvider;
@@ -30,95 +29,35 @@ import org.springframework.boot.actuate.endpoint.web.LogFileWebEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.endpoint.Endpoint;
-import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
-import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * Configuration to expose {@link Endpoint} instances over Spring MVC.
+ * Configuration for web-specific endpoint functionality
  *
- * @author Dave Syer
- * @author Ben Hale
- * @author Vedran Pavic
- * @author Madhura Bhave
- * @since 1.3.0
+ * @author Andy Wilkinson
+ * @since 2.0.0
  */
 @ManagementContextConfiguration
-@EnableConfigurationProperties({ HealthMvcEndpointProperties.class,
+@EnableConfigurationProperties({ HealthWebEndpointExtensionProperties.class,
 		EndpointCorsProperties.class })
-@ConditionalOnClass(DispatcherServlet.class)
-public class EndpointWebMvcManagementContextConfiguration {
+public class WebEndpointManagementContextConfiguration {
 
-	private final HealthMvcEndpointProperties healthMvcEndpointProperties;
+	private final HealthWebEndpointExtensionProperties healthMvcEndpointProperties;
 
-	private final ManagementServerProperties managementServerProperties;
-
-	private final EndpointCorsProperties corsProperties;
-
-	private final List<WebEndpointHandlerMappingCustomizer> mappingCustomizers;
-
-	public EndpointWebMvcManagementContextConfiguration(
-			HealthMvcEndpointProperties healthMvcEndpointProperties,
+	public WebEndpointManagementContextConfiguration(
+			HealthWebEndpointExtensionProperties healthMvcEndpointProperties,
 			ManagementServerProperties managementServerProperties,
 			EndpointCorsProperties corsProperties,
 			ObjectProvider<List<WebEndpointHandlerMappingCustomizer>> mappingCustomizers) {
 		this.healthMvcEndpointProperties = healthMvcEndpointProperties;
-		this.managementServerProperties = managementServerProperties;
-		this.corsProperties = corsProperties;
-		List<WebEndpointHandlerMappingCustomizer> providedCustomizers = mappingCustomizers
-				.getIfAvailable();
-		this.mappingCustomizers = providedCustomizers == null
-				? Collections.<WebEndpointHandlerMappingCustomizer>emptyList()
-				: providedCustomizers;
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	public WebEndpointHandlerMapping webEndpointHandlerMapping(
-			WebAnnotationEndpointDiscoverer discoverer) {
-		WebEndpointHandlerMapping handlerMapping = new WebEndpointHandlerMapping(
-				discoverer.discoverEndpoints());
-		for (WebEndpointHandlerMappingCustomizer customizer : this.mappingCustomizers) {
-			customizer.customize(handlerMapping);
-		}
-		return handlerMapping;
-	}
-
-	private CorsConfiguration getCorsConfiguration(EndpointCorsProperties properties) {
-		if (CollectionUtils.isEmpty(properties.getAllowedOrigins())) {
-			return null;
-		}
-		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(properties.getAllowedOrigins());
-		if (!CollectionUtils.isEmpty(properties.getAllowedHeaders())) {
-			configuration.setAllowedHeaders(properties.getAllowedHeaders());
-		}
-		if (!CollectionUtils.isEmpty(properties.getAllowedMethods())) {
-			configuration.setAllowedMethods(properties.getAllowedMethods());
-		}
-		if (!CollectionUtils.isEmpty(properties.getExposedHeaders())) {
-			configuration.setExposedHeaders(properties.getExposedHeaders());
-		}
-		if (properties.getMaxAge() != null) {
-			configuration.setMaxAge(properties.getMaxAge());
-		}
-		if (properties.getAllowCredentials() != null) {
-			configuration.setAllowCredentials(properties.getAllowCredentials());
-		}
-		return configuration;
 	}
 
 	// TODO Port to new infrastructure
@@ -131,8 +70,8 @@ public class EndpointWebMvcManagementContextConfiguration {
 	// }
 
 	@Bean
-	@ConditionalOnBean(HealthEndpoint.class)
 	@ConditionalOnMissingBean
+	@ConditionalOnBean(HealthEndpoint.class)
 	@ConditionalOnEnabledEndpoint("health")
 	public HealthWebEndpointExtension healthWebEndpointExtension(HealthEndpoint delegate,
 			ManagementServerProperties managementServerProperties) {
@@ -146,8 +85,8 @@ public class EndpointWebMvcManagementContextConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnBean(AuditEventsEndpoint.class)
 	@ConditionalOnMissingBean
+	@ConditionalOnBean(AuditEventsEndpoint.class)
 	public AuditEventsWebEndpointExtension auditEventsWebEndpointExtension(
 			AuditEventsEndpoint delegate) {
 		return new AuditEventsWebEndpointExtension(delegate);

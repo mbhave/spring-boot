@@ -26,10 +26,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Configuration properties for the {@link HealthWebEndpointExtension}.
  *
  * @author Christian Dupuis
- * @since 1.1.0
+ * @author Andy Wilkinson
+ * @since 2.0.0
  */
 @ConfigurationProperties(prefix = "endpoints.health")
-public class HealthMvcEndpointProperties {
+public class HealthWebEndpointExtensionProperties {
 
 	/**
 	 * Mapping of health statuses to HttpStatus codes. By default, registered health

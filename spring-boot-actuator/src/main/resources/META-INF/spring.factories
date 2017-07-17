@@ -19,4 +19,5 @@ org.springframework.boot.actuate.autoconfigure.endpoint.jmx.JmxEndpointAutoConfi
 org.springframework.boot.actuate.cloudfoundry.CloudFoundryActuatorAutoConfiguration
 
 org.springframework.boot.actuate.autoconfigure.ManagementContextConfiguration=\
+org.springframework.boot.actuate.autoconfigure.WebEndpointManagementContextConfiguration,\
 org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.WebEndpointInfrastructureManagementContextConfiguration

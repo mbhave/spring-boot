@@ -36,7 +36,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link EndpointWebMvcManagementContextConfiguration}.
+ * Tests for {@link WebEndpointManagementContextConfiguration}.
  *
  * @author Madhura Bhave
  */
@@ -56,7 +56,7 @@ public class EndpointWebMvcManagementContextConfigurationTests {
 				EndpointServletWebAutoConfiguration.class,
 				PropertyPlaceholderAutoConfiguration.class,
 				RestTemplateAutoConfiguration.class,
-				EndpointWebMvcManagementContextConfiguration.class);
+				WebEndpointManagementContextConfiguration.class);
 	}
 
 	@After
