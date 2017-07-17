@@ -28,7 +28,9 @@ import org.springframework.boot.actuate.endpoint.mvc.ActuatorMediaTypes;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.endpoint.DefaultOperationParameterMapper;
 import org.springframework.boot.endpoint.EndpointType;
+import org.springframework.boot.endpoint.OperationParameterMapper;
 import org.springframework.boot.endpoint.jmx.EndpointMBeanRegistrar;
 import org.springframework.boot.endpoint.jmx.JmxAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.jmx.JmxEndpointOperation;
@@ -59,9 +61,16 @@ public class EndpointInfrastructureAutoConfiguration {
 	}
 
 	@Bean
-	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer() {
-		return new JmxAnnotationEndpointDiscoverer(this.applicationContext,
+	public OperationParameterMapper operationParameterMapper() {
+		return new DefaultOperationParameterMapper(
 				DefaultConversionService.getSharedInstance());
+	}
+
+	@Bean
+	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer(
+			OperationParameterMapper operationParameterMapper) {
+		return new JmxAnnotationEndpointDiscoverer(this.applicationContext,
+				operationParameterMapper);
 	}
 
 	@ConditionalOnSingleCandidate(MBeanServer.class)
@@ -82,21 +91,26 @@ public class EndpointInfrastructureAutoConfiguration {
 	@Import(ManagementContextConfigurationImportSelector.class)
 	static class WebInfrastructureConfiguration {
 
+		private final ApplicationContext applicationContext;
+
+		WebInfrastructureConfiguration(ApplicationContext applicationContext) {
+			this.applicationContext = applicationContext;
+		}
+
 		@Bean
 		public EndpointProvider<WebEndpointOperation> webEndpointProvider(
-				ApplicationContext applicationContext) {
-			return new EndpointProvider(applicationContext.getEnvironment(),
-					webEndpointDiscoverer(applicationContext), EndpointType.WEB);
+				OperationParameterMapper operationParameterMapper) {
+			return new EndpointProvider(this.applicationContext.getEnvironment(),
+					webEndpointDiscoverer(operationParameterMapper), EndpointType.WEB);
 		}
 
 		private WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
-				ApplicationContext applicationContext) {
+				OperationParameterMapper operationParameterMapper) {
 			List<String> mediaTypes = Arrays.asList(
 					ActuatorMediaTypes.APPLICATION_ACTUATOR_V2_JSON_VALUE,
 					"application/json");
-			return new WebAnnotationEndpointDiscoverer(applicationContext,
-					DefaultConversionService.getSharedInstance(), "application",
-					mediaTypes, mediaTypes);
+			return new WebAnnotationEndpointDiscoverer(this.applicationContext,
+					operationParameterMapper, "application", mediaTypes, mediaTypes);
 		}
 
 	}

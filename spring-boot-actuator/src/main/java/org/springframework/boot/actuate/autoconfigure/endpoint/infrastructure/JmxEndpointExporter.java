@@ -34,6 +34,7 @@ import org.springframework.boot.endpoint.jmx.EndpointMBean;
 import org.springframework.boot.endpoint.jmx.EndpointMBeanRegistrar;
 import org.springframework.boot.endpoint.jmx.JmxEndpointMBeanFactory;
 import org.springframework.boot.endpoint.jmx.JmxEndpointOperation;
+import org.springframework.boot.endpoint.jmx.JmxOperationResponseMapper;
 
 /**
  * Exports all available {@link Endpoint} to a configurable {@link MBeanServer}.
@@ -57,7 +58,7 @@ class JmxEndpointExporter implements InitializingBean, DisposableBean {
 		this.endpointProvider = endpointProvider;
 		this.endpointMBeanRegistrar = endpointMBeanRegistrar;
 		DataConverter dataConverter = new DataConverter(objectMapper);
-		this.mBeanFactory = new JmxEndpointMBeanFactory(dataConverter::convert);
+		this.mBeanFactory = new JmxEndpointMBeanFactory(dataConverter);
 	}
 
 	@Override
@@ -85,7 +86,7 @@ class JmxEndpointExporter implements InitializingBean, DisposableBean {
 
 	}
 
-	static class DataConverter {
+	static class DataConverter implements JmxOperationResponseMapper {
 
 		private final ObjectMapper objectMapper;
 
@@ -100,21 +101,33 @@ class JmxEndpointExporter implements InitializingBean, DisposableBean {
 					.constructParametricType(List.class, Object.class);
 			this.mapStringObject = this.objectMapper.getTypeFactory()
 					.constructParametricType(Map.class, String.class, Object.class);
-
 		}
 
-		public Object convert(Object data) {
-			if (data == null) {
+		@Override
+		public Object mapResponse(Object response) {
+			if (response == null) {
 				return null;
 			}
-			if (data instanceof String) {
-				return data;
+			if (response instanceof String) {
+				return response;
 			}
-			if (data.getClass().isArray() || data instanceof Collection) {
-				return this.objectMapper.convertValue(data, this.listObject);
+			if (response.getClass().isArray() || response instanceof Collection) {
+				return this.objectMapper.convertValue(response, this.listObject);
 			}
-			return this.objectMapper.convertValue(data, this.mapStringObject);
+			return this.objectMapper.convertValue(response, this.mapStringObject);
 		}
+
+		@Override
+		public Class<?> mapResponseType(Class<?> responseType) {
+			if (responseType.equals(String.class)) {
+				return String.class;
+			}
+			if (responseType.isArray() || Collection.class.isAssignableFrom(responseType)) {
+				return List.class;
+			}
+			return Map.class;
+		}
+
 
 	}
 
