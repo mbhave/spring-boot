@@ -25,6 +25,7 @@ import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.WebEndpointHandlerMappingCustomizer;
 import org.springframework.boot.actuate.endpoint.web.AuditEventsWebEndpointExtension;
 import org.springframework.boot.actuate.endpoint.web.HealthWebEndpointExtension;
+import org.springframework.boot.actuate.endpoint.web.HeapDumpWebEndpoint;
 import org.springframework.boot.actuate.endpoint.web.LogFileWebEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
@@ -60,14 +61,12 @@ public class WebEndpointManagementContextConfiguration {
 		this.healthMvcEndpointProperties = healthMvcEndpointProperties;
 	}
 
-	// TODO Port to new infrastructure
-
-	// @Bean
-	// @ConditionalOnMissingBean
-	// @ConditionalOnEnabledEndpoint("heapdump")
-	// public HeapdumpEndpoint heapdumpMvcEndpoint() {
-	// return new HeapdumpEndpoint();
-	// }
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint("heapdump")
+	public HeapDumpWebEndpoint heapDumpWebEndpoint() {
+		return new HeapDumpWebEndpoint();
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
