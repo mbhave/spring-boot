@@ -26,6 +26,7 @@ import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.endpoint.mvc.WebEndpointHandlerMappingCustomizer;
 import org.springframework.boot.actuate.endpoint.web.AuditEventsWebEndpointExtension;
 import org.springframework.boot.actuate.endpoint.web.HealthWebEndpointExtension;
+import org.springframework.boot.actuate.endpoint.web.LogFileWebEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -38,6 +39,7 @@ import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.CollectionUtils;
@@ -151,14 +153,12 @@ public class EndpointWebMvcManagementContextConfiguration {
 		return new AuditEventsWebEndpointExtension(delegate);
 	}
 
-	// TODO Port to new infrastructure
-
-	// @Bean
-	// @ConditionalOnEnabledEndpoint("logfile")
-	// @Conditional(LogFileCondition.class)
-	// public LogFileMvcEndpoint logfileMvcEndpoint() {
-	// return new LogFileMvcEndpoint();
-	// }
+	@Bean
+	@ConditionalOnMissingBean
+	@Conditional(LogFileCondition.class)
+	public LogFileWebEndpoint logfileWebEndpoint(Environment environment) {
+		return new LogFileWebEndpoint(environment);
+	}
 
 	private static class LogFileCondition extends SpringBootCondition {
 
