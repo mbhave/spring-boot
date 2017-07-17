@@ -41,7 +41,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 /**
- * Configuration for web-specific endpoint functionality
+ * Configuration for web-specific endpoint functionality.
  *
  * @author Andy Wilkinson
  * @since 2.0.0
