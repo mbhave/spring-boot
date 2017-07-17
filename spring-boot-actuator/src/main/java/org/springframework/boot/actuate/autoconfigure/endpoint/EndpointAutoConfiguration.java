@@ -16,8 +16,6 @@
 
 package org.springframework.boot.actuate.autoconfigure.endpoint;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -80,33 +78,12 @@ import org.springframework.web.servlet.handler.AbstractHandlerMethodMapping;
  * @author Eddú Meléndez
  * @author Meang Akira Tanaka
  * @author Ben Hale
+ * @author Andy Wilkinson
  */
 @Configuration
 @AutoConfigureAfter({ FlywayAutoConfiguration.class, LiquibaseAutoConfiguration.class })
 @EnableConfigurationProperties(EndpointProperties.class)
 public class EndpointAutoConfiguration {
-
-	private final HealthAggregator healthAggregator;
-
-	private final Map<String, HealthIndicator> healthIndicators;
-
-	private final List<InfoContributor> infoContributors;
-
-	private final Collection<PublicMetrics> publicMetrics;
-
-	private final TraceRepository traceRepository;
-
-	public EndpointAutoConfiguration(ObjectProvider<HealthAggregator> healthAggregator,
-			ObjectProvider<Map<String, HealthIndicator>> healthIndicators,
-			ObjectProvider<List<InfoContributor>> infoContributors,
-			ObjectProvider<Collection<PublicMetrics>> publicMetrics,
-			ObjectProvider<TraceRepository> traceRepository) {
-		this.healthAggregator = healthAggregator.getIfAvailable();
-		this.healthIndicators = healthIndicators.getIfAvailable();
-		this.infoContributors = infoContributors.getIfAvailable();
-		this.publicMetrics = publicMetrics.getIfAvailable();
-		this.traceRepository = traceRepository.getIfAvailable();
-	}
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -118,13 +95,12 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnEnabledEndpoint
-	public HealthEndpoint healthEndpoint() {
+	public HealthEndpoint healthEndpoint(
+			ObjectProvider<HealthAggregator> healthAggregator,
+			ObjectProvider<Map<String, HealthIndicator>> healthIndicators) {
 		return new HealthEndpoint(
-				this.healthAggregator == null ? new OrderedHealthAggregator()
-						: this.healthAggregator,
-				this.healthIndicators == null
-						? Collections.<String, HealthIndicator>emptyMap()
-						: this.healthIndicators);
+				healthAggregator.getIfAvailable(() -> new OrderedHealthAggregator()),
+				healthIndicators.getIfAvailable(Collections::emptyMap));
 	}
 
 	@Bean
@@ -137,9 +113,9 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnEnabledEndpoint
-	public InfoEndpoint infoEndpoint() throws Exception {
-		return new InfoEndpoint(this.infoContributors == null
-				? Collections.<InfoContributor>emptyList() : this.infoContributors);
+	public InfoEndpoint infoEndpoint(
+			ObjectProvider<List<InfoContributor>> infoContributors) {
+		return new InfoEndpoint(infoContributors.getIfAvailable(Collections::emptyList));
 	}
 
 	@Bean
@@ -153,21 +129,20 @@ public class EndpointAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnEnabledEndpoint
-	public MetricsEndpoint metricsEndpoint() {
-		List<PublicMetrics> publicMetrics = new ArrayList<>();
-		if (this.publicMetrics != null) {
-			publicMetrics.addAll(this.publicMetrics);
-		}
-		Collections.sort(publicMetrics, AnnotationAwareOrderComparator.INSTANCE);
-		return new MetricsEndpoint(publicMetrics);
+	public MetricsEndpoint metricsEndpoint(
+			ObjectProvider<List<PublicMetrics>> publicMetrics) {
+		List<PublicMetrics> sortedPublicMetrics = publicMetrics
+				.getIfAvailable(Collections::emptyList);
+		Collections.sort(sortedPublicMetrics, AnnotationAwareOrderComparator.INSTANCE);
+		return new MetricsEndpoint(sortedPublicMetrics);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnEnabledEndpoint
-	public TraceEndpoint traceEndpoint() {
-		return new TraceEndpoint(this.traceRepository == null
-				? new InMemoryTraceRepository() : this.traceRepository);
+	public TraceEndpoint traceEndpoint(ObjectProvider<TraceRepository> traceRepository) {
+		return new TraceEndpoint(
+				traceRepository.getIfAvailable(() -> new InMemoryTraceRepository()));
 	}
 
 	@Bean
@@ -244,6 +219,7 @@ public class EndpointAutoConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
+		@ConditionalOnEnabledEndpoint
 		public RequestMappingEndpoint requestMappingEndpoint() {
 			RequestMappingEndpoint endpoint = new RequestMappingEndpoint();
 			return endpoint;

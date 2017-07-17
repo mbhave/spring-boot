@@ -16,15 +16,9 @@
 
 package org.springframework.boot.actuate.autoconfigure.endpoint.web;
 
-import java.util.List;
-
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.actuate.autoconfigure.EndpointCorsProperties;
 import org.springframework.boot.actuate.autoconfigure.HealthWebEndpointExtensionProperties;
 import org.springframework.boot.actuate.autoconfigure.ManagementContextConfiguration;
-import org.springframework.boot.actuate.autoconfigure.ManagementServerProperties;
-import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.WebEndpointHandlerMappingCustomizer;
-import org.springframework.boot.actuate.condition.ConditionalOnEnabledEndpoint;
+import org.springframework.boot.actuate.autoconfigure.endpoint.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.actuate.endpoint.web.AuditEventsWebEndpointExtension;
@@ -51,44 +45,33 @@ import org.springframework.util.StringUtils;
  * @since 2.0.0
  */
 @ManagementContextConfiguration
-@EnableConfigurationProperties({ HealthWebEndpointExtensionProperties.class,
-		EndpointCorsProperties.class })
+@EnableConfigurationProperties(HealthWebEndpointExtensionProperties.class)
 public class WebEndpointManagementContextConfiguration {
-
-	private final HealthWebEndpointExtensionProperties healthMvcEndpointProperties;
-
-	public WebEndpointManagementContextConfiguration(
-			HealthWebEndpointExtensionProperties healthMvcEndpointProperties,
-			ManagementServerProperties managementServerProperties,
-			EndpointCorsProperties corsProperties,
-			ObjectProvider<List<WebEndpointHandlerMappingCustomizer>> mappingCustomizers) {
-		this.healthMvcEndpointProperties = healthMvcEndpointProperties;
-	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	@ConditionalOnEnabledEndpoint("heapdump")
+	@ConditionalOnEnabledEndpoint
 	public HeapDumpWebEndpoint heapDumpWebEndpoint() {
 		return new HeapDumpWebEndpoint();
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	@ConditionalOnBean(HealthEndpoint.class)
-	@ConditionalOnEnabledEndpoint("health")
 	public HealthWebEndpointExtension healthWebEndpointExtension(HealthEndpoint delegate,
-			ManagementServerProperties managementServerProperties) {
-		HealthWebEndpointExtension healthMvcEndpoint = new HealthWebEndpointExtension(
+			HealthWebEndpointExtensionProperties extensionProperties) {
+		HealthWebEndpointExtension webExtension = new HealthWebEndpointExtension(
 				delegate);
-		if (this.healthMvcEndpointProperties.getMapping() != null) {
-			healthMvcEndpoint
-					.addStatusMapping(this.healthMvcEndpointProperties.getMapping());
+		if (extensionProperties.getMapping() != null) {
+			webExtension.addStatusMapping(extensionProperties.getMapping());
 		}
-		return healthMvcEndpoint;
+		return webExtension;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	@ConditionalOnBean(AuditEventsEndpoint.class)
 	public AuditEventsWebEndpointExtension auditEventsWebEndpointExtension(
 			AuditEventsEndpoint delegate) {

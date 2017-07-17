@@ -16,17 +16,20 @@
 
 package org.springframework.boot.actuate.autoconfigure.endpoint.jmx;
 
+import org.springframework.boot.actuate.autoconfigure.endpoint.ConditionalOnEnabledEndpoint;
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.jmx.AuditEventsJmxEndpointExtension;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.endpoint.jmx.JmxEndpointExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Auto-configuration for JMX endpoints.
+ * Auto-configuration for JMX {@link org.springframework.boot.endpoint.Endpoint Endpoints}
+ * and JMX-specific {@link JmxEndpointExtension endpoint extensions}.
  *
  * @author Andy Wilkinson
  * @since 2.0.0
@@ -37,6 +40,7 @@ public class JmxEndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	@ConditionalOnEnabledEndpoint
 	@ConditionalOnBean(AuditEventsEndpoint.class)
 	public AuditEventsJmxEndpointExtension auditEventsJmxEndpointExtension(
 			AuditEventsEndpoint auditEventsEndpoint) {
