@@ -67,10 +67,17 @@ public class EndpointInfrastructureAutoConfiguration {
 	}
 
 	@Bean
+	public CachingConfigurationFactory cacheConfigurationFactory() {
+		return new CachingConfigurationFactory(
+				this.applicationContext.getEnvironment());
+	}
+
+	@Bean
 	public JmxAnnotationEndpointDiscoverer jmxEndpointDiscoverer(
-			OperationParameterMapper operationParameterMapper) {
+			OperationParameterMapper operationParameterMapper,
+			CachingConfigurationFactory cachingConfigurationFactory) {
 		return new JmxAnnotationEndpointDiscoverer(this.applicationContext,
-				operationParameterMapper);
+				operationParameterMapper, cachingConfigurationFactory);
 	}
 
 	@ConditionalOnSingleCandidate(MBeanServer.class)
@@ -99,18 +106,22 @@ public class EndpointInfrastructureAutoConfiguration {
 
 		@Bean
 		public EndpointProvider<WebEndpointOperation> webEndpointProvider(
-				OperationParameterMapper operationParameterMapper) {
+				OperationParameterMapper operationParameterMapper,
+				CachingConfigurationFactory cachingConfigurationFactory) {
 			return new EndpointProvider(this.applicationContext.getEnvironment(),
-					webEndpointDiscoverer(operationParameterMapper), EndpointType.WEB);
+					webEndpointDiscoverer(operationParameterMapper,
+							cachingConfigurationFactory), EndpointType.WEB);
 		}
 
 		private WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
-				OperationParameterMapper operationParameterMapper) {
+				OperationParameterMapper operationParameterMapper,
+				CachingConfigurationFactory cachingConfigurationFactory) {
 			List<String> mediaTypes = Arrays.asList(
 					ActuatorMediaTypes.APPLICATION_ACTUATOR_V2_JSON_VALUE,
 					"application/json");
 			return new WebAnnotationEndpointDiscoverer(this.applicationContext,
-					operationParameterMapper, "application", mediaTypes, mediaTypes);
+					operationParameterMapper, cachingConfigurationFactory, "application",
+					mediaTypes, mediaTypes);
 		}
 
 	}
