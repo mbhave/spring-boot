@@ -43,7 +43,7 @@ import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.servlet.DefaultServletWebServerFactoryCustomizer;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorAttributes;
-import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.embedded.undertow.UndertowServletWebServerFactory;
 import org.springframework.boot.web.server.ErrorPage;
@@ -142,7 +142,7 @@ public class EndpointWebMvcChildContextConfiguration {
 	protected static class EndpointHandlerMappingConfiguration {
 
 		@Autowired
-		public void handlerMapping(WebEndpointHandlerMapping mapping) {
+		public void handlerMapping(WebEndpointServletHandlerMapping mapping) {
 			// In a child context we definitely want to see the parent endpoints
 			mapping.setDetectHandlerMethodsInAncestorContexts(true);
 		}

@@ -16,10 +16,11 @@
 
 package org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure;
 
-import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
 
 /**
- * Callback for customizing the {@link WebEndpointHandlerMapping} at configuration time.
+ * Callback for customizing the {@link WebEndpointServletHandlerMapping} at configuration
+ * time.
  *
  * @author Andy Wilkinson
  * @since 2.0.0
@@ -31,6 +32,6 @@ public interface WebEndpointHandlerMappingCustomizer {
 	 * Customize the given {@code mapping}.
 	 * @param mapping the mapping to customize
 	 */
-	void customize(WebEndpointHandlerMapping mapping);
+	void customize(WebEndpointServletHandlerMapping mapping);
 
 }

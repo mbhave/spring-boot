@@ -26,7 +26,7 @@ import org.springframework.boot.endpoint.EndpointOperationType;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
 import org.springframework.boot.endpoint.web.WebEndpointHttpMethod;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
-import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -109,7 +109,7 @@ public class RequestMappingEndpointTests {
 
 	@Test
 	public void concreteMethodMappings() {
-		WebEndpointHandlerMapping mapping = createHandlerMapping();
+		WebEndpointServletHandlerMapping mapping = createHandlerMapping();
 		this.endpoint.setMethodMappings(
 				Collections.<AbstractHandlerMethodMapping<?>>singletonList(mapping));
 		Map<String, Object> result = this.endpoint.mappings();
@@ -121,7 +121,7 @@ public class RequestMappingEndpointTests {
 		assertThat(handler.containsKey("method")).isTrue();
 	}
 
-	private WebEndpointHandlerMapping createHandlerMapping() {
+	private WebEndpointServletHandlerMapping createHandlerMapping() {
 		OperationRequestPredicate requestPredicate = new OperationRequestPredicate(
 				"/test", WebEndpointHttpMethod.GET,
 				Collections.singletonList("application/json"),
@@ -129,7 +129,7 @@ public class RequestMappingEndpointTests {
 		WebEndpointOperation operation = new WebEndpointOperation(
 				EndpointOperationType.READ, (arguments) -> "Invoked", true,
 				requestPredicate);
-		WebEndpointHandlerMapping mapping = new WebEndpointHandlerMapping(
+		WebEndpointServletHandlerMapping mapping = new WebEndpointServletHandlerMapping(
 				Collections.singleton(new EndpointInfo<>("test", true,
 						Collections.singleton(operation))));
 		mapping.setApplicationContext(new StaticApplicationContext());

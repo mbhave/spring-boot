@@ -33,12 +33,10 @@ import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.jersey.JerseyEndpointResourceFactory;
-import org.springframework.boot.endpoint.web.mvc.WebEndpointHandlerMapping;
-import org.springframework.boot.endpoint.web.reactive.ReactiveEndpointRouterFunctionFactory;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
+import org.springframework.boot.endpoint.web.reactive.WebEndpointReactiveHandlerMapping;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
@@ -60,9 +58,9 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 		public ResourceConfigCustomizer webEndpointRegistrar(
 				EndpointProvider<WebEndpointOperation> provider) {
 			return resourceConfig -> {
-				resourceConfig.registerResources(new HashSet<>(
-						new JerseyEndpointResourceFactory().createEndpointResources(
-								provider.getEndpoints())));
+				resourceConfig.registerResources(
+						new HashSet<>(new JerseyEndpointResourceFactory()
+								.createEndpointResources(provider.getEndpoints())));
 			};
 		}
 
@@ -83,9 +81,9 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
-		public WebEndpointHandlerMapping webEndpointHandlerMapping(
+		public WebEndpointServletHandlerMapping webEndpointServletHandlerMapping(
 				EndpointProvider<WebEndpointOperation> provider) {
-			WebEndpointHandlerMapping handlerMapping = new WebEndpointHandlerMapping(
+			WebEndpointServletHandlerMapping handlerMapping = new WebEndpointServletHandlerMapping(
 					provider.getEndpoints());
 			for (WebEndpointHandlerMappingCustomizer customizer : this.mappingCustomizers) {
 				customizer.customize(handlerMapping);
@@ -99,10 +97,10 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 	static class ReactiveWebEndpointConfiguration {
 
 		@Bean
-		public RouterFunction<ServerResponse> webEndpointRouterFunction(
+		@ConditionalOnMissingBean
+		public WebEndpointReactiveHandlerMapping webEndpointReactiveHandlerMapping(
 				EndpointProvider<WebEndpointOperation> provider) {
-			return new ReactiveEndpointRouterFunctionFactory()
-					.createRouterFunction(provider.getEndpoints());
+			return new WebEndpointReactiveHandlerMapping(provider.getEndpoints());
 		}
 
 	}
