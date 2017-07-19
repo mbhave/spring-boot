@@ -24,7 +24,6 @@ import javax.management.MBeanServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.actuate.endpoint.mvc.ActuatorMediaTypes;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -68,8 +67,7 @@ public class EndpointInfrastructureAutoConfiguration {
 
 	@Bean
 	public CachingConfigurationFactory cacheConfigurationFactory() {
-		return new CachingConfigurationFactory(
-				this.applicationContext.getEnvironment());
+		return new CachingConfigurationFactory(this.applicationContext.getEnvironment());
 	}
 
 	@Bean
@@ -108,9 +106,10 @@ public class EndpointInfrastructureAutoConfiguration {
 		public EndpointProvider<WebEndpointOperation> webEndpointProvider(
 				OperationParameterMapper operationParameterMapper,
 				CachingConfigurationFactory cachingConfigurationFactory) {
-			return new EndpointProvider(this.applicationContext.getEnvironment(),
+			return new EndpointProvider<>(this.applicationContext.getEnvironment(),
 					webEndpointDiscoverer(operationParameterMapper,
-							cachingConfigurationFactory), EndpointType.WEB);
+							cachingConfigurationFactory),
+					EndpointType.WEB);
 		}
 
 		private WebAnnotationEndpointDiscoverer webEndpointDiscoverer(

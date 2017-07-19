@@ -27,8 +27,8 @@ import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.core.env.Environment;
 
 /**
- * Provides the endpoints that are enabled according to an {@link EndpointDiscoverer}
- * and the current {@link Environment}.
+ * Provides the endpoints that are enabled according to an {@link EndpointDiscoverer} and
+ * the current {@link Environment}.
  *
  * @param <T> the endpoint operation type
  * @author Stephane Nicoll
@@ -48,7 +48,7 @@ public final class EndpointProvider<T extends EndpointOperation> {
 	 * @param discoverer the discoverer to get the initial set of endpoints
 	 * @param endpointType the type of endpoint to handle
 	 */
-	public EndpointProvider(Environment environment, EndpointDiscoverer discoverer,
+	public EndpointProvider(Environment environment, EndpointDiscoverer<T> discoverer,
 			EndpointType endpointType) {
 		this.discoverer = discoverer;
 		this.endpointEnablementProvider = new EndpointEnablementProvider(environment);

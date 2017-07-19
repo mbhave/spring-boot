@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.actuate.endpoint.mvc;
+package org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure;
 
 import org.springframework.http.MediaType;
 
@@ -23,7 +23,7 @@ import org.springframework.http.MediaType;
  *
  * @author Andy Wilkinson
  * @author Madhura Bhave
- * @since 1.5.0
+ * @since 2.0.0
  */
 public final class ActuatorMediaTypes {
 
