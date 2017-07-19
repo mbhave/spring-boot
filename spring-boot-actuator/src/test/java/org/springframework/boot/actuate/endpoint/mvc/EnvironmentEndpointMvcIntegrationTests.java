@@ -28,10 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointInfrastructureAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.EnvironmentEndpoint;
-import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportMessage;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,7 +62,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Andy Wilkinson
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest(properties = "logging.level.org.springframework.boot.autoconfigure.logging=DEBUG")
+@SpringBootTest
 public class EnvironmentEndpointMvcIntegrationTests {
 
 	// TODO Test Jersey and WebFlux too?
@@ -76,8 +74,6 @@ public class EnvironmentEndpointMvcIntegrationTests {
 
 	@Before
 	public void setUp() {
-		System.out.println(new ConditionEvaluationReportMessage(
-				this.context.getBean(ConditionEvaluationReport.class)));
 		this.mvc = MockMvcBuilders.webAppContextSetup(this.context).build();
 		TestPropertyValues.of("foo:bar", "fool:baz")
 				.applyTo((ConfigurableApplicationContext) this.context);
