@@ -63,6 +63,45 @@ public class MetricsEndpointTests {
 		assertThat(metrics).hasSize(3);
 	}
 
+	@Test
+	public void singleSelectedMetric() {
+		List<PublicMetrics> publicMetrics = Arrays.asList(
+				new TestPublicMetrics(2, this.metric2, this.metric2, this.metric3),
+				new TestPublicMetrics(1, this.metric1));
+		Map<String, Object> selected = new MetricsEndpoint(publicMetrics)
+				.selectedMetrics("a");
+		assertThat(selected).hasSize(1);
+		assertThat(selected).containsEntry("a", 1);
+	}
+
+	@Test
+	public void multipleSelectedMetrics() {
+		List<PublicMetrics> publicMetrics = Arrays.asList(
+				new TestPublicMetrics(2, this.metric2, this.metric2, this.metric3),
+				new TestPublicMetrics(1, this.metric1));
+		Map<String, Object> selected = new MetricsEndpoint(publicMetrics)
+				.selectedMetrics("[ab]");
+		assertThat(selected).hasSize(2);
+		assertThat(selected).containsEntry("a", 1);
+		assertThat(selected).containsEntry("b", 2);
+	}
+
+	@Test
+	public void noMetricMatchingName() {
+		List<PublicMetrics> publicMetrics = Arrays.asList(
+				new TestPublicMetrics(2, this.metric2, this.metric2, this.metric3),
+				new TestPublicMetrics(1, this.metric1));
+		assertThat(new MetricsEndpoint(publicMetrics).selectedMetrics("z")).isNull();
+	}
+
+	@Test
+	public void noMetricMatchingPattern() {
+		List<PublicMetrics> publicMetrics = Arrays.asList(
+				new TestPublicMetrics(2, this.metric2, this.metric2, this.metric3),
+				new TestPublicMetrics(1, this.metric1));
+		assertThat(new MetricsEndpoint(publicMetrics).selectedMetrics("[z]")).isEmpty();
+	}
+
 	private static class TestPublicMetrics implements PublicMetrics, Ordered {
 
 		private final int order;

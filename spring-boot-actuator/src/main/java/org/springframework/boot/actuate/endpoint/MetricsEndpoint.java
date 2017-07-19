@@ -28,9 +28,7 @@ import org.springframework.boot.endpoint.Endpoint;
 import org.springframework.boot.endpoint.ReadOperation;
 import org.springframework.boot.endpoint.Selector;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * {@link Endpoint} to expose a collection of {@link PublicMetrics}.
@@ -88,8 +86,13 @@ public class MetricsEndpoint {
 	}
 
 	@ReadOperation
-	public Object getSelectedMetrics(@Selector String name) {
-		return new NamePatternMapFilter(metrics()).getResults(name);
+	public Map<String, Object> selectedMetrics(@Selector String name) {
+		try {
+			return new NamePatternMapFilter(metrics()).getResults(name);
+		}
+		catch (NoSuchMetricException ex) {
+			return null;
+		}
 	}
 
 	/**
@@ -133,7 +136,6 @@ public class MetricsEndpoint {
 	 * Exception thrown when the specified metric cannot be found.
 	 */
 	@SuppressWarnings("serial")
-	@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "No such metric")
 	public static class NoSuchMetricException extends RuntimeException {
 
 		public NoSuchMetricException(String string) {

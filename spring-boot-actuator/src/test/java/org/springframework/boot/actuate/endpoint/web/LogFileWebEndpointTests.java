@@ -41,8 +41,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class LogFileWebEndpointTests {
 
-	// TODO Replace with equivalent tests for new infrastructure?
-
 	@Rule
 	public TemporaryFolder temp = new TemporaryFolder();
 

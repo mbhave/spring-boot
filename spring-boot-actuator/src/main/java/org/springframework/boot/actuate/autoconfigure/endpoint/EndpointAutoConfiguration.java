@@ -25,6 +25,7 @@ import org.flywaydb.core.Flyway;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.ManagementContextConfigurationImportSelector;
 import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.AutoConfigurationReportEndpoint;
 import org.springframework.boot.actuate.endpoint.BeansEndpoint;
@@ -62,6 +63,7 @@ import org.springframework.boot.endpoint.Endpoint;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.handler.AbstractHandlerMethodMapping;
@@ -83,6 +85,7 @@ import org.springframework.web.servlet.handler.AbstractHandlerMethodMapping;
 @Configuration
 @AutoConfigureAfter({ FlywayAutoConfiguration.class, LiquibaseAutoConfiguration.class })
 @EnableConfigurationProperties(EndpointProperties.class)
+@Import(ManagementContextConfigurationImportSelector.class)
 public class EndpointAutoConfiguration {
 
 	@Bean

@@ -17,6 +17,7 @@
 package org.springframework.boot.actuate.endpoint;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import org.junit.Test;
@@ -42,6 +43,13 @@ public class InfoEndpointTests {
 		assertThat(info).hasSize(2);
 		assertThat(info).containsEntry("key1", "value1");
 		assertThat(info).containsEntry("key2", "value2");
+	}
+
+	@Test
+	public void infoWithNoContributorsProducesEmptyMap() {
+		InfoEndpoint endpoint = new InfoEndpoint(Collections.emptyList());
+		Map<String, Object> info = endpoint.info();
+		assertThat(info).isEmpty();
 	}
 
 }

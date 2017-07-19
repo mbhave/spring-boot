@@ -38,7 +38,6 @@ import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 /**
@@ -93,7 +92,6 @@ public class EndpointInfrastructureAutoConfiguration {
 	}
 
 	@ConditionalOnWebApplication
-	@Import(ManagementContextConfigurationImportSelector.class)
 	static class WebInfrastructureConfiguration {
 
 		private final ApplicationContext applicationContext;
