@@ -17,6 +17,7 @@
 package org.springframework.boot.actuate.endpoint.web;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ public class AuditEventsWebEndpointExtension {
 
 	@ReadOperation
 	public Map<String, List<AuditEvent>> eventsWithPrincipalDateAfterAndType(
-			String principal, String after, String type) {
+			String principal, Date after, String type) {
 		return Collections.singletonMap("events", this.delegate
 				.eventsWithPrincipalDateAfterAndType(principal, after, type));
 	}

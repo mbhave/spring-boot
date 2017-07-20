@@ -16,7 +16,10 @@
 
 package org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.management.MBeanServer;
@@ -39,6 +42,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.support.DefaultConversionService;
+import org.springframework.util.StringUtils;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for the endpoint infrastructure used
@@ -60,8 +64,16 @@ public class EndpointInfrastructureAutoConfiguration {
 
 	@Bean
 	public OperationParameterMapper operationParameterMapper() {
-		return new DefaultOperationParameterMapper(
-				DefaultConversionService.getSharedInstance());
+		DefaultConversionService conversionService = new DefaultConversionService();
+		conversionService.addConverter(String.class, Date.class, (string) -> {
+			if (StringUtils.hasLength(string)) {
+				OffsetDateTime offsetDateTime = OffsetDateTime.parse(string,
+						DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+				return new Date(offsetDateTime.toEpochSecond() * 1000);
+			}
+			return null;
+		});
+		return new DefaultOperationParameterMapper(conversionService);
 	}
 
 	@Bean
