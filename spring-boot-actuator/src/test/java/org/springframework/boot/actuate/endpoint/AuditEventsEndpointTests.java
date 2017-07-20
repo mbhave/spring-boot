@@ -54,10 +54,11 @@ public class AuditEventsEndpointTests {
 
 	@Test
 	public void eventsWithDateAfter() {
-		given(this.repository.find(null, new Date(1499937330000L), null))
+		Date date = new Date();
+		given(this.repository.find(null, date, null))
 				.willReturn(Collections.singletonList(this.event));
 		List<AuditEvent> result = this.endpoint.eventsWithPrincipalDateAfterAndType(null,
-				"2017-07-13T10:15:30+01:00", null);
+				date, null);
 		assertThat(result).isEqualTo(Collections.singletonList(this.event));
 	}
 

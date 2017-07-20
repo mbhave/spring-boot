@@ -48,11 +48,11 @@ public class AuditEventsWebEndpointExtensionTests {
 
 	@Test
 	public void delegatesResponseIsAvailableFromEventsKeyInMap() {
-		given(this.repository.find("principal", new Date(1499937330000L), "type"))
+		Date date = new Date();
+		given(this.repository.find("principal", date, "type"))
 				.willReturn(Collections.singletonList(this.event));
 		Map<String, List<AuditEvent>> result = this.extension
-				.eventsWithPrincipalDateAfterAndType("principal",
-						"2017-07-13T10:15:30+01:00", "type");
+				.eventsWithPrincipalDateAfterAndType("principal", date, "type");
 		assertThat(result).hasSize(1);
 		assertThat(result).containsEntry("events", Collections.singletonList(this.event));
 	}

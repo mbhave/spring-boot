@@ -47,19 +47,20 @@ public class AuditEventsJmxEndpointExtensionTests {
 
 	@Test
 	public void eventsWithDateAfter() {
-		given(this.repository.find(null, new Date(1499937330000L), null))
+		Date date = new Date();
+		given(this.repository.find(null, date, null))
 				.willReturn(Collections.singletonList(this.event));
-		List<AuditEvent> result = this.extension
-				.eventsWithDateAfter("2017-07-13T10:15:30+01:00");
+		List<AuditEvent> result = this.extension.eventsWithDateAfter(date);
 		assertThat(result).isEqualTo(Collections.singletonList(this.event));
 	}
 
 	@Test
 	public void eventsWithPrincipalAndDateAfter() {
-		given(this.repository.find("Joan", new Date(1499937330000L), null))
+		Date date = new Date();
+		given(this.repository.find("Joan", date, null))
 				.willReturn(Collections.singletonList(this.event));
 		List<AuditEvent> result = this.extension.eventsWithPrincipalAndDateAfter("Joan",
-				"2017-07-13T10:15:30+01:00");
+				date);
 		assertThat(result).isEqualTo(Collections.singletonList(this.event));
 	}
 
