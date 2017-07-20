@@ -24,7 +24,7 @@ import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -43,12 +43,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * class.
  *
  * @author Phillip Webb
+ * @author Andy Wilkinson
  */
 public class ConfigurationPropertiesReportEndpointProxyTests {
 
 	@Test
 	public void testWithProxyClass() throws Exception {
-		ContextLoader.standard().config(Config.class, SqlExecutor.class).load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(Config.class, SqlExecutor.class);
+		contextTester.run(context -> {
 			Map<String, Object> report = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class)
 					.configurationProperties();

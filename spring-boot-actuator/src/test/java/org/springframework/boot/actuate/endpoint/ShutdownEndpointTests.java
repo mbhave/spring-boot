@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -46,7 +46,9 @@ public class ShutdownEndpointTests {
 
 	@Test
 	public void shutdown() throws Exception {
-		ContextLoader.standard().config(EndpointConfig.class).load(context -> {
+		ApplicationContextTester contexTester = new ApplicationContextTester()
+				.withUserConfiguration(EndpointConfig.class);
+		contexTester.run(context -> {
 			EndpointConfig config = context.getBean(EndpointConfig.class);
 			ClassLoader previousTccl = Thread.currentThread().getContextClassLoader();
 			Map<String, Object> result;
@@ -59,7 +61,7 @@ public class ShutdownEndpointTests {
 				Thread.currentThread().setContextClassLoader(previousTccl);
 			}
 			assertThat((String) result.get("message")).startsWith("Shutting down");
-			assertThat(context.isActive()).isTrue();
+			assertThat(((ConfigurableApplicationContext) context).isActive()).isTrue();
 			assertThat(config.latch.await(10, TimeUnit.SECONDS)).isTrue();
 			assertThat(config.threadContextClassLoader)
 					.isEqualTo(getClass().getClassLoader());

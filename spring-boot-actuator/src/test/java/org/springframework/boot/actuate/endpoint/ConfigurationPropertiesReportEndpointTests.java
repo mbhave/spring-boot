@@ -28,8 +28,7 @@ import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
-import org.springframework.boot.test.context.StandardContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.CollectionUtils;
@@ -107,10 +106,11 @@ public class ConfigurationPropertiesReportEndpointTests {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void keysToSanitizeCanBeConfiguredViaTheEnvironment() throws Exception {
-		StandardContextLoader loader = ContextLoader.standard()
-				.env("endpoints.configprops.keys-to-sanitize: .*pass.*, property")
-				.config(Config.class);
-		loader.load(context -> {
+		ApplicationContextTester tester = new ApplicationContextTester()
+				.withPropertyValues(
+						"endpoints.configprops.keys-to-sanitize: .*pass.*, property")
+				.withUserConfiguration(Config.class);
+		tester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -191,7 +191,9 @@ public class ConfigurationPropertiesReportEndpointTests {
 
 	private void load(List<String> keysToSanitize,
 			Consumer<Map<String, Object>> properties) {
-		ContextLoader.standard().config(Config.class).load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(Config.class);
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			if (!CollectionUtils.isEmpty(keysToSanitize)) {

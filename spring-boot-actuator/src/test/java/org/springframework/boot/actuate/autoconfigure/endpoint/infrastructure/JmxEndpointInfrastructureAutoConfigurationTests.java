@@ -27,8 +27,9 @@ import javax.management.ReflectionException;
 import org.junit.Test;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,44 +38,49 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link EndpointInfrastructureAutoConfiguration} with JMX.
  *
  * @author Stephane Nicoll
+ * @author Andy Wilkinson
  */
 public class JmxEndpointInfrastructureAutoConfigurationTests {
 
-	private final ContextLoader contextLoader = ContextLoader.standard().autoConfig(
-			JmxAutoConfiguration.class, EndpointAutoConfiguration.class,
-			EndpointInfrastructureAutoConfiguration.class);
-
+	private final ApplicationContextTester context = new ApplicationContextTester()
+			.withConfiguration(AutoConfigurations.of(JmxAutoConfiguration.class,
+					EndpointAutoConfiguration.class,
+					EndpointInfrastructureAutoConfiguration.class));
 
 	@Test
 	public void jmxEndpointsAreExposed() {
-		this.contextLoader.load(context -> {
+		this.context.run(context -> {
 			MBeanServer mBeanServer = context.getBean(MBeanServer.class);
-			checkEndpointMBeans(mBeanServer, new String[] { "autoconfig", "beans",
-					"configprops", "env", "health", "info", "mappings", "metrics",
-					"threaddump", "trace" }, new String[] { "shutdown" });
+			checkEndpointMBeans(mBeanServer,
+					new String[] { "autoconfig", "beans", "configprops", "env", "health",
+							"info", "mappings", "metrics", "threaddump", "trace" },
+					new String[] { "shutdown" });
 		});
 	}
 
 	@Test
 	public void jmxEndpointsCanBeDisabled() {
-		this.contextLoader.env("endpoints.all.jmx.enabled=false").load(context -> {
-			MBeanServer mBeanServer = context.getBean(MBeanServer.class);
-			checkEndpointMBeans(mBeanServer, new String[0], new String[] { "autoconfig",
-					"beans", "configprops", "env", "health", "info", "mappings",
-					"metrics", "shutdown", "threaddump", "trace" });
+		this.context.withPropertyValue("endpoints.all.jmx.enabled", "false")
+				.run(context -> {
+					MBeanServer mBeanServer = context.getBean(MBeanServer.class);
+					checkEndpointMBeans(mBeanServer, new String[0],
+							new String[] { "autoconfig", "beans", "configprops", "env",
+									"health", "info", "mappings", "metrics", "shutdown",
+									"threaddump", "trace" });
 
-		});
+				});
 	}
 
 	@Test
 	public void singleJmxEndpointCanBeEnabled() {
-		this.contextLoader.env("endpoints.all.jmx.enabled=false",
-				"endpoints.beans.jmx.enabled=true").load(context -> {
-			MBeanServer mBeanServer = context.getBean(MBeanServer.class);
-			checkEndpointMBeans(mBeanServer, new String[] { "beans" }, new String[] {
-					"autoconfig", "configprops", "env", "health", "info", "mappings",
-					"metrics", "shutdown", "threaddump", "trace" });
-		});
+		this.context.withPropertyValues("endpoints.all.jmx.enabled=false",
+				"endpoints.beans.jmx.enabled=true").run(context -> {
+					MBeanServer mBeanServer = context.getBean(MBeanServer.class);
+					checkEndpointMBeans(mBeanServer, new String[] { "beans" },
+							new String[] { "autoconfig", "configprops", "env", "health",
+									"info", "mappings", "metrics", "shutdown",
+									"threaddump", "trace" });
+				});
 	}
 
 	private void checkEndpointMBeans(MBeanServer mBeanServer, String[] enabledEndpoints,
@@ -88,7 +94,6 @@ public class JmxEndpointInfrastructureAutoConfigurationTests {
 					.as(String.format("Endpoint %s", disabledEndpoint)).isFalse();
 		}
 	}
-
 
 	private boolean isRegistered(MBeanServer mBeanServer, ObjectName objectName) {
 		try {

@@ -27,9 +27,11 @@ import javax.management.MBeanServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
 import org.springframework.boot.endpoint.ConversionServiceOperationParameterMapper;
 import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.endpoint.OperationParameterMapper;
@@ -53,6 +55,7 @@ import org.springframework.util.StringUtils;
  * @since 2.0.0
  */
 @Configuration
+@AutoConfigureAfter(JmxAutoConfiguration.class)
 public class EndpointInfrastructureAutoConfiguration {
 
 	private final ApplicationContext applicationContext;

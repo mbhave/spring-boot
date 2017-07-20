@@ -18,14 +18,11 @@ package org.springframework.boot.actuate.endpoint;
 
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,27 +33,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * context.
  *
  * @author Dave Syer
+ * @author Andy Wilkinson
  */
 public class ConfigurationPropertiesReportEndpointParentTests {
-
-	private AnnotationConfigApplicationContext context;
-
-	@After
-	public void close() {
-		if (this.context != null) {
-			this.context.close();
-			if (this.context.getParent() != null) {
-				((ConfigurableApplicationContext) this.context.getParent()).close();
-			}
-		}
-	}
 
 	@Test
 	@SuppressWarnings("unchecked")
 	public void configurationPropertiesClass() throws Exception {
-		ContextLoader.standard().config(Parent.class).load(parent -> {
-			ContextLoader.standard().config(ClassConfigurationProperties.class)
-					.parent(parent).load(child -> {
+		new ApplicationContextTester().withUserConfiguration(Parent.class).run(parent -> {
+			new ApplicationContextTester()
+					.withUserConfiguration(ClassConfigurationProperties.class)
+					.withParent(parent).run(child -> {
 				ConfigurationPropertiesReportEndpoint endpoint = child
 						.getBean(ConfigurationPropertiesReportEndpoint.class);
 				Map<String, Object> result = endpoint.configurationProperties();
@@ -71,9 +58,10 @@ public class ConfigurationPropertiesReportEndpointParentTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void configurationPropertiesBeanMethod() throws Exception {
-		ContextLoader.standard().config(Parent.class).load(parent -> {
-			ContextLoader.standard().config(BeanMethodConfigurationProperties.class)
-					.parent(parent).load(child -> {
+		new ApplicationContextTester().withUserConfiguration(Parent.class).run(parent -> {
+			new ApplicationContextTester()
+					.withUserConfiguration(BeanMethodConfigurationProperties.class)
+					.withParent(parent).run(child -> {
 				ConfigurationPropertiesReportEndpoint endpoint = child
 						.getBean(ConfigurationPropertiesReportEndpoint.class);
 				Map<String, Object> result = endpoint.configurationProperties();

@@ -29,7 +29,8 @@ import org.springframework.boot.actuate.endpoint.web.HealthWebEndpointExtension;
 import org.springframework.boot.actuate.endpoint.web.HeapDumpWebEndpoint;
 import org.springframework.boot.actuate.endpoint.web.LogFileWebEndpoint;
 import org.springframework.boot.actuate.health.OrderedHealthAggregator;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -63,9 +64,10 @@ public class WebEndpointManagementContextConfigurationTests {
 
 	@Test
 	public void healthStatusMappingCanBeCustomized() {
-		ContextLoader loader = loader().env("endpoints.health.mapping.CUSTOM=500")
-				.config(HealthEndpointConfiguration.class);
-		loader.load(context -> {
+		ApplicationContextTester contextTester = context()
+				.withPropertyValues("endpoints.health.mapping.CUSTOM=500")
+				.withUserConfiguration(HealthEndpointConfiguration.class);
+		contextTester.run(context -> {
 			HealthWebEndpointExtension extension = context
 					.getBean(HealthWebEndpointExtension.class);
 			@SuppressWarnings("unchecked")
@@ -98,50 +100,50 @@ public class WebEndpointManagementContextConfigurationTests {
 
 	@Test
 	public void logFileWebEndpointIsAutoConfiguredWhenLoggingFileIsSet() {
-		loader().env("logging.file:test.log").load((context) -> {
+		context().withPropertyValues("logging.file:test.log").run((context) -> {
 			assertThat(context.getBeansOfType(LogFileWebEndpoint.class)).hasSize(1);
 		});
 	}
 
 	@Test
 	public void logFileWebEndpointIsAutoConfiguredWhenLoggingPathIsSet() {
-		loader().env("logging.path:test/logs").load((context) -> {
+		context().withPropertyValues("logging.path:test/logs").run((context) -> {
 			assertThat(context.getBeansOfType(LogFileWebEndpoint.class)).hasSize(1);
 		});
 	}
 
 	@Test
 	public void logFileWebEndpointIsAutoConfiguredWhenExternalFileIsSet() {
-		loader().env("endpoints.logfile.external-file:external.log").load((context) -> {
-			assertThat(context.getBeansOfType(LogFileWebEndpoint.class)).hasSize(1);
-		});
+		context().withPropertyValues("endpoints.logfile.external-file:external.log")
+				.run((context) -> {
+					assertThat(context.getBeansOfType(LogFileWebEndpoint.class))
+							.hasSize(1);
+				});
 	}
 
 	@Test
 	public void logFileWebEndpointCanBeDisabled() {
-		ContextLoader loader = loader().env("logging.file:test.log",
-				"endpoints.logfile.enabled:false");
-		loader.load((context) -> {
-			assertThat(context.getBeansOfType(LogFileWebEndpoint.class)).hasSize(1);
-		});
+		context()
+				.withPropertyValues("logging.file:test.log",
+						"endpoints.logfile.enabled:false")
+				.run((context) -> assertThat(context)
+						.hasSingleBean(LogFileWebEndpoint.class));
 	}
 
 	private void beanIsAutoConfigured(Class<?> beanType, Class<?>... config) {
-		loader().config(config).load((context) -> {
-			assertThat(context.getBeansOfType(beanType)).hasSize(1);
-		});
+		context().withUserConfiguration(config)
+				.run((context) -> assertThat(context).hasSingleBean(beanType));
 	}
 
 	private void beanIsNotAutoConfiguredWhenEndpointIsDisabled(Class<?> webExtension,
 			String id, Class<?>... config) {
-		loader().env("endpoints." + id + ".enabled=false").load((context) -> {
-			assertThat(context.getBeansOfType(webExtension)).hasSize(0);
-		});
+		context().withPropertyValues("endpoints." + id + ".enabled=false")
+				.run((context) -> assertThat(context).doesNotHaveBean(webExtension));
 	}
 
-	private ContextLoader loader() {
-		return ContextLoader.standard()
-				.autoConfig(WebEndpointManagementContextConfiguration.class);
+	private ApplicationContextTester context() {
+		return new ApplicationContextTester().withConfiguration(
+				AutoConfigurations.of(WebEndpointManagementContextConfiguration.class));
 	}
 
 	@Configuration

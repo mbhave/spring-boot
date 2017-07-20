@@ -21,7 +21,7 @@ import org.junit.Test;
 
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -38,8 +38,8 @@ public class FlywayEndpointTests {
 
 	@Test
 	public void flywayReportIsProduced() throws Exception {
-		ContextLoader.standard().config(Config.class)
-				.load(context -> assertThat(
+		new ApplicationContextTester().withUserConfiguration(Config.class)
+				.run(context -> assertThat(
 						context.getBean(FlywayEndpoint.class).flywayReports())
 								.hasSize(1));
 	}

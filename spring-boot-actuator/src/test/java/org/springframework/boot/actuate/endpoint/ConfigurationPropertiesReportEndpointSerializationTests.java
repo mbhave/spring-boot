@@ -26,8 +26,7 @@ import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
-import org.springframework.boot.test.context.StandardContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -40,15 +39,17 @@ import static org.assertj.core.api.Assertions.entry;
  *
  * @author Dave Syer
  * @author Stephane Nicoll
+ * @author Andy Wilkinson
  */
 public class ConfigurationPropertiesReportEndpointSerializationTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testNaming() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(FooConfig.class).env("foo.name:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(FooConfig.class)
+				.withPropertyValues("foo.name:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -67,9 +68,10 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testNestedNaming() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(FooConfig.class).env("foo.bar.name:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(FooConfig.class)
+				.withPropertyValues("foo.bar.name:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -88,9 +90,10 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testCycle() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(CycleConfig.class).env("foo.name:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(CycleConfig.class)
+				.withPropertyValues("foo.name:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -109,9 +112,10 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testMap() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(MapConfig.class).env("foo.map.name:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(MapConfig.class)
+				.withPropertyValues("foo.map.name:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -131,7 +135,9 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testEmptyMapIsNotAdded() throws Exception {
-		ContextLoader.standard().config(MapConfig.class).load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(MapConfig.class);
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -151,9 +157,10 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testList() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(ListConfig.class).env("foo.list[0]:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(ListConfig.class)
+				.withPropertyValues("foo.list[0]:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -172,9 +179,10 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testInetAddress() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(AddressedConfig.class).env("foo.address:192.168.1.10");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(AddressedConfig.class)
+				.withPropertyValues("foo.address:192.168.1.10");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -193,11 +201,12 @@ public class ConfigurationPropertiesReportEndpointSerializationTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
+
 	public void testInitializedMapAndList() throws Exception {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(InitializedMapAndListPropertiesConfig.class)
-				.env("foo.map.entryOne:true", "foo.list[0]:abc");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(InitializedMapAndListPropertiesConfig.class)
+				.withPropertyValues("foo.map.entryOne:true", "foo.list[0]:abc");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();

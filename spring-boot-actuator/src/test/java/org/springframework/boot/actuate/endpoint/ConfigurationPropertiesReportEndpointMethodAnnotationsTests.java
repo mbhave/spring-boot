@@ -22,8 +22,7 @@ import org.junit.Test;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
-import org.springframework.boot.test.context.StandardContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,15 +32,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests for {@link ConfigurationPropertiesReportEndpoint} when used with bean methods.
  *
  * @author Dave Syer
+ * @author Andy Wilkinson
  */
 public class ConfigurationPropertiesReportEndpointMethodAnnotationsTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
 	public void testNaming() {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(Config.class).env("other.name:foo", "first.name:bar");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(Config.class)
+				.withPropertyValues("other.name:foo", "first.name:bar");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();
@@ -56,9 +57,10 @@ public class ConfigurationPropertiesReportEndpointMethodAnnotationsTests {
 	@Test
 	@SuppressWarnings("unchecked")
 	public void prefixFromBeanMethodConfigurationPropertiesCanOverridePrefixOnClass() {
-		StandardContextLoader contextLoader = ContextLoader.standard()
-				.config(OverriddenPrefix.class).env("other.name:foo");
-		contextLoader.load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(OverriddenPrefix.class)
+				.withPropertyValues("other.name:foo");
+		contextTester.run(context -> {
 			ConfigurationPropertiesReportEndpoint endpoint = context
 					.getBean(ConfigurationPropertiesReportEndpoint.class);
 			Map<String, Object> properties = endpoint.configurationProperties();

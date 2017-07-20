@@ -36,8 +36,9 @@ import org.springframework.boot.actuate.endpoint.RequestMappingEndpoint;
 import org.springframework.boot.actuate.endpoint.ShutdownEndpoint;
 import org.springframework.boot.actuate.endpoint.ThreadDumpEndpoint;
 import org.springframework.boot.actuate.endpoint.TraceEndpoint;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.logging.LoggingSystem;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -144,16 +145,15 @@ public class EndpointAutoConfigurationTests {
 
 	@Test
 	public void shutdownEndpointIsNotAutoConfiguredByDefault() {
-		loader().load((context) -> {
-			assertThat(context.getBeansOfType(ShutdownEndpoint.class)).hasSize(0);
-		});
+		context().run(
+				(context) -> assertThat(context).doesNotHaveBean(ShutdownEndpoint.class));
 	}
 
 	@Test
 	public void shutdownEndpointCanBeEnabled() {
-		loader().env("endpoints.shutdown.enabled=true").load((context) -> {
-			assertThat(context.getBeansOfType(ShutdownEndpoint.class)).hasSize(1);
-		});
+		context().withPropertyValue("endpoints.shutdown.enabled", "true").run(
+				(context) -> assertThat(context.getBeansOfType(ShutdownEndpoint.class))
+						.hasSize(1));
 	}
 
 	@Test
@@ -209,19 +209,18 @@ public class EndpointAutoConfigurationTests {
 	}
 
 	private void endpointIsAutoConfigured(Class<?> endpoint, Class<?>... config) {
-		loader().config(config).load((context) -> {
-			assertThat(context.getBeansOfType(endpoint)).hasSize(1);
-		});
+		context().withUserConfiguration(config)
+				.run((context) -> assertThat(context).hasSingleBean(endpoint));
 	}
 
 	private void endpointCanBeDisabled(Class<?> endpoint, String id, Class<?>... config) {
-		loader().env("endpoints." + id + ".enabled=false").load((context) -> {
-			assertThat(context.getBeansOfType(endpoint)).hasSize(0);
-		});
+		context().withPropertyValue("endpoints." + id + ".enabled", "false").run(
+				(context) -> assertThat(context.getBeansOfType(endpoint)).hasSize(0));
 	}
 
-	private ContextLoader loader() {
-		return ContextLoader.standard().autoConfig(EndpointAutoConfiguration.class);
+	private ApplicationContextTester context() {
+		return new ApplicationContextTester().withConfiguration(
+				AutoConfigurations.of(EndpointAutoConfiguration.class));
 	}
 
 	@Configuration

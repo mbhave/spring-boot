@@ -22,7 +22,7 @@ import java.util.Map;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,7 +38,9 @@ public class BeansEndpointTests {
 
 	@Test
 	public void beansAreFound() throws Exception {
-		ContextLoader.standard().config(EndpointConfiguration.class).load(context -> {
+		ApplicationContextTester contextTester = new ApplicationContextTester()
+				.withUserConfiguration(EndpointConfiguration.class);
+		contextTester.run(context -> {
 			List<Object> result = context.getBean(BeansEndpoint.class).beans();
 			assertThat(result).hasSize(1);
 			assertThat(result.get(0)).isInstanceOf(Map.class);
@@ -47,9 +49,12 @@ public class BeansEndpointTests {
 
 	@Test
 	public void beansInParentContextAreFound() {
-		ContextLoader.standard().config(BeanConfiguration.class).load(parent -> {
-			ContextLoader.standard().config(EndpointConfiguration.class).parent(parent)
-					.load(child -> {
+		ApplicationContextTester parentTester = new ApplicationContextTester()
+				.withUserConfiguration(BeanConfiguration.class);
+		parentTester.run(parent -> {
+			new ApplicationContextTester()
+					.withUserConfiguration(EndpointConfiguration.class).withParent(parent)
+					.run(child -> {
 				BeansEndpoint endpoint = child.getBean(BeansEndpoint.class);
 				List<Object> contexts = endpoint.beans();
 				assertThat(contexts).hasSize(2);
@@ -61,9 +66,11 @@ public class BeansEndpointTests {
 
 	@Test
 	public void beansInChildContextAreNotFound() {
-		ContextLoader.standard().config(EndpointConfiguration.class).load(parent -> {
-			ContextLoader.standard().config(BeanConfiguration.class).parent(parent)
-					.load(child -> {
+		ApplicationContextTester parentTester = new ApplicationContextTester()
+				.withUserConfiguration(EndpointConfiguration.class);
+		parentTester.run(parent -> {
+			new ApplicationContextTester().withUserConfiguration(BeanConfiguration.class)
+					.withParent(parent).run(child -> {
 				BeansEndpoint endpoint = child.getBean(BeansEndpoint.class);
 				List<Object> contexts = endpoint.beans();
 				assertThat(contexts).hasSize(1);

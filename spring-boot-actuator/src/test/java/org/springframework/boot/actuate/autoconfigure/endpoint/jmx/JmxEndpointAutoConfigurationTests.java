@@ -21,7 +21,8 @@ import org.junit.Test;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.boot.actuate.endpoint.AuditEventsEndpoint;
 import org.springframework.boot.actuate.endpoint.jmx.AuditEventsJmxEndpointExtension;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -48,20 +49,19 @@ public class JmxEndpointAutoConfigurationTests {
 	}
 
 	private void jmxExtensionIsAutoConfigured(Class<?> jmxExtension, Class<?>... config) {
-		loader().config(config).load((context) -> {
-			assertThat(context.getBeansOfType(jmxExtension)).hasSize(1);
-		});
+		context().withUserConfiguration(config)
+				.run((context) -> assertThat(context).hasSingleBean(jmxExtension));
 	}
 
 	private void jmxExtensionCanBeDisabled(Class<?> jmxExtension, String id,
 			Class<?>... config) {
-		loader().env("endpoints." + id + ".enabled=false").load((context) -> {
-			assertThat(context.getBeansOfType(jmxExtension)).hasSize(0);
-		});
+		context().withPropertyValues("endpoints." + id + ".enabled=false")
+				.run((context) -> assertThat(context).doesNotHaveBean(jmxExtension));
 	}
 
-	private ContextLoader loader() {
-		return ContextLoader.standard().autoConfig(JmxEndpointAutoConfiguration.class);
+	private ApplicationContextTester context() {
+		return new ApplicationContextTester().withConfiguration(
+				AutoConfigurations.of(JmxEndpointAutoConfiguration.class));
 	}
 
 	@Configuration

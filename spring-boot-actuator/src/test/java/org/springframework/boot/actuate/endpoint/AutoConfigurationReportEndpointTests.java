@@ -27,7 +27,7 @@ import org.springframework.boot.actuate.endpoint.AutoConfigurationReportEndpoint
 import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
@@ -47,14 +47,15 @@ public class AutoConfigurationReportEndpointTests {
 
 	@Test
 	public void invoke() throws Exception {
-		ContextLoader.standard().config(Config.class).load(context -> {
-			Report report = context.getBean(AutoConfigurationReportEndpoint.class)
-					.getEvaluationReport();
-			assertThat(report.getPositiveMatches()).isEmpty();
-			assertThat(report.getNegativeMatches()).containsKey("a");
-			assertThat(report.getUnconditionalClasses()).contains("b");
-			assertThat(report.getExclusions()).contains("com.foo.Bar");
-		});
+		new ApplicationContextTester().withUserConfiguration(Config.class)
+				.run(context -> {
+					Report report = context.getBean(AutoConfigurationReportEndpoint.class)
+							.getEvaluationReport();
+					assertThat(report.getPositiveMatches()).isEmpty();
+					assertThat(report.getNegativeMatches()).containsKey("a");
+					assertThat(report.getUnconditionalClasses()).contains("b");
+					assertThat(report.getExclusions()).contains("com.foo.Bar");
+				});
 	}
 
 	@Configuration

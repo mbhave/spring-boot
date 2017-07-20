@@ -20,13 +20,13 @@ import org.apache.http.HttpStatus;
 import org.junit.Test;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.ServletWebServerFactoryAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
-import org.springframework.boot.test.context.ContextLoader;
-import org.springframework.boot.test.context.ServletWebContextLoader;
+import org.springframework.boot.test.context.WebApplicationContextTester;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -42,75 +42,101 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  */
 public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 
-	private final ServletWebContextLoader contextLoader = ContextLoader.servletWeb()
-			.autoConfig(ServletWebServerFactoryAutoConfiguration.class,
+	private final WebApplicationContextTester context = new WebApplicationContextTester()
+			.withConfiguration(AutoConfigurations.of(
+					ServletWebServerFactoryAutoConfiguration.class,
 					DispatcherServletAutoConfiguration.class,
 					JacksonAutoConfiguration.class,
 					HttpMessageConvertersAutoConfiguration.class,
-					WebMvcAutoConfiguration.class,
-					EndpointAutoConfiguration.class,
+					WebMvcAutoConfiguration.class, EndpointAutoConfiguration.class,
 					EndpointInfrastructureAutoConfiguration.class,
-					EndpointServletWebAutoConfiguration.class);
+					EndpointServletWebAutoConfiguration.class));
 
 	@Test
 	public void webEndpointsAreExposed() {
-		this.contextLoader.loadWeb(context -> {
+		this.context.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig")).isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig"))
+					.isTrue();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/beans")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops")).isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops"))
+					.isTrue();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/env")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health")).isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health"))
+					.isTrue();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/info")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump")).isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings"))
+					.isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics"))
+					.isTrue();
+			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump"))
+					.isTrue();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/trace")).isTrue();
 		});
 	}
 
 	@Test
 	public void webEndpointsCanBeDisabled() {
-		this.contextLoader.env("endpoints.all.web.enabled=false").loadWeb(context -> {
+		WebApplicationContextTester contextTester = this.context
+				.withPropertyValues("endpoints.all.web.enabled=false");
+		contextTester.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/beans")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/beans"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops"))
+					.isFalse();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/env")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health"))
+					.isFalse();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/info")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/trace")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/trace"))
+					.isFalse();
 		});
 	}
 
 	@Test
 	public void singleWebEndpointCanBeEnabled() {
-		this.contextLoader.env("endpoints.all.web.enabled=false",
-				"endpoints.beans.web.enabled=true").loadWeb(context -> {
+		WebApplicationContextTester contextTester = this.context.withPropertyValues(
+				"endpoints.all.web.enabled=false", "endpoints.beans.web.enabled=true");
+		contextTester.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig"))
+					.isFalse();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/beans")).isTrue();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/configprops"))
+					.isFalse();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/env")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/health"))
+					.isFalse();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/info")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump")).isFalse();
-			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/trace")).isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/mappings"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/metrics"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.POST, "/application/shutdown"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/threaddump"))
+					.isFalse();
+			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/trace"))
+					.isFalse();
 		});
 	}
 
 	private boolean isExposed(MockMvc mockMvc, HttpMethod method, String path)
 			throws Exception {
-		MvcResult mvcResult = mockMvc.perform(request(method, path))
-				.andReturn();
+		MvcResult mvcResult = mockMvc.perform(request(method, path)).andReturn();
 		int status = mvcResult.getResponse().getStatus();
 		if (status == HttpStatus.SC_OK) {
 			return true;
@@ -118,8 +144,8 @@ public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 		else if (status == HttpStatus.SC_NOT_FOUND) {
 			return false;
 		}
-		throw new IllegalStateException(String.format("Unexpected %s HTTP status for "
-				+ "endpoint %s", status, path));
+		throw new IllegalStateException(String
+				.format("Unexpected %s HTTP status for " + "endpoint %s", status, path));
 	}
 
 }

@@ -21,7 +21,7 @@ import org.junit.Test;
 
 import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
-import org.springframework.boot.test.context.ContextLoader;
+import org.springframework.boot.test.context.ApplicationContextTester;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -38,10 +38,10 @@ public class LiquibaseEndpointTests {
 
 	@Test
 	public void liquibaseReportIsReturned() throws Exception {
-		ContextLoader.standard().config(Config.class).load(context -> {
-			LiquibaseEndpoint endpoint = context.getBean(LiquibaseEndpoint.class);
-			assertThat(endpoint.liquibaseReports()).hasSize(1);
-		});
+		new ApplicationContextTester().withUserConfiguration(Config.class)
+				.run(context -> assertThat(
+						context.getBean(LiquibaseEndpoint.class).liquibaseReports())
+								.hasSize(1));
 	}
 
 	@Configuration
