@@ -54,6 +54,8 @@ import org.springframework.util.ClassUtils;
 public class WebAnnotationEndpointDiscoverer extends
 		AnnotationEndpointDiscoverer<WebEndpointOperation, OperationRequestPredicate> {
 
+	private final Function<String, SecurityConfiguration> securityConfigurationFactory;
+
 	/**
 	 * Creates a new {@link WebAnnotationEndpointDiscoverer} that will discover
 	 * {@link Endpoint endpoints} and {@link WebEndpointExtension web extensions} using
@@ -65,16 +67,18 @@ public class WebAnnotationEndpointDiscoverer extends
 	 * @param basePath the path to prepend to the path of each discovered operation
 	 * @param consumedMediaTypes the media types consumed by web endpoint operations
 	 * @param producedMediaTypes the media types produced by web endpoint operations
+	 * @param securityConfigurationFactory
 	 */
 	public WebAnnotationEndpointDiscoverer(ApplicationContext applicationContext,
 			OperationParameterMapper operationParameterMapper,
 			Function<String, CachingConfiguration> cachingConfigurationFactory,
 			String basePath, Collection<String> consumedMediaTypes,
-			Collection<String> producedMediaTypes) {
+			Collection<String> producedMediaTypes, Function<String, SecurityConfiguration> securityConfigurationFactory) {
 		super(applicationContext,
 				new WebEndpointOperationFactory(operationParameterMapper, basePath,
 						consumedMediaTypes, producedMediaTypes),
 				WebEndpointOperation::getRequestPredicate, cachingConfigurationFactory);
+		this.securityConfigurationFactory = securityConfigurationFactory;
 	}
 
 	@Override
@@ -103,6 +107,11 @@ public class WebAnnotationEndpointDiscoverer extends
 			});
 			throw new IllegalStateException(message.toString());
 		}
+	}
+
+	@Override
+	public Function getAdditionalConfigurationFactory() {
+		return this.securityConfigurationFactory;
 	}
 
 	private static final class WebEndpointOperationFactory
@@ -142,7 +151,7 @@ public class WebAnnotationEndpointDiscoverer extends
 		@Override
 		public WebEndpointOperation createOperation(String endpointId,
 				AnnotationAttributes operationAttributes, Object target, Method method,
-				EndpointOperationType type, long timeToLive) {
+				EndpointOperationType type, long timeToLive, Function additionalConfiguration) {
 			WebEndpointHttpMethod httpMethod = determineHttpMethod(type);
 			OperationRequestPredicate requestPredicate = new OperationRequestPredicate(
 					determinePath(endpointId, method), httpMethod,
@@ -152,6 +161,10 @@ public class WebAnnotationEndpointDiscoverer extends
 					this.parameterMapper, target, method);
 			if (timeToLive > 0) {
 				invoker = new CachingOperationInvoker(invoker, timeToLive);
+			}
+			SecurityConfiguration securityConfiguration = (SecurityConfiguration) additionalConfiguration.apply(endpointId);
+			if (!securityConfiguration.getRoles().contains(SecurityConfiguration.ROLE_ANONYMOUS)){
+				invoker = new SecurityOperationInvoker(securityConfiguration.getRoles(), invoker);
 			}
 			return new WebEndpointOperation(type, invoker, determineBlocking(method),
 					requestPredicate);

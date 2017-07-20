@@ -325,7 +325,7 @@ public class AnnotationEndpointDiscovererTests {
 				public TestEndpointOperation createOperation(String endpointId,
 						AnnotationAttributes operationAttributes, Object target,
 						Method operationMethod, EndpointOperationType operationType,
-						long timeToLive) {
+						long timeToLive, Function additionalConfiguration) {
 					return new TestEndpointOperation(operationType,
 							createOperationInvoker(timeToLive), operationMethod);
 				}

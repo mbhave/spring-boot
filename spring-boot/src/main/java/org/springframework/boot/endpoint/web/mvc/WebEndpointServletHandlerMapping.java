@@ -31,6 +31,7 @@ import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.SecurityRoleVerifier;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
 import org.springframework.http.HttpMethod;
@@ -169,6 +170,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 			}
 			request.getParameterMap().forEach((name, values) -> arguments.put(name,
 					values.length == 1 ? values[0] : Arrays.asList(values)));
+			arguments.put(SecurityRoleVerifier.ROLE_VERIFIER_KEY, new ServletRequestBasedRoleVerifier(request));
 			try {
 				return handleResult(this.operationInvoker.invoke(arguments), httpMethod);
 			}
@@ -188,6 +190,21 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 			WebEndpointResponse<?> response = (WebEndpointResponse<?>) result;
 			return new ResponseEntity<Object>(response.getBody(),
 					HttpStatus.valueOf(response.getStatus()));
+		}
+
+	}
+
+	private final class ServletRequestBasedRoleVerifier implements SecurityRoleVerifier {
+
+		private final HttpServletRequest request;
+
+		private ServletRequestBasedRoleVerifier(HttpServletRequest request) {
+			this.request = request;
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			return this.request.isUserInRole(role);
 		}
 
 	}

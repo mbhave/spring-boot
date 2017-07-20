@@ -238,7 +238,7 @@ public abstract class AbstractWebEndpointIntegrationTests<T extends Configurable
 			return new WebAnnotationEndpointDiscoverer(applicationContext,
 					parameterMapper, (id) -> new CachingConfiguration(0), "endpoints",
 					Collections.singletonList("application/json"),
-					Collections.singletonList("application/json"));
+					Collections.singletonList("application/json"), null);
 		}
 
 	}

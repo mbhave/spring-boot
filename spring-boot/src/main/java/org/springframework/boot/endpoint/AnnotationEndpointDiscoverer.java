@@ -254,7 +254,7 @@ public abstract class AnnotationEndpointDiscoverer<T extends EndpointOperation, 
 				.apply(endpointId);
 		return this.operationFactory.createOperation(endpointId, operationAttributes,
 				this.applicationContext.getBean(beanName), method, operationType,
-				determineTimeToLive(cachingConfiguration, operationType, method));
+				determineTimeToLive(cachingConfiguration, operationType, method), getAdditionalConfigurationFactory());
 	}
 
 	private long determineTimeToLive(CachingConfiguration cachingConfiguration,
@@ -265,6 +265,10 @@ public abstract class AnnotationEndpointDiscoverer<T extends EndpointOperation, 
 			return cachingConfiguration.getTimeToLive();
 		}
 		return 0;
+	}
+
+	public Function getAdditionalConfigurationFactory() {
+		return null;
 	}
 
 	/**
@@ -284,11 +288,12 @@ public abstract class AnnotationEndpointDiscoverer<T extends EndpointOperation, 
 		 * @param operationMethod the method on the bean that implements the operation
 		 * @param operationType the type of the operation
 		 * @param timeToLive the caching period in milliseconds
+		 * @param additionalConfigurationFactory
 		 * @return the operation info that describes the operation
 		 */
 		T createOperation(String endpointId, AnnotationAttributes operationAttributes,
 				Object target, Method operationMethod,
-				EndpointOperationType operationType, long timeToLive);
+				EndpointOperationType operationType, long timeToLive, Function additionalConfigurationFactory);
 
 	}
 

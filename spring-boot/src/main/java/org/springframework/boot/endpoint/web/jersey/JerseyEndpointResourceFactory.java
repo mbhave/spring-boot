@@ -22,11 +22,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.SecurityContext;
 
 import org.glassfish.jersey.process.Inflector;
 import org.glassfish.jersey.server.ContainerRequest;
@@ -37,6 +39,7 @@ import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.SecurityRoleVerifier;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
 import org.springframework.util.CollectionUtils;
@@ -102,6 +105,8 @@ public class JerseyEndpointResourceFactory {
 			}
 			arguments.putAll(extractPathParmeters(data));
 			arguments.putAll(extractQueryParmeters(data));
+			SecurityContextBasedRoleVerifier roleVerifier = new SecurityContextBasedRoleVerifier(data.getSecurityContext());
+			arguments.put(SecurityRoleVerifier.ROLE_VERIFIER_KEY, roleVerifier);
 			try {
 				return convertToJaxRsResponse(this.operationInvoker.invoke(arguments),
 						data.getRequest().getMethod());
@@ -154,6 +159,21 @@ public class JerseyEndpointResourceFactory {
 			WebEndpointResponse<?> webEndpointResponse = (WebEndpointResponse<?>) response;
 			return Response.status(webEndpointResponse.getStatus())
 					.entity(webEndpointResponse.getBody()).build();
+		}
+
+	}
+
+	private static final class SecurityContextBasedRoleVerifier implements SecurityRoleVerifier {
+
+		private final SecurityContext context;
+
+		private SecurityContextBasedRoleVerifier(SecurityContext context) {
+			this.context = context;
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			return (this.context != null && this.context.isUserInRole(role));
 		}
 
 	}

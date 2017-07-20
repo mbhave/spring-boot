@@ -113,7 +113,7 @@ public class JmxAnnotationEndpointDiscoverer
 		@Override
 		public JmxEndpointOperation createOperation(String endpointId,
 				AnnotationAttributes operationAttributes, Object target, Method method,
-				EndpointOperationType type, long timeToLive) {
+				EndpointOperationType type, long timeToLive, Function additionalConfiguration) {
 			String operationName = method.getName();
 			Class<?> outputType = mapParameterType(method.getReturnType());
 			String description = getDescription(method,

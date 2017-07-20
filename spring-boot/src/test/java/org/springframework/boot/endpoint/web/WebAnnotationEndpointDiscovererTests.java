@@ -267,7 +267,7 @@ public class WebAnnotationEndpointDiscovererTests {
 							DefaultConversionService.getSharedInstance()),
 					cachingConfigurationFactory, basePath,
 					Collections.singletonList("application/json"),
-					Collections.singletonList("application/json")));
+					Collections.singletonList("application/json"), null));
 		}
 		finally {
 			context.close();
