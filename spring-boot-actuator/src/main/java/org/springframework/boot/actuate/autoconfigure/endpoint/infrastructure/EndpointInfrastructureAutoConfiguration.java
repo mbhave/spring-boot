@@ -30,7 +30,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.endpoint.DefaultOperationParameterMapper;
+import org.springframework.boot.endpoint.ConversionServiceOperationParameterMapper;
 import org.springframework.boot.endpoint.EndpointType;
 import org.springframework.boot.endpoint.OperationParameterMapper;
 import org.springframework.boot.endpoint.jmx.EndpointMBeanRegistrar;
@@ -73,7 +73,7 @@ public class EndpointInfrastructureAutoConfiguration {
 			}
 			return null;
 		});
-		return new DefaultOperationParameterMapper(conversionService);
+		return new ConversionServiceOperationParameterMapper(conversionService);
 	}
 
 	@Bean
