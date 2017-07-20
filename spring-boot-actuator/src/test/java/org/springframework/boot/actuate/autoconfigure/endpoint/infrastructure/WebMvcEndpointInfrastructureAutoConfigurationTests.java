@@ -42,7 +42,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  */
 public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 
-	private final WebApplicationContextTester context = new WebApplicationContextTester()
+	private final WebApplicationContextTester contextTester = new WebApplicationContextTester()
 			.withConfiguration(AutoConfigurations.of(
 					ServletWebServerFactoryAutoConfiguration.class,
 					DispatcherServletAutoConfiguration.class,
@@ -54,7 +54,7 @@ public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 
 	@Test
 	public void webEndpointsAreExposed() {
-		this.context.run(context -> {
+		this.contextTester.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
 			assertThat(isExposed(mockMvc, HttpMethod.GET, "/application/autoconfig"))
 					.isTrue();
@@ -79,7 +79,7 @@ public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 
 	@Test
 	public void webEndpointsCanBeDisabled() {
-		WebApplicationContextTester contextTester = this.context
+		WebApplicationContextTester contextTester = this.contextTester
 				.withPropertyValues("endpoints.all.web.enabled=false");
 		contextTester.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
@@ -108,7 +108,7 @@ public class WebMvcEndpointInfrastructureAutoConfigurationTests {
 
 	@Test
 	public void singleWebEndpointCanBeEnabled() {
-		WebApplicationContextTester contextTester = this.context.withPropertyValues(
+		WebApplicationContextTester contextTester = this.contextTester.withPropertyValues(
 				"endpoints.all.web.enabled=false", "endpoints.beans.web.enabled=true");
 		contextTester.run(context -> {
 			MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).build();

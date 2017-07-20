@@ -42,14 +42,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class JmxEndpointInfrastructureAutoConfigurationTests {
 
-	private final ApplicationContextTester context = new ApplicationContextTester()
+	private final ApplicationContextTester contextTester = new ApplicationContextTester()
 			.withConfiguration(AutoConfigurations.of(JmxAutoConfiguration.class,
 					EndpointAutoConfiguration.class,
 					EndpointInfrastructureAutoConfiguration.class));
 
 	@Test
 	public void jmxEndpointsAreExposed() {
-		this.context.run(context -> {
+		this.contextTester.run(context -> {
 			MBeanServer mBeanServer = context.getBean(MBeanServer.class);
 			checkEndpointMBeans(mBeanServer,
 					new String[] { "autoconfig", "beans", "configprops", "env", "health",
@@ -60,7 +60,7 @@ public class JmxEndpointInfrastructureAutoConfigurationTests {
 
 	@Test
 	public void jmxEndpointsCanBeDisabled() {
-		this.context.withPropertyValue("endpoints.all.jmx.enabled", "false")
+		this.contextTester.withPropertyValue("endpoints.all.jmx.enabled", "false")
 				.run(context -> {
 					MBeanServer mBeanServer = context.getBean(MBeanServer.class);
 					checkEndpointMBeans(mBeanServer, new String[0],
@@ -73,7 +73,7 @@ public class JmxEndpointInfrastructureAutoConfigurationTests {
 
 	@Test
 	public void singleJmxEndpointCanBeEnabled() {
-		this.context.withPropertyValues("endpoints.all.jmx.enabled=false",
+		this.contextTester.withPropertyValues("endpoints.all.jmx.enabled=false",
 				"endpoints.beans.jmx.enabled=true").run(context -> {
 					MBeanServer mBeanServer = context.getBean(MBeanServer.class);
 					checkEndpointMBeans(mBeanServer, new String[] { "beans" },

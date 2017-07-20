@@ -183,7 +183,7 @@ public class WebEndpointsRunner extends Suite {
 
 	}
 
-	private static class MvcWebEndpointsRunner extends AbstractWebEndpointsRunner {
+	private static final class MvcWebEndpointsRunner extends AbstractWebEndpointsRunner {
 
 		private MvcWebEndpointsRunner(Class<?> klass) throws InitializationError {
 			super(klass, "Spring MVC", (classes) -> {
@@ -212,7 +212,8 @@ public class WebEndpointsRunner extends Suite {
 
 	}
 
-	private static class JerseyWebEndpointsRunner extends AbstractWebEndpointsRunner {
+	private static final class JerseyWebEndpointsRunner
+			extends AbstractWebEndpointsRunner {
 
 		private JerseyWebEndpointsRunner(Class<?> klass) throws InitializationError {
 			super(klass, "Jersey", (classes) -> {
@@ -250,7 +251,8 @@ public class WebEndpointsRunner extends Suite {
 
 	}
 
-	private static class ReactiveWebEndpointsRunner extends AbstractWebEndpointsRunner {
+	private static final class ReactiveWebEndpointsRunner
+			extends AbstractWebEndpointsRunner {
 
 		private ReactiveWebEndpointsRunner(Class<?> klass) throws InitializationError {
 			super(klass, "Reactive", (classes) -> {
@@ -294,7 +296,7 @@ public class WebEndpointsRunner extends Suite {
 
 	}
 
-	private static class PortHolder {
+	private static final class PortHolder {
 
 		private int port;
 
@@ -308,7 +310,7 @@ public class WebEndpointsRunner extends Suite {
 
 	}
 
-	private static class TestContext {
+	private static final class TestContext {
 
 		private final Class<?> testClass;
 
