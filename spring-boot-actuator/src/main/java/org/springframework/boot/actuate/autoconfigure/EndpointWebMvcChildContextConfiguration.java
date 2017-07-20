@@ -38,7 +38,6 @@ import org.springframework.boot.actuate.endpoint.mvc.ManagementErrorEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.SearchStrategy;
-import org.springframework.boot.autoconfigure.hateoas.HypermediaHttpMessageConverterConfiguration;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.autoconfigure.web.servlet.DefaultServletWebServerFactoryCustomizer;
 import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
@@ -55,8 +54,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import org.springframework.hateoas.LinkDiscoverer;
-import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.HandlerAdapter;
@@ -159,14 +156,6 @@ public class EndpointWebMvcChildContextConfiguration {
 			BeanFactory parent = beanFactory.getParentBeanFactory();
 			return parent.getBean("springSecurityFilterChain", Filter.class);
 		}
-
-	}
-
-	@Configuration
-	@ConditionalOnClass({ LinkDiscoverer.class })
-	@Import(HypermediaHttpMessageConverterConfiguration.class)
-	@EnableHypermediaSupport(type = EnableHypermediaSupport.HypermediaType.HAL)
-	static class HypermediaConfiguration {
 
 	}
 
