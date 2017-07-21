@@ -27,8 +27,11 @@ import org.springframework.boot.endpoint.EndpointOperationType;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.SecurityConfiguration;
+import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +72,8 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 
 	private final CorsConfiguration corsConfiguration;
 
+	private final SecurityConfigurationFactory securityConfigurationFactory;
+
 	/**
 	 * Creates a new {@code WebEndpointHandlerMapping} that provides mappings for the
 	 * operations of the given {@code webEndpoints}.
@@ -76,7 +81,7 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	 */
 	public WebEndpointReactiveHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> collection) {
-		this(collection, null);
+		this(collection, null, null);
 	}
 
 	/**
@@ -84,20 +89,24 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	 * operations of the given {@code webEndpoints}.
 	 * @param webEndpoints the web endpoints
 	 * @param corsConfiguration the CORS configuraton for the endpoints
+	 * @param securityConfigurationFactory
 	 */
 	public WebEndpointReactiveHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> webEndpoints,
-			CorsConfiguration corsConfiguration) {
+			CorsConfiguration corsConfiguration, SecurityConfigurationFactory securityConfigurationFactory) {
 		this.webEndpoints = webEndpoints;
 		this.corsConfiguration = corsConfiguration;
+		this.securityConfigurationFactory = securityConfigurationFactory;
 		setOrder(-100);
 	}
 
 	@Override
 	protected void initHandlerMethods() {
-		this.webEndpoints.stream()
-				.flatMap((webEndpoint) -> webEndpoint.getOperations().stream())
-				.forEach(this::registerMappingForOperation);
+		for (EndpointInfo<WebEndpointOperation> webEndpoint : this.webEndpoints) {
+			for (WebEndpointOperation webEndpointOperation : webEndpoint.getOperations()) {
+				registerMappingForOperation(webEndpointOperation, webEndpoint.getId());
+			}
+		}
 	}
 
 	@Override
@@ -106,12 +115,14 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 		return this.corsConfiguration;
 	}
 
-	private void registerMappingForOperation(WebEndpointOperation operation) {
+	private void registerMappingForOperation(WebEndpointOperation operation, String id) {
+		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
+		WebOperationSecurityInterceptor interceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
 		EndpointOperationType operationType = operation.getType();
 		registerMapping(createRequestMappingInfo(operation),
 				operationType == EndpointOperationType.WRITE
-						? new WriteOperationHandler(operation.getOperationInvoker())
-						: new ReadOperationHandler(operation.getOperationInvoker()),
+						? new WriteOperationHandler(operation.getOperationInvoker(), interceptor)
+						: new ReadOperationHandler(operation.getOperationInvoker(), interceptor),
 				operationType == EndpointOperationType.WRITE ? this.handleWrite
 						: this.handleRead);
 	}
@@ -154,12 +165,16 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 
 		private final OperationInvoker operationInvoker;
 
-		AbstractOperationHandler(OperationInvoker operationInvoker) {
+		private final WebOperationSecurityInterceptor securityInterceptor;
+
+		AbstractOperationHandler(OperationInvoker operationInvoker, WebOperationSecurityInterceptor securityInterceptor) {
 			this.operationInvoker = operationInvoker;
+			this.securityInterceptor = securityInterceptor;
 		}
 
 		@SuppressWarnings("unchecked")
 		ResponseEntity<?> doHandle(ServerWebExchange exchange, Map<String, String> body) {
+			//TODO security interceptor
 			Map<String, Object> arguments = new HashMap<>((Map<String, String>) exchange
 					.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
 			if (body != null) {
@@ -197,8 +212,8 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	 */
 	final class WriteOperationHandler extends AbstractOperationHandler {
 
-		WriteOperationHandler(OperationInvoker operationInvoker) {
-			super(operationInvoker);
+		WriteOperationHandler(OperationInvoker operationInvoker, WebOperationSecurityInterceptor securityInterceptor) {
+			super(operationInvoker, securityInterceptor);
 		}
 
 		@ResponseBody
@@ -214,8 +229,8 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	 */
 	final class ReadOperationHandler extends AbstractOperationHandler {
 
-		ReadOperationHandler(OperationInvoker operationInvoker) {
-			super(operationInvoker);
+		ReadOperationHandler(OperationInvoker operationInvoker, WebOperationSecurityInterceptor securityInterceptor) {
+			super(operationInvoker, securityInterceptor);
 		}
 
 		@ResponseBody

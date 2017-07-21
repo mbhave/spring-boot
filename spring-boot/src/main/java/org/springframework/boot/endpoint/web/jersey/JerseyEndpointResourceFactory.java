@@ -17,16 +17,18 @@
 package org.springframework.boot.endpoint.web.jersey;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.SecurityContext;
 
 import org.glassfish.jersey.process.Inflector;
 import org.glassfish.jersey.server.ContainerRequest;
@@ -37,8 +39,13 @@ import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.RoleVerifier;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
+import org.springframework.boot.endpoint.web.SecurityConfiguration;
+import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -48,6 +55,12 @@ import org.springframework.util.CollectionUtils;
  */
 public class JerseyEndpointResourceFactory {
 
+	private final SecurityConfigurationFactory securityConfigurationFactory;
+
+	public JerseyEndpointResourceFactory(SecurityConfigurationFactory securityConfigurationFactory) {
+		this.securityConfigurationFactory = securityConfigurationFactory;
+	}
+
 	/**
 	 * Creates {@link Resource Resources} for the operations of the given
 	 * {@code webEndpoints}.
@@ -56,19 +69,26 @@ public class JerseyEndpointResourceFactory {
 	 */
 	public Collection<Resource> createEndpointResources(
 			Collection<EndpointInfo<WebEndpointOperation>> webEndpoints) {
-		return webEndpoints.stream()
-				.flatMap((endpointInfo) -> endpointInfo.getOperations().stream())
-				.map(this::createResource).collect(Collectors.toList());
+		List<Resource> list = new ArrayList<>();
+		for (EndpointInfo<WebEndpointOperation> endpointInfo : webEndpoints) {
+			for (WebEndpointOperation webEndpointOperation : endpointInfo.getOperations()) {
+				Resource resource = createResource(webEndpointOperation, endpointInfo.getId());
+				list.add(resource);
+			}
+		}
+		return list;
 	}
 
-	private Resource createResource(WebEndpointOperation operation) {
+	private Resource createResource(WebEndpointOperation operation, String id) {
+		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
+		WebOperationSecurityInterceptor securityInterceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
 		OperationRequestPredicate requestPredicate = operation.getRequestPredicate();
 		Builder resourceBuilder = Resource.builder().path(requestPredicate.getPath());
 		resourceBuilder.addMethod(requestPredicate.getHttpMethod().name())
 				.consumes(toStringArray(requestPredicate.getConsumes()))
 				.produces(toStringArray(requestPredicate.getProduces()))
 				.handledBy(new EndpointInvokingInflector(operation.getOperationInvoker(),
-						!requestPredicate.getConsumes().isEmpty()));
+						!requestPredicate.getConsumes().isEmpty(), securityInterceptor));
 		return resourceBuilder.build();
 	}
 
@@ -83,15 +103,23 @@ public class JerseyEndpointResourceFactory {
 
 		private final boolean readBody;
 
+		private final WebOperationSecurityInterceptor securityInterceptor;
+
 		private EndpointInvokingInflector(OperationInvoker operationInvoker,
-				boolean readBody) {
+				boolean readBody, WebOperationSecurityInterceptor securityInterceptor) {
 			this.operationInvoker = operationInvoker;
 			this.readBody = readBody;
+			this.securityInterceptor = securityInterceptor;
 		}
 
 		@SuppressWarnings("unchecked")
 		@Override
 		public Response apply(ContainerRequestContext data) {
+			SecurityContextBasedRoleVerifier verifier = new SecurityContextBasedRoleVerifier(data.getSecurityContext());
+			SecurityResponse response = this.securityInterceptor.handle(verifier);
+			if (!response.equals(WebOperationSecurityInterceptor.SecurityResponse.SUCCESS)) {
+				sendFailureResponse(response);
+			}
 			Map<String, Object> arguments = new HashMap<>();
 			if (this.readBody) {
 				Map<String, Object> body = ((ContainerRequest) data)
@@ -132,6 +160,14 @@ public class JerseyEndpointResourceFactory {
 			return result;
 		}
 
+		private Object sendFailureResponse(SecurityResponse response) {
+			return convertToJaxRsResponse(new WebEndpointResponse<>(response.getFailureMessage(), response.getStatusCode()));
+		}
+
+		private Response convertToJaxRsResponse(Object response) {
+			return convertToJaxRsResponse(response, null);
+		}
+
 		private Response convertToJaxRsResponse(Object response, String httpMethod) {
 			if (response == null) {
 				return Response.status(HttpMethod.GET.equals(httpMethod)
@@ -154,6 +190,26 @@ public class JerseyEndpointResourceFactory {
 			WebEndpointResponse<?> webEndpointResponse = (WebEndpointResponse<?>) response;
 			return Response.status(webEndpointResponse.getStatus())
 					.entity(webEndpointResponse.getBody()).build();
+		}
+
+	}
+
+	private static final class SecurityContextBasedRoleVerifier implements RoleVerifier {
+
+		private final SecurityContext context;
+
+		public SecurityContextBasedRoleVerifier(SecurityContext context) {
+			this.context = context;
+		}
+
+		@Override
+		public boolean isAuthenticated() {
+			return (this.context.getUserPrincipal() != null);
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			return this.context.isUserInRole(role);
 		}
 
 	}

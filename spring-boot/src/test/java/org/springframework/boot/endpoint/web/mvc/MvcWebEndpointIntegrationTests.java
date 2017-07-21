@@ -88,7 +88,7 @@ public class MvcWebEndpointIntegrationTests extends
 			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
 			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
 			return new WebEndpointServletHandlerMapping(
-					webEndpointDiscoverer.discoverEndpoints(), corsConfiguration);
+					webEndpointDiscoverer.discoverEndpoints(), corsConfiguration, null);
 		}
 
 	}

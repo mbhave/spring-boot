@@ -77,7 +77,7 @@ public class JerseyWebEndpointIntegrationTests extends
 		public ResourceConfig resourceConfig(
 				WebAnnotationEndpointDiscoverer endpointDiscoverer) {
 			ResourceConfig resourceConfig = new ResourceConfig();
-			Collection<Resource> resources = new JerseyEndpointResourceFactory()
+			Collection<Resource> resources = new JerseyEndpointResourceFactory(null)
 					.createEndpointResources(endpointDiscoverer.discoverEndpoints());
 			resourceConfig.registerResources(new HashSet<Resource>(resources));
 			resourceConfig.register(JacksonFeature.class);

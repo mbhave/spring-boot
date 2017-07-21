@@ -94,7 +94,7 @@ public class ReactiveWebEndpointIntegrationTests
 			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
 			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
 			return new WebEndpointReactiveHandlerMapping(
-					endpointDiscoverer.discoverEndpoints(), corsConfiguration);
+					endpointDiscoverer.discoverEndpoints(), corsConfiguration, null);
 		}
 
 		@Bean

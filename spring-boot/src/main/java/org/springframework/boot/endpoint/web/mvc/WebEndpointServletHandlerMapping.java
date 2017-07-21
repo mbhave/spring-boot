@@ -31,8 +31,13 @@ import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.RoleVerifier;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
+import org.springframework.boot.endpoint.web.SecurityConfiguration;
+import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,6 +73,8 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 
 	private final CorsConfiguration corsConfiguration;
 
+	private final SecurityConfigurationFactory securityConfigurationFactory;
+
 	/**
 	 * Creates a new {@code WebEndpointHandlerMapping} that provides mappings for the
 	 * operations of the given {@code webEndpoints}.
@@ -75,7 +82,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 	 */
 	public WebEndpointServletHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> collection) {
-		this(collection, null);
+		this(collection, null, null);
 	}
 
 	/**
@@ -83,20 +90,24 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 	 * operations of the given {@code webEndpoints}.
 	 * @param webEndpoints the web endpoints
 	 * @param corsConfiguration the CORS configuraton for the endpoints
+	 * @param securityConfigurationFactory
 	 */
 	public WebEndpointServletHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> webEndpoints,
-			CorsConfiguration corsConfiguration) {
+			CorsConfiguration corsConfiguration, SecurityConfigurationFactory securityConfigurationFactory) {
 		this.webEndpoints = webEndpoints;
 		this.corsConfiguration = corsConfiguration;
+		this.securityConfigurationFactory = securityConfigurationFactory;
 		setOrder(-100);
 	}
 
 	@Override
 	protected void initHandlerMethods() {
-		this.webEndpoints.stream()
-				.flatMap((webEndpoint) -> webEndpoint.getOperations().stream())
-				.forEach(this::registerMappingForOperation);
+		for (EndpointInfo<WebEndpointOperation> webEndpoint : this.webEndpoints) {
+			for (WebEndpointOperation webEndpointOperation : webEndpoint.getOperations()) {
+				registerMappingForOperation(webEndpointOperation, webEndpoint.getId());
+			}
+		}
 	}
 
 	@Override
@@ -105,9 +116,11 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 		return this.corsConfiguration;
 	}
 
-	private void registerMappingForOperation(WebEndpointOperation operation) {
+	private void registerMappingForOperation(WebEndpointOperation operation, String id) {
+		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
+		WebOperationSecurityInterceptor securityInterceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
 		registerMapping(createRequestMappingInfo(operation),
-				new OperationHandler(operation.getOperationInvoker()), this.handle);
+				new OperationHandler(operation.getOperationInvoker(), securityInterceptor), this.handle);
 	}
 
 	private RequestMappingInfo createRequestMappingInfo(
@@ -153,14 +166,22 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 
 		private final OperationInvoker operationInvoker;
 
-		OperationHandler(OperationInvoker operationInvoker) {
+		private final WebOperationSecurityInterceptor securityInterceptor;
+
+		OperationHandler(OperationInvoker operationInvoker, WebOperationSecurityInterceptor securityInterceptor) {
 			this.operationInvoker = operationInvoker;
+			this.securityInterceptor = securityInterceptor;
 		}
 
 		@SuppressWarnings("unchecked")
 		@ResponseBody
 		public Object handle(HttpServletRequest request,
 				@RequestBody(required = false) Map<String, String> body) {
+			HttpServletRequestBasedRoleVerifier verifier = new HttpServletRequestBasedRoleVerifier(request);
+			SecurityResponse response = this.securityInterceptor.handle(verifier);
+			if (!response.equals(WebOperationSecurityInterceptor.SecurityResponse.SUCCESS)) {
+				return sendFailureResponse(response);
+			}
 			Map<String, Object> arguments = new HashMap<>((Map<String, String>) request
 					.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
 			HttpMethod httpMethod = HttpMethod.valueOf(request.getMethod());
@@ -175,6 +196,14 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 			catch (ParameterMappingException ex) {
 				return new ResponseEntity<Void>(HttpStatus.BAD_REQUEST);
 			}
+		}
+
+		private Object sendFailureResponse(SecurityResponse response) {
+			return handleResult(new WebEndpointResponse<>(response.getFailureMessage(), response.getStatusCode()));
+		}
+
+		private Object handleResult(Object result) {
+			return handleResult(result, null);
 		}
 
 		private Object handleResult(Object result, HttpMethod httpMethod) {
@@ -210,5 +239,27 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 		}
 
 	}
+
+	private final class HttpServletRequestBasedRoleVerifier implements RoleVerifier {
+
+		private final HttpServletRequest request;
+
+		public HttpServletRequestBasedRoleVerifier(HttpServletRequest request) {
+
+			this.request = request;
+		}
+
+		@Override
+		public boolean isAuthenticated() {
+			return (this.request.getUserPrincipal() != null);
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			return request.isUserInRole(role);
+		}
+
+	}
+
 
 }
