@@ -30,7 +30,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
-import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.jersey.JerseyEndpointResourceFactory;
 import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
@@ -57,8 +57,8 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 	}
 
 	@Bean
-	public SecurityConfigurationFactory securityConfigurationFactory() {
-		return new SecurityConfigurationFactory(this.applicationContext.getEnvironment());
+	public EndpointSecurityConfigurationFactory securityConfigurationFactory() {
+		return new EndpointSecurityConfigurationFactory(this.applicationContext.getEnvironment());
 	}
 
 	@Configuration
@@ -70,12 +70,10 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 
 		@Bean
 		public ResourceConfigCustomizer webEndpointRegistrar(
-				EndpointProvider<WebEndpointOperation> provider, SecurityConfigurationFactory securityConfigurationFactory) {
-			return resourceConfig -> {
-				resourceConfig.registerResources(
-						new HashSet<>(new JerseyEndpointResourceFactory(securityConfigurationFactory)
-								.createEndpointResources(provider.getEndpoints())));
-			};
+				EndpointProvider<WebEndpointOperation> provider, EndpointSecurityConfigurationFactory endpointSecurityConfigurationFactory) {
+			return resourceConfig -> resourceConfig.registerResources(
+					new HashSet<>(new JerseyEndpointResourceFactory(endpointSecurityConfigurationFactory)
+							.createEndpointResources(provider.getEndpoints())));
 		}
 
 	}
@@ -97,9 +95,9 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public WebEndpointServletHandlerMapping webEndpointServletHandlerMapping(
-				EndpointProvider<WebEndpointOperation> provider, SecurityConfigurationFactory securityConfigurationFactory) {
+				EndpointProvider<WebEndpointOperation> provider, EndpointSecurityConfigurationFactory endpointSecurityConfigurationFactory) {
 			WebEndpointServletHandlerMapping handlerMapping = new WebEndpointServletHandlerMapping(
-					provider.getEndpoints(), null, securityConfigurationFactory);
+					provider.getEndpoints(), null, endpointSecurityConfigurationFactory);
 			for (WebEndpointHandlerMappingCustomizer customizer : this.mappingCustomizers) {
 				customizer.customize(handlerMapping);
 			}
@@ -114,8 +112,8 @@ public class WebEndpointInfrastructureManagementContextConfiguration {
 		@Bean
 		@ConditionalOnMissingBean
 		public WebEndpointReactiveHandlerMapping webEndpointReactiveHandlerMapping(
-				EndpointProvider<WebEndpointOperation> provider, SecurityConfigurationFactory securityConfigurationFactory) {
-			return new WebEndpointReactiveHandlerMapping(provider.getEndpoints(), null, securityConfigurationFactory);
+				EndpointProvider<WebEndpointOperation> provider, EndpointSecurityConfigurationFactory endpointSecurityConfigurationFactory) {
+			return new WebEndpointReactiveHandlerMapping(provider.getEndpoints(), null, endpointSecurityConfigurationFactory);
 		}
 
 	}

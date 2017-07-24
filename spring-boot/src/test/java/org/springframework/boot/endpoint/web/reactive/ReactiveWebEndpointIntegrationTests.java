@@ -21,6 +21,7 @@ import java.util.Arrays;
 import org.junit.Test;
 
 import org.springframework.boot.endpoint.web.AbstractWebEndpointIntegrationTests;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
 import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicationContext;
@@ -29,8 +30,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.HttpHandler;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.server.adapter.WebHttpHandlerBuilder;
@@ -45,6 +50,14 @@ public class ReactiveWebEndpointIntegrationTests
 
 	public ReactiveWebEndpointIntegrationTests() {
 		super(ReactiveConfiguration.class);
+	}
+
+	@Test
+	public void operationWithSecurityInterceptor() throws Exception {
+		load(TestEndpointConfiguration.class, client -> {
+			client.get().uri("/test/foo.bar").accept(MediaType.APPLICATION_JSON)
+					.exchange().expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+		}, SecureReactiveConfiguration.class);
 	}
 
 	@Test
@@ -68,12 +81,51 @@ public class ReactiveWebEndpointIntegrationTests
 
 	@Override
 	protected int getPort(ReactiveWebServerApplicationContext context) {
-		return context.getBean(ReactiveConfiguration.class).port;
+		return context.getBean(BaseReactiveConfiguration.class).port;
 	}
 
 	@Configuration
 	@EnableWebFlux
+	@Import(BaseReactiveConfiguration.class)
 	static class ReactiveConfiguration {
+
+		@Bean
+		public WebEndpointReactiveHandlerMapping webEndpointHandlerMapping(
+				WebAnnotationEndpointDiscoverer endpointDiscoverer) {
+			CorsConfiguration corsConfiguration = new CorsConfiguration();
+			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
+			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
+			return new WebEndpointReactiveHandlerMapping(
+					endpointDiscoverer.discoverEndpoints(), corsConfiguration, null);
+		}
+
+	}
+
+	@Configuration
+	@EnableWebFlux
+	@Import(BaseReactiveConfiguration.class)
+	static class SecureReactiveConfiguration {
+
+		@Bean
+		public Environment environment() {
+			MockEnvironment environment = new MockEnvironment();
+			environment.setProperty("endpoints.test.web.roles", "ADMIN");
+			return environment;
+		}
+
+		@Bean
+		public WebEndpointReactiveHandlerMapping webEndpointHandlerMapping(
+				WebAnnotationEndpointDiscoverer endpointDiscoverer, Environment environment) {
+			CorsConfiguration corsConfiguration = new CorsConfiguration();
+			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
+			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
+			return new WebEndpointReactiveHandlerMapping(
+					endpointDiscoverer.discoverEndpoints(), corsConfiguration, new EndpointSecurityConfigurationFactory(environment));
+		}
+
+	}
+
+	static class BaseReactiveConfiguration {
 
 		private int port;
 
@@ -85,16 +137,6 @@ public class ReactiveWebEndpointIntegrationTests
 		@Bean
 		public HttpHandler httpHandler(ApplicationContext applicationContext) {
 			return WebHttpHandlerBuilder.applicationContext(applicationContext).build();
-		}
-
-		@Bean
-		public WebEndpointReactiveHandlerMapping webEndpointHandlerMapping(
-				WebAnnotationEndpointDiscoverer endpointDiscoverer) {
-			CorsConfiguration corsConfiguration = new CorsConfiguration();
-			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
-			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
-			return new WebEndpointReactiveHandlerMapping(
-					endpointDiscoverer.discoverEndpoints(), corsConfiguration, null);
 		}
 
 		@Bean

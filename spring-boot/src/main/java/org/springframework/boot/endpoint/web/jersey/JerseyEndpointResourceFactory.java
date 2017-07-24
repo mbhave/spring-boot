@@ -19,6 +19,7 @@ package org.springframework.boot.endpoint.web.jersey;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,14 +39,14 @@ import org.glassfish.jersey.server.model.Resource.Builder;
 import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
 import org.springframework.boot.endpoint.web.RoleVerifier;
-import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
 import org.springframework.boot.endpoint.web.SecurityConfiguration;
-import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -55,9 +56,9 @@ import org.springframework.util.CollectionUtils;
  */
 public class JerseyEndpointResourceFactory {
 
-	private final SecurityConfigurationFactory securityConfigurationFactory;
+	private final EndpointSecurityConfigurationFactory securityConfigurationFactory;
 
-	public JerseyEndpointResourceFactory(SecurityConfigurationFactory securityConfigurationFactory) {
+	public JerseyEndpointResourceFactory(EndpointSecurityConfigurationFactory securityConfigurationFactory) {
 		this.securityConfigurationFactory = securityConfigurationFactory;
 	}
 
@@ -80,8 +81,7 @@ public class JerseyEndpointResourceFactory {
 	}
 
 	private Resource createResource(WebEndpointOperation operation, String id) {
-		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
-		WebOperationSecurityInterceptor securityInterceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
+		WebOperationSecurityInterceptor securityInterceptor = getSecurityInterceptor(id);
 		OperationRequestPredicate requestPredicate = operation.getRequestPredicate();
 		Builder resourceBuilder = Resource.builder().path(requestPredicate.getPath());
 		resourceBuilder.addMethod(requestPredicate.getHttpMethod().name())
@@ -90,6 +90,14 @@ public class JerseyEndpointResourceFactory {
 				.handledBy(new EndpointInvokingInflector(operation.getOperationInvoker(),
 						!requestPredicate.getConsumes().isEmpty(), securityInterceptor));
 		return resourceBuilder.build();
+	}
+
+	private WebOperationSecurityInterceptor getSecurityInterceptor(String id) {
+		SecurityConfiguration configuration = new SecurityConfiguration(Collections.emptySet());
+		if (this.securityConfigurationFactory != null) {
+			configuration = this.securityConfigurationFactory.apply(id);
+		}
+		return new WebOperationSecurityInterceptor(configuration.getRoles());
 	}
 
 	private String[] toStringArray(Collection<String> collection) {
@@ -118,7 +126,7 @@ public class JerseyEndpointResourceFactory {
 			SecurityContextBasedRoleVerifier verifier = new SecurityContextBasedRoleVerifier(data.getSecurityContext());
 			SecurityResponse response = this.securityInterceptor.handle(verifier);
 			if (!response.equals(WebOperationSecurityInterceptor.SecurityResponse.SUCCESS)) {
-				sendFailureResponse(response);
+				return sendFailureResponse(response);
 			}
 			Map<String, Object> arguments = new HashMap<>();
 			if (this.readBody) {
@@ -160,7 +168,7 @@ public class JerseyEndpointResourceFactory {
 			return result;
 		}
 
-		private Object sendFailureResponse(SecurityResponse response) {
+		private Response sendFailureResponse(SecurityResponse response) {
 			return convertToJaxRsResponse(new WebEndpointResponse<>(response.getFailureMessage(), response.getStatusCode()));
 		}
 
@@ -198,7 +206,7 @@ public class JerseyEndpointResourceFactory {
 
 		private final SecurityContext context;
 
-		public SecurityContextBasedRoleVerifier(SecurityContext context) {
+		SecurityContextBasedRoleVerifier(SecurityContext context) {
 			this.context = context;
 		}
 

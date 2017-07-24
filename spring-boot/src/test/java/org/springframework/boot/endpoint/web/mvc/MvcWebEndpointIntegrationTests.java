@@ -21,12 +21,17 @@ import java.util.Arrays;
 import org.junit.Test;
 
 import org.springframework.boot.endpoint.web.AbstractWebEndpointIntegrationTests;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -41,6 +46,14 @@ public class MvcWebEndpointIntegrationTests extends
 
 	public MvcWebEndpointIntegrationTests() {
 		super(WebMvcConfiguration.class);
+	}
+
+	@Test
+	public void operationWithSecurityInterceptor() throws Exception {
+		load(TestEndpointConfiguration.class, client -> {
+			client.get().uri("/test/foo.bar").accept(MediaType.APPLICATION_JSON)
+					.exchange().expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+		}, SecureWebMvcConfiguration.class);
 	}
 
 	@Test
@@ -69,17 +82,8 @@ public class MvcWebEndpointIntegrationTests extends
 
 	@Configuration
 	@EnableWebMvc
+	@Import(BaseWebMvcConfiguration.class)
 	static class WebMvcConfiguration {
-
-		@Bean
-		public TomcatServletWebServerFactory tomcat() {
-			return new TomcatServletWebServerFactory(0);
-		}
-
-		@Bean
-		public DispatcherServlet dispatcherServlet() {
-			return new DispatcherServlet();
-		}
 
 		@Bean
 		public WebEndpointServletHandlerMapping webEndpointHandlerMapping(
@@ -89,6 +93,44 @@ public class MvcWebEndpointIntegrationTests extends
 			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
 			return new WebEndpointServletHandlerMapping(
 					webEndpointDiscoverer.discoverEndpoints(), corsConfiguration, null);
+		}
+
+	}
+
+	@Configuration
+	@EnableWebMvc
+	@Import(BaseWebMvcConfiguration.class)
+	static class SecureWebMvcConfiguration {
+
+		@Bean
+		public Environment environment() {
+			MockEnvironment environment = new MockEnvironment();
+			environment.setProperty("endpoints.test.web.roles", "ADMIN");
+			return environment;
+		}
+
+		@Bean
+		public WebEndpointServletHandlerMapping webEndpointHandlerMapping(
+				WebAnnotationEndpointDiscoverer webEndpointDiscoverer, Environment environment) {
+			CorsConfiguration corsConfiguration = new CorsConfiguration();
+			corsConfiguration.setAllowedOrigins(Arrays.asList("http://example.com"));
+			corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST"));
+			return new WebEndpointServletHandlerMapping(
+					webEndpointDiscoverer.discoverEndpoints(), corsConfiguration, new EndpointSecurityConfigurationFactory(environment));
+		}
+	}
+
+	@Configuration
+	static class BaseWebMvcConfiguration {
+
+		@Bean
+		public TomcatServletWebServerFactory tomcat() {
+			return new TomcatServletWebServerFactory(0);
+		}
+
+		@Bean
+		public DispatcherServlet dispatcherServlet() {
+			return new DispatcherServlet();
 		}
 
 	}

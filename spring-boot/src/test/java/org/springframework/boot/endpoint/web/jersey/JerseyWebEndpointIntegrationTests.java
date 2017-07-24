@@ -26,14 +26,21 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.junit.Test;
 
 import org.springframework.boot.endpoint.web.AbstractWebEndpointIntegrationTests;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.mock.env.MockEnvironment;
 
 /**
  * Integration tests for web endpoints exposed using Jersey.
@@ -45,6 +52,14 @@ public class JerseyWebEndpointIntegrationTests extends
 
 	public JerseyWebEndpointIntegrationTests() {
 		super(JerseyConfiguration.class);
+	}
+
+	@Test
+	public void operationWithSecurityInterceptor() throws Exception {
+		load(TestEndpointConfiguration.class, client -> {
+			client.get().uri("/test/foo.bar").accept(MediaType.APPLICATION_JSON)
+					.exchange().expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
+		}, SecureJerseyConfiguration.class);
 	}
 
 	@Override
@@ -59,19 +74,8 @@ public class JerseyWebEndpointIntegrationTests extends
 	}
 
 	@Configuration
+	@Import(BaseJerseyConfiguration.class)
 	static class JerseyConfiguration {
-
-		@Bean
-		public TomcatServletWebServerFactory tomcat() {
-			return new TomcatServletWebServerFactory(0);
-		}
-
-		@Bean
-		public ServletRegistrationBean<ServletContainer> servletContainer(
-				ResourceConfig resourceConfig) {
-			return new ServletRegistrationBean<ServletContainer>(
-					new ServletContainer(resourceConfig), "/*");
-		}
 
 		@Bean
 		public ResourceConfig resourceConfig(
@@ -84,6 +88,49 @@ public class JerseyWebEndpointIntegrationTests extends
 			resourceConfig.register(new ObjectMapperContextResolver(new ObjectMapper()),
 					ContextResolver.class);
 			return resourceConfig;
+		}
+
+	}
+
+	@Configuration
+	@Import(BaseJerseyConfiguration.class)
+	static class SecureJerseyConfiguration {
+
+		@Bean
+		public Environment environment() {
+			MockEnvironment environment = new MockEnvironment();
+			environment.setProperty("endpoints.test.web.roles", "ADMIN");
+			return environment;
+		}
+
+		@Bean
+		public ResourceConfig resourceConfig(
+				WebAnnotationEndpointDiscoverer endpointDiscoverer, Environment environment) {
+			ResourceConfig resourceConfig = new ResourceConfig();
+			Collection<Resource> resources = new JerseyEndpointResourceFactory(new EndpointSecurityConfigurationFactory(environment))
+					.createEndpointResources(endpointDiscoverer.discoverEndpoints());
+			resourceConfig.registerResources(new HashSet<Resource>(resources));
+			resourceConfig.register(JacksonFeature.class);
+			resourceConfig.register(new ObjectMapperContextResolver(new ObjectMapper()),
+					ContextResolver.class);
+			return resourceConfig;
+		}
+
+	}
+
+	@Configuration
+	static class BaseJerseyConfiguration {
+
+		@Bean
+		public TomcatServletWebServerFactory tomcat() {
+			return new TomcatServletWebServerFactory(0);
+		}
+
+		@Bean
+		public ServletRegistrationBean<ServletContainer> servletContainer(
+				ResourceConfig resourceConfig) {
+			return new ServletRegistrationBean<ServletContainer>(
+					new ServletContainer(resourceConfig), "/*");
 		}
 
 	}

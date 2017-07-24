@@ -18,6 +18,7 @@ package org.springframework.boot.endpoint.web.reactive;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,12 +27,14 @@ import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.EndpointOperationType;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
+import org.springframework.boot.endpoint.web.RoleVerifier;
 import org.springframework.boot.endpoint.web.SecurityConfiguration;
-import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +75,7 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 
 	private final CorsConfiguration corsConfiguration;
 
-	private final SecurityConfigurationFactory securityConfigurationFactory;
+	private final EndpointSecurityConfigurationFactory securityConfigurationFactory;
 
 	/**
 	 * Creates a new {@code WebEndpointHandlerMapping} that provides mappings for the
@@ -89,11 +92,11 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	 * operations of the given {@code webEndpoints}.
 	 * @param webEndpoints the web endpoints
 	 * @param corsConfiguration the CORS configuraton for the endpoints
-	 * @param securityConfigurationFactory
+	 * @param securityConfigurationFactory the endpointSecurityConfigurationFactory
 	 */
 	public WebEndpointReactiveHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> webEndpoints,
-			CorsConfiguration corsConfiguration, SecurityConfigurationFactory securityConfigurationFactory) {
+			CorsConfiguration corsConfiguration, EndpointSecurityConfigurationFactory securityConfigurationFactory) {
 		this.webEndpoints = webEndpoints;
 		this.corsConfiguration = corsConfiguration;
 		this.securityConfigurationFactory = securityConfigurationFactory;
@@ -116,8 +119,7 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 	}
 
 	private void registerMappingForOperation(WebEndpointOperation operation, String id) {
-		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
-		WebOperationSecurityInterceptor interceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
+		WebOperationSecurityInterceptor interceptor = getSecurityInterceptor(id);
 		EndpointOperationType operationType = operation.getType();
 		registerMapping(createRequestMappingInfo(operation),
 				operationType == EndpointOperationType.WRITE
@@ -125,6 +127,14 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 						: new ReadOperationHandler(operation.getOperationInvoker(), interceptor),
 				operationType == EndpointOperationType.WRITE ? this.handleWrite
 						: this.handleRead);
+	}
+
+	private WebOperationSecurityInterceptor getSecurityInterceptor(String id) {
+		SecurityConfiguration configuration = new SecurityConfiguration(Collections.emptySet());
+		if (this.securityConfigurationFactory != null) {
+			configuration = this.securityConfigurationFactory.apply(id);
+		}
+		return new WebOperationSecurityInterceptor(configuration.getRoles());
 	}
 
 	private RequestMappingInfo createRequestMappingInfo(
@@ -174,7 +184,11 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 
 		@SuppressWarnings("unchecked")
 		ResponseEntity<?> doHandle(ServerWebExchange exchange, Map<String, String> body) {
-			//TODO security interceptor
+			ReactiveRoleVerifier verifier = new ReactiveRoleVerifier(exchange);
+			SecurityResponse response = this.securityInterceptor.handle(verifier);
+			if (!response.equals(SecurityResponse.SUCCESS)) {
+				return sendFailureResponse(response);
+			}
 			Map<String, Object> arguments = new HashMap<>((Map<String, String>) exchange
 					.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
 			if (body != null) {
@@ -190,6 +204,14 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 			catch (ParameterMappingException ex) {
 				return new ResponseEntity<Void>(HttpStatus.BAD_REQUEST);
 			}
+		}
+
+		private ResponseEntity<?> sendFailureResponse(SecurityResponse response) {
+			return handleResult(new WebEndpointResponse<>(response.getFailureMessage(), response.getStatusCode()));
+		}
+
+		private ResponseEntity<?> handleResult(Object result) {
+			return handleResult(result, null);
 		}
 
 		private ResponseEntity<?> handleResult(Object result, HttpMethod httpMethod) {
@@ -236,6 +258,27 @@ public class WebEndpointReactiveHandlerMapping extends RequestMappingInfoHandler
 		@ResponseBody
 		public ResponseEntity<?> handle(ServerWebExchange exchange) {
 			return doHandle(exchange, null);
+		}
+
+	}
+
+	private final class ReactiveRoleVerifier implements RoleVerifier {
+
+		private final ServerWebExchange exchange;
+
+		ReactiveRoleVerifier(ServerWebExchange exchange) {
+			this.exchange = exchange;
+		}
+
+		@Override
+		public boolean isAuthenticated() {
+			return (this.exchange.getPrincipal().block() != null);
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			//FIXME
+			return true;
 		}
 
 	}

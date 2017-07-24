@@ -203,7 +203,12 @@ public abstract class AbstractWebEndpointIntegrationTests<T extends Configurable
 
 	private void load(Class<?> configuration,
 			BiConsumer<ApplicationContext, WebTestClient> consumer) {
-		T context = createApplicationContext(configuration, this.exporterConfiguration);
+		load(configuration, consumer, this.exporterConfiguration);
+	}
+
+	private void load(Class<?> configuration,
+			BiConsumer<ApplicationContext, WebTestClient> consumer, Class<?> exporterConfiguration) {
+		T context = createApplicationContext(configuration, exporterConfiguration);
 		try {
 			consumer.accept(context,
 					WebTestClient.bindToServer()
@@ -217,9 +222,11 @@ public abstract class AbstractWebEndpointIntegrationTests<T extends Configurable
 	}
 
 	protected void load(Class<?> configuration, Consumer<WebTestClient> clientConsumer) {
-		load(configuration, (context, client) -> {
-			clientConsumer.accept(client);
-		});
+		load(configuration, (context, client) -> clientConsumer.accept(client), this.exporterConfiguration);
+	}
+
+	protected void load(Class<?> configuration, Consumer<WebTestClient> clientConsumer, Class<?> exporterConfiguration) {
+		load(configuration, (context, client) -> clientConsumer.accept(client), exporterConfiguration);
 	}
 
 	@Configuration

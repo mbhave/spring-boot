@@ -19,6 +19,7 @@ package org.springframework.boot.endpoint.web.mvc;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,14 +31,14 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.endpoint.EndpointInfo;
 import org.springframework.boot.endpoint.OperationInvoker;
 import org.springframework.boot.endpoint.ParameterMappingException;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.OperationRequestPredicate;
 import org.springframework.boot.endpoint.web.RoleVerifier;
-import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
 import org.springframework.boot.endpoint.web.SecurityConfiguration;
-import org.springframework.boot.endpoint.web.SecurityConfigurationFactory;
 import org.springframework.boot.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor;
+import org.springframework.boot.endpoint.web.WebOperationSecurityInterceptor.SecurityResponse;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,7 +74,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 
 	private final CorsConfiguration corsConfiguration;
 
-	private final SecurityConfigurationFactory securityConfigurationFactory;
+	private final EndpointSecurityConfigurationFactory securityConfigurationFactory;
 
 	/**
 	 * Creates a new {@code WebEndpointHandlerMapping} that provides mappings for the
@@ -90,11 +91,11 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 	 * operations of the given {@code webEndpoints}.
 	 * @param webEndpoints the web endpoints
 	 * @param corsConfiguration the CORS configuraton for the endpoints
-	 * @param securityConfigurationFactory
+	 * @param securityConfigurationFactory the endpointSecurityConfigurationFactory
 	 */
 	public WebEndpointServletHandlerMapping(
 			Collection<EndpointInfo<WebEndpointOperation>> webEndpoints,
-			CorsConfiguration corsConfiguration, SecurityConfigurationFactory securityConfigurationFactory) {
+			CorsConfiguration corsConfiguration, EndpointSecurityConfigurationFactory securityConfigurationFactory) {
 		this.webEndpoints = webEndpoints;
 		this.corsConfiguration = corsConfiguration;
 		this.securityConfigurationFactory = securityConfigurationFactory;
@@ -117,10 +118,17 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 	}
 
 	private void registerMappingForOperation(WebEndpointOperation operation, String id) {
-		SecurityConfiguration configuration = this.securityConfigurationFactory.apply(id);
-		WebOperationSecurityInterceptor securityInterceptor = new WebOperationSecurityInterceptor(configuration.getRoles());
+		WebOperationSecurityInterceptor securityInterceptor = getSecurityInterceptor(id);
 		registerMapping(createRequestMappingInfo(operation),
 				new OperationHandler(operation.getOperationInvoker(), securityInterceptor), this.handle);
+	}
+
+	private WebOperationSecurityInterceptor getSecurityInterceptor(String id) {
+		SecurityConfiguration configuration = new SecurityConfiguration(Collections.emptySet());
+		if (this.securityConfigurationFactory != null) {
+			configuration = this.securityConfigurationFactory.apply(id);
+		}
+		return new WebOperationSecurityInterceptor(configuration.getRoles());
 	}
 
 	private RequestMappingInfo createRequestMappingInfo(
@@ -244,8 +252,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 
 		private final HttpServletRequest request;
 
-		public HttpServletRequestBasedRoleVerifier(HttpServletRequest request) {
-
+		HttpServletRequestBasedRoleVerifier(HttpServletRequest request) {
 			this.request = request;
 		}
 
@@ -256,7 +263,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 
 		@Override
 		public boolean isUserInRole(String role) {
-			return request.isUserInRole(role);
+			return this.request.isUserInRole(role);
 		}
 
 	}
