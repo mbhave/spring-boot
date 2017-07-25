@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
@@ -116,16 +117,15 @@ public class EndpointInfrastructureAutoConfiguration {
 		}
 
 		@Bean
-		public EndpointProvider<WebEndpointOperation> webEndpointProvider(
-				OperationParameterMapper operationParameterMapper,
-				CachingConfigurationFactory cachingConfigurationFactory) {
+		public EndpointProvider<WebEndpointOperation> webEndpointProvider(WebAnnotationEndpointDiscoverer webEndpointDiscoverer) {
 			return new EndpointProvider<>(this.applicationContext.getEnvironment(),
-					webEndpointDiscoverer(operationParameterMapper,
-							cachingConfigurationFactory),
+					webEndpointDiscoverer,
 					EndpointType.WEB);
 		}
 
-		private WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
+		@Bean
+		@ConditionalOnMissingBean
+		public WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
 				OperationParameterMapper operationParameterMapper,
 				CachingConfigurationFactory cachingConfigurationFactory) {
 			List<String> mediaTypes = Arrays.asList(

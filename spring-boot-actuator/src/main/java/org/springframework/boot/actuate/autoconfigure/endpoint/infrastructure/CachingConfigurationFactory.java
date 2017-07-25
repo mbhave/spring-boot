@@ -27,7 +27,7 @@ import org.springframework.core.env.Environment;
  *
  * @author Stephane Nicoll
  */
-class CachingConfigurationFactory
+public class CachingConfigurationFactory
 		implements Function<String, CachingConfiguration> {
 
 	private final Environment environment;

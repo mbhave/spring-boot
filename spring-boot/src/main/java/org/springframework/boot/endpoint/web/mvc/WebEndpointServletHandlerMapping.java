@@ -102,6 +102,14 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 		setOrder(-100);
 	}
 
+	public Collection<EndpointInfo<WebEndpointOperation>> getWebEndpoints() {
+		return this.webEndpoints;
+	}
+
+	public Method getHandle() {
+		return this.handle;
+	}
+
 	@Override
 	protected void initHandlerMethods() {
 		for (EndpointInfo<WebEndpointOperation> webEndpoint : this.webEndpoints) {
@@ -131,7 +139,7 @@ public class WebEndpointServletHandlerMapping extends RequestMappingInfoHandlerM
 		return new WebOperationSecurityInterceptor(configuration.getRoles());
 	}
 
-	private RequestMappingInfo createRequestMappingInfo(
+	protected RequestMappingInfo createRequestMappingInfo(
 			WebEndpointOperation operationInfo) {
 		OperationRequestPredicate requestPredicate = operationInfo.getRequestPredicate();
 		return new RequestMappingInfo(null,

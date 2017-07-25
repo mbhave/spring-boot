@@ -16,18 +16,40 @@
 
 package org.springframework.boot.actuate.cloudfoundry;
 
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.ActuatorMediaTypes;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.CachingConfigurationFactory;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointProvider;
 import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.EndpointServletWebAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.endpoint.infrastructure.WebEndpointHandlerMappingCustomizer;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatform;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.IgnoredRequestCustomizer;
 import org.springframework.boot.cloud.CloudPlatform;
+import org.springframework.boot.endpoint.OperationParameterMapper;
+import org.springframework.boot.endpoint.web.EndpointSecurityConfigurationFactory;
+import org.springframework.boot.endpoint.web.WebAnnotationEndpointDiscoverer;
+import org.springframework.boot.endpoint.web.WebEndpointOperation;
+import org.springframework.boot.endpoint.web.mvc.WebEndpointServletHandlerMapping;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} to expose actuator endpoints for
@@ -41,10 +63,68 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @ConditionalOnProperty(prefix = "management.cloudfoundry", name = "enabled", matchIfMissing = true)
-// @ConditionalOnBean(MvcEndpoints.class)
+@ConditionalOnBean(WebEndpointServletHandlerMapping.class)
 @AutoConfigureAfter(EndpointServletWebAutoConfiguration.class)
 @ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
 public class CloudFoundryActuatorAutoConfiguration {
+
+	private final ApplicationContext applicationContext;
+
+	CloudFoundryActuatorAutoConfiguration(ApplicationContext applicationContext) {
+		this.applicationContext = applicationContext;
+	}
+
+	@Bean
+	public WebAnnotationEndpointDiscoverer webEndpointDiscoverer(
+			OperationParameterMapper operationParameterMapper,
+			CachingConfigurationFactory cachingConfigurationFactory) {
+		List<String> mediaTypes = Arrays.asList(
+				ActuatorMediaTypes.APPLICATION_ACTUATOR_V2_JSON_VALUE,
+				"application/json");
+		return new WebAnnotationEndpointDiscoverer(this.applicationContext,
+				operationParameterMapper, cachingConfigurationFactory, "cloudfoundryapplication",
+				mediaTypes, mediaTypes);
+	}
+
+	@Bean
+	public WebEndpointServletHandlerMapping webEndpointServletHandlerMapping(
+			EndpointProvider<WebEndpointOperation> provider, RestTemplateBuilder restTemplateBuilder,
+			Environment environment) {
+		WebEndpointServletHandlerMapping handlerMapping = new CloudFoundryWebEndpointServletHandlerMapping(
+				provider.getEndpoints(), getCorsConfiguration(), getSecurityInterceptor(restTemplateBuilder, environment));
+		return handlerMapping;
+	}
+
+	private HandlerInterceptor getSecurityInterceptor(
+			RestTemplateBuilder restTemplateBuilder, Environment environment) {
+		CloudFoundrySecurityService cloudfoundrySecurityService = getCloudFoundrySecurityService(
+				restTemplateBuilder, environment);
+		TokenValidator tokenValidator = new TokenValidator(cloudfoundrySecurityService);
+		HandlerInterceptor securityInterceptor = new CloudFoundrySecurityInterceptor(
+				tokenValidator, cloudfoundrySecurityService,
+				environment.getProperty("vcap.application.application_id"));
+		return securityInterceptor;
+	}
+
+	private CloudFoundrySecurityService getCloudFoundrySecurityService(
+			RestTemplateBuilder restTemplateBuilder, Environment environment) {
+		String cloudControllerUrl = environment.getProperty("vcap.application.cf_api");
+		boolean skipSslValidation = environment.getProperty(
+				"management.cloudfoundry.skip-ssl-validation", Boolean.class, false);
+		return cloudControllerUrl == null ? null
+				: new CloudFoundrySecurityService(restTemplateBuilder, cloudControllerUrl,
+				skipSslValidation);
+	}
+
+	private CorsConfiguration getCorsConfiguration() {
+		CorsConfiguration corsConfiguration = new CorsConfiguration();
+		corsConfiguration.addAllowedOrigin(CorsConfiguration.ALL);
+		corsConfiguration.setAllowedMethods(
+				Arrays.asList(HttpMethod.GET.name(), HttpMethod.POST.name()));
+		corsConfiguration.setAllowedHeaders(
+				Arrays.asList("Authorization", "X-Cf-App-Instance", "Content-Type"));
+		return corsConfiguration;
+	}
 
 	/**
 	 * Nested configuration for ignored requests if Spring Security is present.
