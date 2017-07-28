@@ -19,7 +19,9 @@ package org.springframework.boot.context.properties.bind;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.assertj.core.matcher.AssertionMatcher;
 import org.junit.Before;
@@ -237,9 +239,37 @@ public class BinderTests {
 		this.binder.bind("foo", target);
 	}
 
+	@Test
+	public void nestedMapsShouldNotBindToNull() throws Exception {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo.value", "one");
+		source.put("foo.foos.foo1.value", "two");
+		source.put("foo.foos.foo2.value", "three");
+		this.sources.add(source);
+		BindResult<Foo> foo = this.binder.bind("foo", Foo.class);
+		assertThat(foo.get().getValue()).isNotNull();
+		assertThat(foo.get().getFoos().get("foo1").getValue()).isEqualTo("two");
+		assertThat(foo.get().getFoos().get("foo2").getValue()).isEqualTo("three");
+	}
+
+	@Test
+	public void beanWithMultipleLevelsOfNestingShouldNotCauseInfiniteLoop() throws Exception {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo.bean[0].bar.baz", "one");
+		source.put("foo.bean[1].bar.baz", "two");
+		this.sources.add(source.nonIterable());
+		this.sources.add(source);
+		BindResult<NestedProperties> foo = this.binder.bind("foo", NestedProperties.class);
+		assertThat(foo).isNotNull();
+		assertThat(foo.get().getBean()[0].getBar().getBaz()).isEqualTo("one");
+		assertThat(foo.get().getBean()[1].getBar().getBaz()).isEqualTo("two");
+	}
+
 	public static class JavaBean {
 
 		private String value;
+
+		private Bar bar;
 
 		private List<String> items = Collections.emptyList();
 
@@ -255,11 +285,93 @@ public class BinderTests {
 			return this.items;
 		}
 
+		public Bar getBar() {
+			return this.bar;
+		}
+
+		public void setBar(Bar bar) {
+			this.bar = bar;
+		}
+	}
+
+	public static class Bar {
+
+		private String baz;
+
+		public String getBaz() {
+			return this.baz;
+		}
+
+		public void setBaz(String baz) {
+			this.baz = baz;
+		}
+	}
+
+	public static class NestedProperties {
+
+		private JavaBean[] bean;
+
+		private NestedProperties parent;
+
+		private DeeperNestingExample nestingExample;
+
+		public NestedProperties getParent() {
+			return this.parent;
+		}
+
+		public JavaBean[] getBean() {
+			return this.bean;
+		}
+
+		public void setBean(JavaBean[] bean) {
+			this.bean = bean;
+		}
+
+		public DeeperNestingExample getNestingExample() {
+			return this.nestingExample;
+		}
+
+		public void setNestingExample(DeeperNestingExample nestingExample) {
+			this.nestingExample = nestingExample;
+		}
+	}
+
+	private static class DeeperNestingExample {
+
+		private NestedProperties props;
+
+		public NestedProperties getProps() {
+			return this.props;
+		}
+
+		public void setProps(NestedProperties props) {
+			this.props = props;
+		}
 	}
 
 	public enum ExampleEnum {
 
 		FOO_BAR, BAR_BAZ, BAZ_BOO
+
+	}
+
+	static class Foo {
+
+		private String value;
+
+		private Map<String, Foo> foos = new LinkedHashMap<>();
+
+		public Map<String, Foo> getFoos() {
+			return this.foos;
+		}
+
+		public String getValue() {
+			return this.value;
+		}
+
+		public void setValue(String value) {
+			this.value = value;
+		}
 
 	}
 
