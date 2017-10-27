@@ -26,8 +26,6 @@ import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.web.EndpointMediaTypes;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointOperation;
 import org.springframework.boot.actuate.endpoint.web.servlet.WebMvcEndpointHandlerMapping;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
@@ -36,7 +34,6 @@ import org.springframework.boot.endpoint.web.EndpointMapping;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * {@link ManagementContextConfiguration} for Spring MVC {@link Endpoint} concerns.
@@ -47,8 +44,6 @@ import org.springframework.web.servlet.DispatcherServlet;
  */
 @ManagementContextConfiguration
 @ConditionalOnWebApplication(type = Type.SERVLET)
-@ConditionalOnClass(DispatcherServlet.class)
-@ConditionalOnBean(DispatcherServlet.class)
 @EnableConfigurationProperties({ CorsEndpointProperties.class,
 		WebEndpointProperties.class, ManagementServerProperties.class })
 public class WebMvcEndpointManagementContextConfiguration {

@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
  *
  * @author Madhura Bhave
  */
-enum AccessLevel {
+public enum AccessLevel {
 
 	/**
 	 * Restricted access to a limited set of endpoints.

@@ -49,6 +49,13 @@ public class EndpointRequestTests {
 	}
 
 	@Test
+	public void toAnyEndpointWhenEndpointsBasePathIsSetShouldMatch() throws Exception {
+		RequestMatcher matcher = EndpointRequest.toAnyEndpoint();
+		assertMatcher(matcher).matches("/application/foo");
+		assertMatcher(matcher).matches("/application/bar");
+	}
+
+	@Test
 	public void toAnyEndpointShouldNotMatchOtherPath() throws Exception {
 		RequestMatcher matcher = EndpointRequest.toAnyEndpoint();
 		assertMatcher(matcher).doesNotMatch("/application/baz");

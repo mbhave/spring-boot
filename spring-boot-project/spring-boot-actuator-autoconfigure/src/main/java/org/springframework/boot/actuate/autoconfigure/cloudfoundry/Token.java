@@ -29,7 +29,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Madhura Bhave
  */
-class Token {
+public class Token {
 
 	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -41,7 +41,7 @@ class Token {
 
 	private final Map<String, Object> claims;
 
-	Token(String encoded) {
+	public Token(String encoded) {
 		this.encoded = encoded;
 		int firstPeriod = encoded.indexOf('.');
 		int lastPeriod = encoded.lastIndexOf('.');

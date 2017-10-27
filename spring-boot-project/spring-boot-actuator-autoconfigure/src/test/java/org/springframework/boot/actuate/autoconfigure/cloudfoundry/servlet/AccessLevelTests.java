@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.actuate.autoconfigure.cloudfoundry;
+package org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet;
 
 import org.junit.Test;
+
+import org.springframework.boot.actuate.autoconfigure.cloudfoundry.AccessLevel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
