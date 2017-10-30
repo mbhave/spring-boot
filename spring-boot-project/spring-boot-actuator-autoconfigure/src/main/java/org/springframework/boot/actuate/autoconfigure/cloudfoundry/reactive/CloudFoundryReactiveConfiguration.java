@@ -13,63 +13,63 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.boot.actuate.autoconfigure.cloudfoundry.reactive;
 
 import java.util.Arrays;
 
-import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.CloudFoundrySecurityInterceptor;
-import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.CloudFoundrySecurityService;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.TokenValidator;
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointProvider;
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties;
 import org.springframework.boot.actuate.endpoint.web.EndpointMediaTypes;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointOperation;
-import org.springframework.boot.actuate.endpoint.web.reactive.WebFluxEndpointHandlerMapping;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.endpoint.web.EndpointMapping;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * @author Madhura Bhave
  */
 @Configuration
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 public class CloudFoundryReactiveConfiguration {
 
 	@Bean
 	public CloudFoundryWebFluxEndpointHandlerMapping webEndpointReactiveHandlerMapping(
 			EndpointProvider<WebEndpointOperation> provider,
 			EndpointMediaTypes endpointMediaTypes,
+			WebClient.Builder webClientBuilder,
+			Environment environment,
 			WebEndpointProperties webEndpointProperties) {
 		return new CloudFoundryWebFluxEndpointHandlerMapping(
 				new EndpointMapping(webEndpointProperties.getBasePath()),
-				provider.getEndpoints(), endpointMediaTypes);
+				provider.getEndpoints(), endpointMediaTypes, getCorsConfiguration(), getSecurityInterceptor(webClientBuilder, environment));
 	}
 
 	private ReactiveCloudFoundrySecurityInterceptor getSecurityInterceptor(
-			RestTemplateBuilder restTemplateBuilder, Environment environment) {
+			WebClient.Builder restTemplateBuilder, Environment environment) {
 		ReactiveCloudFoundrySecurityService cloudfoundrySecurityService = getCloudFoundrySecurityService(
 				restTemplateBuilder, environment);
-		TokenValidator tokenValidator = new TokenValidator(
+		ReactiveTokenValidator tokenValidator = new ReactiveTokenValidator(
 				cloudfoundrySecurityService);
-		return new CloudFoundrySecurityInterceptor(tokenValidator,
+		return new ReactiveCloudFoundrySecurityInterceptor(tokenValidator,
 				cloudfoundrySecurityService,
 				environment.getProperty("vcap.application.application_id"));
 	}
 
-	private CloudFoundrySecurityService getCloudFoundrySecurityService(
-			RestTemplateBuilder restTemplateBuilder, Environment environment) {
+	private ReactiveCloudFoundrySecurityService getCloudFoundrySecurityService(
+			WebClient.Builder webClientBuilder, Environment environment) {
 		String cloudControllerUrl = environment
 				.getProperty("vcap.application.cf_api");
 		boolean skipSslValidation = environment.getProperty(
 				"management.cloudfoundry.skip-ssl-validation", Boolean.class, false);
 		return (cloudControllerUrl == null ? null
-				: new CloudFoundrySecurityService(restTemplateBuilder,
+				: new ReactiveCloudFoundrySecurityService(webClientBuilder,
 				cloudControllerUrl, skipSslValidation));
 	}
 

@@ -24,16 +24,17 @@ import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
-import org.springframework.boot.actuate.autoconfigure.cloudfoundry.AccessLevel;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryAuthorizationException;
+import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.AccessLevel;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
+ * Reactive Cloud Foundry security service to handle REST calls to the cloud controller and UAA.
+ *
  * @author Madhura Bhave
  */
 public class ReactiveCloudFoundrySecurityService {
@@ -42,13 +43,13 @@ public class ReactiveCloudFoundrySecurityService {
 
 	private final String cloudControllerUrl;
 
-	private String uaaUrl;
+	private Mono<String> uaaUrl;
 
-	ReactiveCloudFoundrySecurityService(WebClient webClient,
+	ReactiveCloudFoundrySecurityService(WebClient.Builder webClientBuilder,
 			String cloudControllerUrl, boolean skipSslValidation) {
-		Assert.notNull(webClient, "Webclient must not be null");
+		Assert.notNull(webClientBuilder, "Webclient must not be null");
 		Assert.notNull(cloudControllerUrl, "CloudControllerUrl must not be null");
-		this.webClient = webClient;
+		this.webClient = webClientBuilder.build();
 		this.cloudControllerUrl = cloudControllerUrl;
 	}
 
@@ -65,31 +66,26 @@ public class ReactiveCloudFoundrySecurityService {
 		return this.webClient.get().uri(uri)
 				.header("Authorization", "bearer" + token)
 				.retrieve().bodyToMono(Map.class)
-				.flatMap(this::getAccessLevel)
-				.doOnError(this::handleCloudControllerError);
+				.map(this::getAccessLevel)
+				.onErrorMap(throwable -> {
+					if (throwable instanceof HttpClientErrorException) {
+						if (((HttpClientErrorException)throwable).getStatusCode().equals(HttpStatus.FORBIDDEN)) {
+							return new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.ACCESS_DENIED,
+									"Access denied");
+						}
+						return new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.INVALID_TOKEN,
+								"Invalid token", throwable);
+					}
+					return new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
+							"Cloud controller not reachable");
+				});
 	}
 
-	private void handleCloudControllerError(Throwable cause) {
-		if (cause instanceof HttpClientErrorException) {
-			if (((HttpClientErrorException)cause).getStatusCode().equals(HttpStatus.FORBIDDEN)) {
-				throw new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.ACCESS_DENIED,
-					"Access denied");
-			}
-			throw new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.INVALID_TOKEN,
-				"Invalid token", cause);
-		}
-		if (cause instanceof HttpServerErrorException) {
-			throw new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
-				"Cloud controller not reachable");
-		}
-
-	}
-
-	private Mono<AccessLevel> getAccessLevel(Map body) {
+	private AccessLevel getAccessLevel(Map body) {
 		if (Boolean.TRUE.equals(body.get("read_sensitive_data"))) {
-			return Mono.just(AccessLevel.FULL);
+			return AccessLevel.FULL;
 		}
-		return Mono.just(AccessLevel.RESTRICTED);
+		return AccessLevel.RESTRICTED;
 	}
 
 	private URI getPermissionsUri(String applicationId) {
@@ -110,13 +106,9 @@ public class ReactiveCloudFoundrySecurityService {
 		return this.webClient.get()
 				.uri(getUaaUrl() + "/token_keys")
 				.retrieve().bodyToMono(new ParameterizedTypeReference<Map<String,String>>() {})
-				.flatMap((response) -> Mono.just(extractTokenKeys(response)))
-				.doOnError((cause -> handleError("UAA not reachable")));
-	}
-
-	private void handleError(String message) {
-		throw new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
-				message);
+				.map(this::extractTokenKeys)
+				.onErrorMap((throwable -> new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
+						"UAA not reachable.")));
 	}
 
 	private Map<String, String> extractTokenKeys(Map<?, ?> response) {
@@ -133,18 +125,13 @@ public class ReactiveCloudFoundrySecurityService {
 	 * @return the UAA url
 	 */
 	public Mono<String> getUaaUrl() {
-		if (this.uaaUrl == null) {
-			this.webClient
+		this.uaaUrl	= this.webClient
 				.get().uri(this.cloudControllerUrl + "/info")
 				.retrieve().bodyToMono(Map.class)
-				.doOnError((cause) -> handleError("Unable to fetch token keys from UAA"))
-				.doOnSuccess(this::setUaaUrl);
-		}
-		return Mono.just(this.uaaUrl);
-	}
-
-	private void setUaaUrl(Map response) {
-		this.uaaUrl = (String)response.get("token_endpoint");
+				.flatMap(response -> Mono.just((String)response.get("token_endpoint"))).cache()
+				.onErrorMap(throwable -> new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
+						"Unable to fetch token keys from UAA."));
+		return this.uaaUrl;
 	}
 
 }

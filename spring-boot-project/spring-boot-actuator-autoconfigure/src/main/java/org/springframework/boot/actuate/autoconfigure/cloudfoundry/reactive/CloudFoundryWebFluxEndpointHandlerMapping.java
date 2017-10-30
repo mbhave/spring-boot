@@ -25,7 +25,6 @@ import java.util.Map;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import org.springframework.boot.actuate.autoconfigure.cloudfoundry.SecurityResponse;
 import org.springframework.boot.actuate.endpoint.EndpointInfo;
 import org.springframework.boot.actuate.endpoint.OperationInvoker;
 import org.springframework.boot.actuate.endpoint.OperationType;
@@ -51,6 +50,9 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
+ * A custom {@link HandlerMapping} that makes web endpoints available over HTTP using
+ * Spring WebFlux.
+ *
  * @author Madhura Bhave
  */
 public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEndpointHandlerMapping {
@@ -129,23 +131,25 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 		@SuppressWarnings({ "unchecked" })
 		Publisher<ResponseEntity<Object>> doHandle(ServerWebExchange exchange,
 				Map<String, String> body) {
-			SecurityResponse securityResponse = this.securityInterceptor
-					.preHandle(exchange.getRequest(), "");
-			if (!securityResponse.getStatus().equals(HttpStatus.OK)) {
-				return Mono.just(new ResponseEntity<>(securityResponse.getStatus()));
-			}
-			Map<String, Object> arguments = new HashMap<>((Map<String, String>) exchange
-					.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
-			if (body != null) {
-				arguments.putAll(body);
-			}
-			exchange.getRequest().getQueryParams().forEach((name, values) -> arguments
-					.put(name, values.size() == 1 ? values.get(0) : values));
-			return handleResult((Publisher<?>) this.operationInvoker.invoke(arguments),
-					exchange.getRequest().getMethod());
+			return this.securityInterceptor
+					.preHandle(exchange.getRequest(), "")
+					.flatMap(securityResponse -> {
+						if (!securityResponse.getStatus().equals(HttpStatus.OK)) {
+							return Mono.just(new ResponseEntity<>(securityResponse.getStatus()));
+						}
+						Map<String, Object> arguments = new HashMap<>(exchange
+								.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE));
+						if (body != null) {
+							arguments.putAll(body);
+						}
+						exchange.getRequest().getQueryParams().forEach((name, values) -> arguments
+								.put(name, values.size() == 1 ? values.get(0) : values));
+						return handleResult((Publisher<?>) operationInvoker.invoke(arguments),
+								exchange.getRequest().getMethod());
+					});
 		}
 
-		private Publisher<ResponseEntity<Object>> handleResult(Publisher<?> result,
+		private Mono<ResponseEntity<Object>> handleResult(Publisher<?> result,
 				HttpMethod httpMethod) {
 			return Mono.from(result).map(this::toResponseEntity)
 					.onErrorReturn(ParametersMissingException.class,

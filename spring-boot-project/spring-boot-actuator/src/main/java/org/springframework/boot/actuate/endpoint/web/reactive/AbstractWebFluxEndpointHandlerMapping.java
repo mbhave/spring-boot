@@ -17,6 +17,7 @@ import org.springframework.boot.endpoint.web.EndpointMapping;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.result.condition.ConsumesRequestCondition;
 import org.springframework.web.reactive.result.condition.PatternsRequestCondition;
 import org.springframework.web.reactive.result.condition.ProducesRequestCondition;
@@ -26,6 +27,10 @@ import org.springframework.web.reactive.result.method.RequestMappingInfoHandlerM
 import org.springframework.web.util.pattern.PathPatternParser;
 
 /**
+ * A custom {@link HandlerMapping} that makes web endpoints available over HTTP using
+ * Spring WebFlux.
+ *
+ * @author Andy Wilkinson
  * @author Madhura Bhave
  */
 public abstract class AbstractWebFluxEndpointHandlerMapping extends RequestMappingInfoHandlerMapping {

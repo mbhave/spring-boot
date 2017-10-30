@@ -18,18 +18,19 @@ package org.springframework.boot.actuate.autoconfigure.cloudfoundry.reactive;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import reactor.core.publisher.Mono;
 
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryAuthorizationException;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.SecurityResponse;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.Token;
-import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.TokenValidator;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.reactive.CorsUtils;
 
 /**
+ * Security interceptor to validate the cloud foundry token that returns reactive types.
+ *
  * @author Madhura Bhave
  */
 class ReactiveCloudFoundrySecurityInterceptor {
@@ -37,15 +38,15 @@ class ReactiveCloudFoundrySecurityInterceptor {
 	private static final Log logger = LogFactory
 			.getLog(ReactiveCloudFoundrySecurityInterceptor.class);
 
-	private final TokenValidator tokenValidator;
+	private final ReactiveTokenValidator tokenValidator;
 
 	private final ReactiveCloudFoundrySecurityService cloudFoundrySecurityService;
 
 	private final String applicationId;
 
-	private static SecurityResponse SUCCESS = SecurityResponse.success();
+	private static Mono<SecurityResponse> SUCCESS = Mono.just(SecurityResponse.success());
 
-	ReactiveCloudFoundrySecurityInterceptor(TokenValidator tokenValidator,
+	ReactiveCloudFoundrySecurityInterceptor(ReactiveTokenValidator tokenValidator,
 			ReactiveCloudFoundrySecurityService cloudFoundrySecurityService,
 			String applicationId) {
 		this.tokenValidator = tokenValidator;
@@ -53,52 +54,44 @@ class ReactiveCloudFoundrySecurityInterceptor {
 		this.applicationId = applicationId;
 	}
 
-	SecurityResponse preHandle(ServerHttpRequest request, String endpointId) {
+	Mono<SecurityResponse> preHandle(ServerHttpRequest request, String endpointId) {
 		if (CorsUtils.isPreFlightRequest(request)) {
-			return SecurityResponse.success();
+			return SUCCESS;
 		}
-		try {
-			if (!StringUtils.hasText(this.applicationId)) {
-				throw new CloudFoundryAuthorizationException(
-						CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
-						"Application id is not available");
-			}
-			if (this.cloudFoundrySecurityService == null) {
-				throw new CloudFoundryAuthorizationException(
-						CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
-						"Cloud controller URL is not available");
-			}
-			if (HttpMethod.OPTIONS.matches(request.getMethodValue())) {
-				return SUCCESS;
-			}
-			check(request, endpointId);
+		if (!StringUtils.hasText(this.applicationId)) {
+			return Mono.error(new CloudFoundryAuthorizationException(
+					CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
+					"Application id is not available"));
 		}
-		catch (Exception ex) {
-			logger.error(ex);
-			if (ex instanceof CloudFoundryAuthorizationException) {
-				CloudFoundryAuthorizationException cfException = (CloudFoundryAuthorizationException) ex;
-				return new SecurityResponse(cfException.getStatusCode(),
-						"{\"security_error\":\"" + cfException.getMessage() + "\"}");
-			}
-			return new SecurityResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-					ex.getMessage());
+		if (this.cloudFoundrySecurityService == null) {
+			return Mono.error(new CloudFoundryAuthorizationException(
+					CloudFoundryAuthorizationException.Reason.SERVICE_UNAVAILABLE,
+					"Cloud controller URL is not available"));
 		}
-		return SecurityResponse.success();
+		if (HttpMethod.OPTIONS.matches(request.getMethodValue())) {
+			return SUCCESS;
+		}
+		return check(request, endpointId)
+				.then(SUCCESS);
+//		catch (Exception ex) {
+//			logger.error(ex);
+//			if (ex instanceof CloudFoundryAuthorizationException) {
+//				CloudFoundryAuthorizationException cfException = (CloudFoundryAuthorizationException) ex;
+//				return Mono.just(new SecurityResponse(cfException.getStatusCode(),
+//						"{\"security_error\":\"" + cfException.getMessage() + "\"}"));
+//			}
+//			return Mono.just(new SecurityResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+//					ex.getMessage()));
+//		}
 	}
 
-	private void check(ServerHttpRequest request, String path) throws Exception {
+	private Mono<Void> check(ServerHttpRequest request, String path) {
 		Token token = getToken(request);
-		this.tokenValidator.validate(token);
-		this.cloudFoundrySecurityService
-			.getAccessLevel(token.toString(), this.applicationId)
-			.doOnSuccess(accessLevel -> {
-				if (!accessLevel.isAccessAllowed(path)) {
-					throw new CloudFoundryAuthorizationException(
-							CloudFoundryAuthorizationException.Reason.ACCESS_DENIED,
-							"Access denied");
-				}
-				//accessLevel.put(request);
-			});
+		return this.tokenValidator.validate(token).then(this.cloudFoundrySecurityService.getAccessLevel(token.toString(), this.applicationId))
+				.filter(accessLevel -> accessLevel.isAccessAllowed(path))
+				.switchIfEmpty(Mono.error(new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.ACCESS_DENIED,
+						"Access denied")))
+				.then();
 	}
 
 	private Token getToken(ServerHttpRequest request) {

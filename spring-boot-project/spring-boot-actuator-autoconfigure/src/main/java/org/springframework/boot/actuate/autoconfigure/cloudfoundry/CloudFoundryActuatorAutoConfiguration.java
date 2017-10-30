@@ -16,6 +16,8 @@
 
 package org.springframework.boot.actuate.autoconfigure.cloudfoundry;
 
+import org.springframework.boot.actuate.autoconfigure.cloudfoundry.reactive.CloudFoundryReactiveConfiguration;
+import org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet.CloudFoundryServletConfiguration;
 import org.springframework.boot.actuate.autoconfigure.web.servlet.ServletManagementContextAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -23,6 +25,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatfo
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.cloud.CloudPlatform;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} to expose actuator endpoints for
@@ -33,6 +36,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ConditionalOnProperty(prefix = "management.cloudfoundry", name = "enabled", matchIfMissing = true)
+@Import({ CloudFoundryServletConfiguration.class, CloudFoundryReactiveConfiguration.class })
 @AutoConfigureAfter(ServletManagementContextAutoConfiguration.class)
 @ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
 public class CloudFoundryActuatorAutoConfiguration {
