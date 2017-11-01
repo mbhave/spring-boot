@@ -746,6 +746,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.johnzon</groupId>
 			<artifactId>johnzon-jsonb</artifactId>
 			<scope>test</scope>

@@ -111,7 +111,7 @@ public class WebFluxEndpointHandlerMapping extends AbstractWebFluxEndpointHandle
 
 	@Override
 	protected Method getLinks() {
-		return null;
+		return this.links;
 	}
 
 	@Override

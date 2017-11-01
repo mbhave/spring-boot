@@ -24,6 +24,7 @@ import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryA
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.SecurityResponse;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.Token;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.reactive.CorsUtils;
@@ -72,17 +73,8 @@ class ReactiveCloudFoundrySecurityInterceptor {
 			return SUCCESS;
 		}
 		return check(request, endpointId)
-				.then(SUCCESS);
-//		catch (Exception ex) {
-//			logger.error(ex);
-//			if (ex instanceof CloudFoundryAuthorizationException) {
-//				CloudFoundryAuthorizationException cfException = (CloudFoundryAuthorizationException) ex;
-//				return Mono.just(new SecurityResponse(cfException.getStatusCode(),
-//						"{\"security_error\":\"" + cfException.getMessage() + "\"}"));
-//			}
-//			return Mono.just(new SecurityResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-//					ex.getMessage()));
-//		}
+				.then(SUCCESS)
+				.onErrorResume(this::getErrorResponse);
 	}
 
 	private Mono<Void> check(ServerHttpRequest request, String path) {
@@ -92,6 +84,16 @@ class ReactiveCloudFoundrySecurityInterceptor {
 				.switchIfEmpty(Mono.error(new CloudFoundryAuthorizationException(CloudFoundryAuthorizationException.Reason.ACCESS_DENIED,
 						"Access denied")))
 				.then();
+	}
+
+	private Mono<SecurityResponse> getErrorResponse(Throwable throwable) {
+		if (throwable instanceof CloudFoundryAuthorizationException) {
+			CloudFoundryAuthorizationException cfException = (CloudFoundryAuthorizationException) throwable;
+			return Mono.just(new SecurityResponse(cfException.getStatusCode(),
+					"{\"security_error\":\"" + cfException.getMessage() + "\"}"));
+		}
+		return Mono.just(new SecurityResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+				throwable.getMessage()));
 	}
 
 	private Token getToken(ServerHttpRequest request) {

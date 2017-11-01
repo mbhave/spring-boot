@@ -19,13 +19,18 @@ package org.springframework.boot.actuate.autoconfigure.cloudfoundry.servlet;
 import java.util.Arrays;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.DefaultCachingConfigurationFactory;
+import org.springframework.boot.actuate.autoconfigure.web.servlet.ServletManagementContextAutoConfiguration;
 import org.springframework.boot.actuate.endpoint.OperationParameterMapper;
 import org.springframework.boot.actuate.endpoint.web.EndpointMediaTypes;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebAnnotationEndpointDiscoverer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnCloudPlatform;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
+import org.springframework.boot.cloud.CloudPlatform;
 import org.springframework.boot.endpoint.web.EndpointMapping;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.ApplicationContext;
@@ -38,22 +43,24 @@ import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
- * Configuration for MVC endpoints on Cloud Foundry.
+ * {@link EnableAutoConfiguration Auto-configuration} to expose actuator endpoints for
+ * cloud foundry to use.
  *
  * @author Madhura Bhave
+ * @since 2.0.0
  */
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass(DispatcherServlet.class)
-@ConditionalOnBean(DispatcherServlet.class)
-public class CloudFoundryServletConfiguration {
+@ConditionalOnProperty(prefix = "management.cloudfoundry", name = "enabled", matchIfMissing = true)
+@AutoConfigureAfter(ServletManagementContextAutoConfiguration.class)
+@ConditionalOnCloudPlatform(CloudPlatform.CLOUD_FOUNDRY)
+public class CloudFoundryActuatorAutoConfiguration {
 
 	private final ApplicationContext applicationContext;
 
-	CloudFoundryServletConfiguration(ApplicationContext applicationContext) {
+	CloudFoundryActuatorAutoConfiguration(ApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
 	}
 

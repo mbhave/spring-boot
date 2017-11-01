@@ -84,8 +84,8 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 		}
 		registerMapping(createRequestMappingInfo(operation),
 				operationType == OperationType.WRITE
-						? new WriteOperationHandler(operationInvoker)
-						: new ReadOperationHandler(operationInvoker),
+						? new WriteOperationHandler(operationInvoker, operation.getId())
+						: new ReadOperationHandler(operationInvoker, operation.getId()),
 				operationType == OperationType.WRITE ? this.handleWrite
 						: this.handleRead);
 	}
@@ -121,10 +121,13 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 
 		private final OperationInvoker operationInvoker;
 
+		private final String endpointId;
+
 		private final ReactiveCloudFoundrySecurityInterceptor securityInterceptor;
 
-		AbstractOperationHandler(OperationInvoker operationInvoker, ReactiveCloudFoundrySecurityInterceptor securityInterceptor) {
+		AbstractOperationHandler(OperationInvoker operationInvoker, String endpointId, ReactiveCloudFoundrySecurityInterceptor securityInterceptor) {
 			this.operationInvoker = operationInvoker;
+			this.endpointId = endpointId;
 			this.securityInterceptor = securityInterceptor;
 		}
 
@@ -132,7 +135,7 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 		Publisher<ResponseEntity<Object>> doHandle(ServerWebExchange exchange,
 				Map<String, String> body) {
 			return this.securityInterceptor
-					.preHandle(exchange.getRequest(), "")
+					.preHandle(exchange.getRequest(), endpointId)
 					.flatMap(securityResponse -> {
 						if (!securityResponse.getStatus().equals(HttpStatus.OK)) {
 							return Mono.just(new ResponseEntity<>(securityResponse.getStatus()));
@@ -176,8 +179,8 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 	 */
 	final class WriteOperationHandler extends AbstractOperationHandler {
 
-		WriteOperationHandler(OperationInvoker operationInvoker) {
-			super(operationInvoker, securityInterceptor);
+		WriteOperationHandler(OperationInvoker operationInvoker, String endpointId) {
+			super(operationInvoker, endpointId, securityInterceptor);
 		}
 
 		@ResponseBody
@@ -193,8 +196,8 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 	 */
 	final class ReadOperationHandler extends AbstractOperationHandler {
 
-		ReadOperationHandler(OperationInvoker operationInvoker) {
-			super(operationInvoker, securityInterceptor);
+		ReadOperationHandler(OperationInvoker operationInvoker, String endpointId) {
+			super(operationInvoker, endpointId, securityInterceptor);
 		}
 
 		@ResponseBody
@@ -203,4 +206,5 @@ public class CloudFoundryWebFluxEndpointHandlerMapping extends AbstractWebFluxEn
 		}
 
 	}
+
 }
