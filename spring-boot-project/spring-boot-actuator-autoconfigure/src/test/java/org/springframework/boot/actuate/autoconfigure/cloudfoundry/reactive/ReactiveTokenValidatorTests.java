@@ -35,10 +35,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.test.publisher.PublisherProbe;
 
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryAuthorizationException;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryAuthorizationException.Reason;
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.Token;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.StreamUtils;
 
@@ -90,12 +92,13 @@ public class ReactiveTokenValidatorTests {
 	}
 
 	@Test
-	public void validateTokenWhenKidValidationFailsShouldThrowException()
-			throws Exception {
-		given(this.securityService.fetchTokenKeys()).willReturn(Mono.just(INVALID_KEYS));
+	public void validateTokenWhenKidValidationFailsTwiceShouldThrowException() throws Exception {
+		PublisherProbe<Map<String, String>> fetchTokenKeys = PublisherProbe.of(Mono.just(VALID_KEYS));
+		ReflectionTestUtils.setField(this.tokenValidator, "cachedTokenKeys", VALID_KEYS);
+		given(this.securityService.fetchTokenKeys()).willReturn(fetchTokenKeys.mono());
 		given(this.securityService.getUaaUrl())
 				.willReturn(Mono.just("http://localhost:8080/uaa"));
-		String header = "{\"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+		String header = "{\"alg\": \"RS256\",  \"kid\": \"invalid-key\",\"typ\": \"JWT\"}";
 		String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
 		StepVerifier
 				.create(this.tokenValidator.validate(
@@ -106,19 +109,82 @@ public class ReactiveTokenValidatorTests {
 					assertThat(((CloudFoundryAuthorizationException) ex).getReason())
 							.isEqualTo(Reason.INVALID_KEY_ID);
 				}).verify();
+		Object cachedTokenKeys = ReflectionTestUtils.getField(this.tokenValidator, "cachedTokenKeys");
+		assertThat(cachedTokenKeys).isEqualTo(VALID_KEYS);
+		fetchTokenKeys.assertWasSubscribed();
 	}
 
 	@Test
-	public void validateTokenWhenKidValidationSucceeds() throws Exception {
-		given(this.securityService.fetchTokenKeys()).willReturn(Mono.just(VALID_KEYS));
+	public void validateTokenWhenKidValidationSucceedsInTheSecondAttempt() throws Exception {
+		PublisherProbe<Map<String, String>> fetchTokenKeys = PublisherProbe.of(Mono.just(VALID_KEYS));
+		ReflectionTestUtils.setField(this.tokenValidator, "cachedTokenKeys", INVALID_KEYS);
+		given(this.securityService.fetchTokenKeys()).willReturn(fetchTokenKeys.mono());
 		given(this.securityService.getUaaUrl())
 				.willReturn(Mono.just("http://localhost:8080/uaa"));
-		String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
-		String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+		String header = "{\"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+		String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
 		StepVerifier
 				.create(this.tokenValidator.validate(
 						new Token(getSignedToken(header.getBytes(), claims.getBytes()))))
 				.verifyComplete();
+		Object cachedTokenKeys = ReflectionTestUtils.getField(this.tokenValidator, "cachedTokenKeys");
+		assertThat(cachedTokenKeys).isEqualTo(VALID_KEYS);
+		fetchTokenKeys.assertWasSubscribed();
+	}
+
+	@Test
+	public void validateTokenWhenCacheIsEmptyShouldFetchTokenKeys() throws Exception {
+		PublisherProbe<Map<String, String>> fetchTokenKeys = PublisherProbe.of(Mono.just(VALID_KEYS));
+		given(this.securityService.fetchTokenKeys()).willReturn(fetchTokenKeys.mono());
+		given(this.securityService.getUaaUrl())
+				.willReturn(Mono.just("http://localhost:8080/uaa"));
+		String header = "{\"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+		String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+		StepVerifier
+				.create(this.tokenValidator.validate(
+						new Token(getSignedToken(header.getBytes(), claims.getBytes()))))
+				.verifyComplete();
+		Object cachedTokenKeys = ReflectionTestUtils.getField(this.tokenValidator, "cachedTokenKeys");
+		assertThat(cachedTokenKeys).isEqualTo(VALID_KEYS);
+		fetchTokenKeys.assertWasSubscribed();
+	}
+
+	@Test
+	public void validateTokenWhenCacheEmptyAndInvalidKeyShouldThrowException() throws Exception {
+		PublisherProbe<Map<String, String>> fetchTokenKeys = PublisherProbe.of(Mono.just(VALID_KEYS));
+		given(this.securityService.fetchTokenKeys()).willReturn(fetchTokenKeys.mono());
+		given(this.securityService.getUaaUrl())
+				.willReturn(Mono.just("http://localhost:8080/uaa"));
+		String header = "{\"alg\": \"RS256\",  \"kid\": \"invalid-key\",\"typ\": \"JWT\"}";
+		String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+		StepVerifier
+				.create(this.tokenValidator.validate(
+						new Token(getSignedToken(header.getBytes(), claims.getBytes()))))
+				.consumeErrorWith((ex) -> {
+					assertThat(ex).isExactlyInstanceOf(
+							CloudFoundryAuthorizationException.class);
+					assertThat(((CloudFoundryAuthorizationException) ex).getReason())
+							.isEqualTo(Reason.INVALID_KEY_ID);
+				}).verify();
+		Object cachedTokenKeys = ReflectionTestUtils.getField(this.tokenValidator, "cachedTokenKeys");
+		assertThat(cachedTokenKeys).isEqualTo(VALID_KEYS);
+		fetchTokenKeys.assertWasSubscribed();
+	}
+
+	@Test
+	public void validateTokenWhenCacheValidShouldNotFetchTokenKeys() throws Exception {
+		PublisherProbe<Map<String, String>> fetchTokenKeys = PublisherProbe.empty();
+		ReflectionTestUtils.setField(this.tokenValidator, "cachedTokenKeys", VALID_KEYS);
+		given(this.securityService.fetchTokenKeys()).willReturn(fetchTokenKeys.mono());
+		given(this.securityService.getUaaUrl())
+				.willReturn(Mono.just("http://localhost:8080/uaa"));
+		String header = "{\"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+		String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+		StepVerifier
+				.create(this.tokenValidator.validate(
+						new Token(getSignedToken(header.getBytes(), claims.getBytes()))))
+				.verifyComplete();
+		fetchTokenKeys.assertWasNotSubscribed();
 	}
 
 	@Test
