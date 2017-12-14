@@ -2,9 +2,25 @@
 platform: linux
 inputs:
 - name: git-repo
-- name: distribution-repository
+- name: redis
+- name: spring-boot-ci-image
+#- name: distribution-repository
 caches:
 - path: maven
 - path: gradle
 run:
-  path: git-repo/ci/scripts/build-integration-tests.sh
+  path: sh
+  args:
+    - -exc
+    - |
+      source /docker-lib.sh
+      start_docker
+      docker load -i redis/image
+      docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
+      docker images
+
+      # Run the container with tests and its dependencies.
+      docker-compose -f git-repo/ci/tasks/dc-integration-tests.yml run integration-tests
+
+      docker-compose -f git-repo/ci/tasks/dc-integration-tests.yml down
+      docker volume rm $(docker volume ls -q)

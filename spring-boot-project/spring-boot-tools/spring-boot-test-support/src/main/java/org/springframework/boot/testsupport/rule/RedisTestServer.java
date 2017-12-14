@@ -62,11 +62,12 @@ public class RedisTestServer implements TestRule {
 	private RedisConnectionFactory createConnectionFactory() {
 		ClassLoader classLoader = RedisTestServer.class.getClassLoader();
 		RedisConnectionFactory cf;
+		String hostName = System.getProperty("redis.hostname", "localhost");
 		if (ClassUtils.isPresent("redis.clients.jedis.Jedis", classLoader)) {
-			cf = new JedisConnectionFactoryConfiguration().createConnectionFactory();
+			cf = new JedisConnectionFactoryConfiguration().createConnectionFactory(hostName);
 		}
 		else {
-			cf = new LettuceConnectionFactoryConfiguration().createConnectionFactory();
+			cf = new LettuceConnectionFactoryConfiguration().createConnectionFactory(hostName);
 		}
 
 		testConnection(cf);
@@ -128,7 +129,7 @@ public class RedisTestServer implements TestRule {
 
 	private static class JedisConnectionFactoryConfiguration {
 
-		RedisConnectionFactory createConnectionFactory() {
+		RedisConnectionFactory createConnectionFactory(String hostName) {
 			JedisConnectionFactory connectionFactory = new JedisConnectionFactory();
 			connectionFactory.afterPropertiesSet();
 			return connectionFactory;
@@ -138,11 +139,11 @@ public class RedisTestServer implements TestRule {
 
 	private static class LettuceConnectionFactoryConfiguration {
 
-		RedisConnectionFactory createConnectionFactory() {
+		RedisConnectionFactory createConnectionFactory(String hostName) {
 			LettuceClientConfiguration config = LettuceClientConfiguration.builder()
 					.shutdownTimeout(Duration.ofMillis(0)).build();
 			LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(
-					new RedisStandaloneConfiguration(), config);
+					new RedisStandaloneConfiguration(hostName), config);
 			connectionFactory.afterPropertiesSet();
 			return connectionFactory;
 		}

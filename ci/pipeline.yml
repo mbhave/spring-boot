@@ -48,6 +48,13 @@ resources:
     username: ((docker-hub-username))
     password: ((docker-hub-password))
     tag: ((branch))
+- name: spring-boot-dcind-image
+  type: docker-image
+  source:
+    repository: ((docker-hub-organization))/spring-boot-dcind-image
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    tag: ((branch))
 - name: artifactory-repo
   type: artifactory-resource
   source:
@@ -65,6 +72,11 @@ resources:
       skip_ssl_validation: true
     from: ((email-from))
     to: ((email-to))
+- name: redis
+  type: docker-image
+  source:
+    repository: redis
+    tag: alpine
 jobs:
 - name: build-spring-boot-ci-images
   plan:
@@ -76,12 +88,17 @@ jobs:
   - put: spring-boot-jdk9-ci-image
     params:
       build: ci-images-git-repo/ci/images/spring-boot-jdk9-ci-image
+  - put: spring-boot-dcind-image
+    params:
+      build: ci-images-git-repo/ci/images/spring-boot-dcind-image
 - name: build
   serial: true
   public: true
   plan:
   - get: spring-boot-ci-image
   - get: git-repo
+  - get: redis
+      params: {save: true}
     trigger: true
   - do:
     - task: build-project
@@ -94,8 +111,9 @@ jobs:
         image: spring-boot-ci-image
         file: git-repo/ci/tasks/build-samples.yml
       - task: build-integration-tests
+        privileged: true
         timeout: 1h30m
-        image: spring-boot-ci-image
+        image: spring-boot-dcind-image
         file: git-repo/ci/tasks/build-integration-tests.yml
       - task: build-deployment-tests
         timeout: 1h30m
