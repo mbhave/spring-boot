@@ -74,7 +74,7 @@ public class DataRedisTestIntegrationTests {
 
 	@Test
 	public void testRepository() {
-		testConnection(createConnectionFactory("localhost"));
+		testConnection(createConnectionFactory());
 		PersonHash personHash = new PersonHash();
 		personHash.setDescription("Look, new @DataRedisTest!");
 		assertThat(personHash.getId()).isNull();
@@ -91,10 +91,9 @@ public class DataRedisTestIntegrationTests {
 		this.applicationContext.getBean(ExampleService.class);
 	}
 
-	private RedisConnectionFactory createConnectionFactory(String hostname) {
+	private RedisConnectionFactory createConnectionFactory() {
 		RedisConnectionFactory cf;
-		String hostName = System.getProperty("redis.hostname", hostname);
-		cf = new LettuceConnectionFactoryConfiguration().createConnectionFactory(hostName);
+		cf = new LettuceConnectionFactoryConfiguration().createConnectionFactory();
 		testConnection(cf);
 		return cf;
 	}
@@ -105,11 +104,11 @@ public class DataRedisTestIntegrationTests {
 
 	private static class LettuceConnectionFactoryConfiguration {
 
-		RedisConnectionFactory createConnectionFactory(String hostName) {
+		RedisConnectionFactory createConnectionFactory() {
 			LettuceClientConfiguration config = LettuceClientConfiguration.builder()
 					.shutdownTimeout(Duration.ofMillis(0)).build();
 			LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(
-					new RedisStandaloneConfiguration(hostName), config);
+					new RedisStandaloneConfiguration(), config);
 			connectionFactory.afterPropertiesSet();
 			return connectionFactory;
 		}
