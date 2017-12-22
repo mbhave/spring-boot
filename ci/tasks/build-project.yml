@@ -2,8 +2,6 @@
 platform: linux
 inputs:
 - name: git-repo
-- name: redis
-- name: spring-boot-ci-image
 outputs:
 - name: distribution-repository
 caches:
