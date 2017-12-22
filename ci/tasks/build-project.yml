@@ -16,12 +16,5 @@ run:
     - |
       source /docker-lib.sh
       start_docker
-      docker load -i redis/image
-      docker tag "$(cat redis/image-id)" "$(cat redis/repository):$(cat redis/tag)"
-      docker images
+      ${PWD}/git-repo/ci/scripts/build-project.sh
 
-      # Run the container with tests and its dependencies.
-      docker-compose -f git-repo/ci/tasks/dc-build-project.yml run build-project
-
-      docker-compose -f git-repo/ci/tasks/dc-build-project.yml down
-      docker volume rm $(docker volume ls -q)
