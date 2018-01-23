@@ -21,9 +21,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
+import io.netty.handler.ssl.SslContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.ipc.netty.http.client.HttpClient;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
@@ -48,6 +53,7 @@ import org.springframework.boot.web.reactive.function.client.WebClientCustomizer
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -55,6 +61,8 @@ import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.reactive.function.client.ExchangeFunction;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -232,6 +240,36 @@ public class ReactiveCloudFoundryActuatorAutoConfigurationTests {
 				.isInstanceOf(CloudFoundryReactiveHealthEndpointWebExtension.class);
 	}
 
+	@Test
+	public void skipSslValidation() {
+		setupContextWithCloudEnabled();
+		TestPropertyValues
+				.of("management.cloudfoundry.skip-ssl-validation:true")
+				.applyTo(this.context);
+		this.context.refresh();
+		CloudFoundryWebFluxEndpointHandlerMapping handlerMapping = getHandlerMapping();
+		Object interceptor = ReflectionTestUtils.getField(handlerMapping,
+				"securityInterceptor");
+		Object interceptorSecurityService = ReflectionTestUtils.getField(interceptor,
+				"cloudFoundrySecurityService");
+		X509TrustManager trustManager = getTrustManager(interceptorSecurityService);
+		X509TrustManager delegate = (X509TrustManager) ReflectionTestUtils.getField(trustManager,
+				"delegate");
+	}
+
+	@Test
+	public void doNotskipSslValidation() {
+		setupContextWithCloudEnabled();
+		this.context.refresh();
+		CloudFoundryWebFluxEndpointHandlerMapping handlerMapping = getHandlerMapping();
+		Object interceptor = ReflectionTestUtils.getField(handlerMapping,
+				"securityInterceptor");
+		Object interceptorSecurityService = ReflectionTestUtils.getField(interceptor,
+				"cloudFoundrySecurityService");
+		SslContext sslContext = getSslContext(interceptorSecurityService);
+		assertThat(sslContext).isNull();
+	}
+
 	private void setupContextWithCloudEnabled() {
 		TestPropertyValues
 				.of("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id",
@@ -254,6 +292,22 @@ public class ReactiveCloudFoundryActuatorAutoConfigurationTests {
 	private CloudFoundryWebFluxEndpointHandlerMapping getHandlerMapping() {
 		return this.context.getBean("cloudFoundryWebFluxEndpointHandlerMapping",
 				CloudFoundryWebFluxEndpointHandlerMapping.class);
+	}
+
+	private X509TrustManager getTrustManager(Object interceptorSecurityService) {
+		SslContext sslContext = getSslContext(interceptorSecurityService);
+		SSLContext context = (SSLContext) ReflectionTestUtils.getField(sslContext, "sslContext");
+		return (X509TrustManager) ReflectionTestUtils.getField(ReflectionTestUtils.getField(context, "contextSpi"),
+				"trustManager");
+	}
+
+	private SslContext getSslContext(Object interceptorSecurityService) {
+		WebClient webClient = (WebClient) ReflectionTestUtils
+				.getField(interceptorSecurityService, "webClient");
+		ExchangeFunction exchangeFunction = (ExchangeFunction) ReflectionTestUtils.getField(webClient, "exchangeFunction");
+		ReactorClientHttpConnector connector = (ReactorClientHttpConnector) ReflectionTestUtils.getField(exchangeFunction, "connector");
+		HttpClient httpClient = (HttpClient) ReflectionTestUtils.getField(connector, "httpClient");
+		return httpClient.options().sslContext();
 	}
 
 	@Configuration

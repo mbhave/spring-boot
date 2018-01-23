@@ -20,6 +20,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.SSLException;
+
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import reactor.core.publisher.Mono;
 
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.AccessLevel;
@@ -27,6 +32,8 @@ import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryA
 import org.springframework.boot.actuate.autoconfigure.cloudfoundry.CloudFoundryAuthorizationException.Reason;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
@@ -50,11 +57,32 @@ class ReactiveCloudFoundrySecurityService {
 	private Mono<String> uaaUrl;
 
 	ReactiveCloudFoundrySecurityService(WebClient.Builder webClientBuilder,
-			String cloudControllerUrl) {
+			String cloudControllerUrl, boolean skipSslValidation) {
 		Assert.notNull(webClientBuilder, "Webclient must not be null");
 		Assert.notNull(cloudControllerUrl, "CloudControllerUrl must not be null");
-		this.webClient = webClientBuilder.build();
+		this.webClient = getWebClient(webClientBuilder, skipSslValidation);
 		this.cloudControllerUrl = cloudControllerUrl;
+	}
+
+	private WebClient getWebClient(WebClient.Builder webClientBuilder, boolean skipSslValidation) {
+		if (skipSslValidation) {
+			SslContext sslContext = getSslContext();
+			ClientHttpConnector httpConnector = new ReactorClientHttpConnector(builder -> builder.sslContext(sslContext));
+			return webClientBuilder.clientConnector(httpConnector).build();
+		}
+		return webClientBuilder.build();
+	}
+
+	private SslContext getSslContext() {
+		try {
+			return SslContextBuilder
+						.forClient()
+						.trustManager(InsecureTrustManagerFactory.INSTANCE)
+						.build();
+		}
+		catch (SSLException ex) {
+			throw new IllegalStateException("Error creating SSL context.");
+		}
 	}
 
 	/**

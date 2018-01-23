@@ -112,9 +112,11 @@ public class ReactiveCloudFoundryActuatorAutoConfiguration {
 	private ReactiveCloudFoundrySecurityService getCloudFoundrySecurityService(
 			WebClient.Builder webClientBuilder, Environment environment) {
 		String cloudControllerUrl = environment.getProperty("vcap.application.cf_api");
+		boolean skipSslValidation = environment.getProperty(
+				"management.cloudfoundry.skip-ssl-validation", Boolean.class, false);
 		return (cloudControllerUrl == null ? null
 				: new ReactiveCloudFoundrySecurityService(webClientBuilder,
-						cloudControllerUrl));
+						cloudControllerUrl, skipSslValidation));
 	}
 
 	private CorsConfiguration getCorsConfiguration() {
