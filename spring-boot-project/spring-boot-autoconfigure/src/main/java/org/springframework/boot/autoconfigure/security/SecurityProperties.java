@@ -107,6 +107,11 @@ public class SecurityProperties implements SecurityPrerequisite {
 	public static class User {
 
 		/**
+		 * Determines when to create the default in-memory userDetailsService.
+		 */
+		private InMemoryUserCreateMode createMode = InMemoryUserCreateMode.DEFAULT;
+
+		/**
 		 * Default user name.
 		 */
 		private String name = "user";
@@ -122,6 +127,14 @@ public class SecurityProperties implements SecurityPrerequisite {
 		private List<String> roles = new ArrayList<>();
 
 		private boolean passwordGenerated = true;
+
+		public InMemoryUserCreateMode getCreateMode() {
+			return this.createMode;
+		}
+
+		public void setCreateMode(InMemoryUserCreateMode createMode) {
+			this.createMode = createMode;
+		}
 
 		public String getName() {
 			return this.name;
@@ -154,6 +167,28 @@ public class SecurityProperties implements SecurityPrerequisite {
 		public boolean isPasswordGenerated() {
 			return this.passwordGenerated;
 		}
+
+	}
+
+	/**
+	 * Determines when to create the default in-memory userDetailsService.
+	 */
+	public enum InMemoryUserCreateMode {
+
+		/**
+		 * Create an in-memory userDetailsService only if OAuth is not configured.
+		 */
+		DEFAULT,
+
+		/**
+		 * Always create an in-memory userDetailsService.
+		 */
+		ALWAYS_ON,
+
+		/**
+		 * Never create an in-memory userDetailsService.
+		 */
+		ALWAYS_OFF
 
 	}
 
