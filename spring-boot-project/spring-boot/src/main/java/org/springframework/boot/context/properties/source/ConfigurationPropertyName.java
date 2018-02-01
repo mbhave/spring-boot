@@ -675,7 +675,7 @@ public final class ConfigurationPropertyName
 		}
 
 		public static boolean isValidChar(char ch, int index) {
-			return isAlpha(ch) || (index != 0 && (isNumeric(ch) || ch == '-'));
+			return isAlpha(ch) || isNumeric(ch) || (index != 0 && ch == '-');
 		}
 
 		private static boolean isAlpha(char ch) {
