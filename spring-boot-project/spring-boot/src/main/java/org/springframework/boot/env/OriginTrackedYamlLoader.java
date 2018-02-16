@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 
 package org.springframework.boot.env;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -42,7 +43,10 @@ import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.boot.origin.TextResourceOrigin;
 import org.springframework.boot.origin.TextResourceOrigin.Location;
 import org.springframework.boot.yaml.SpringProfileDocumentMatcher;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.io.Resource;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Class to load {@code .yml} files into a map of {@code String} ->
@@ -55,7 +59,9 @@ class OriginTrackedYamlLoader extends YamlProcessor {
 
 	private final Resource resource;
 
-	OriginTrackedYamlLoader(Resource resource, String profile) {
+	private final Environment environment;
+
+	OriginTrackedYamlLoader(Resource resource, String profile, Environment environment) {
 		this.resource = resource;
 		if (profile == null) {
 			setMatchDefault(true);
@@ -66,6 +72,7 @@ class OriginTrackedYamlLoader extends YamlProcessor {
 			setDocumentMatchers(new OriginTrackedSpringProfileDocumentMatcher(profile));
 		}
 		setResources(resource);
+		this.environment = environment;
 	}
 
 	@Override
@@ -77,10 +84,34 @@ class OriginTrackedYamlLoader extends YamlProcessor {
 		return new Yaml(constructor, representer, dumperOptions, resolver);
 	}
 
-	public Map<String, Object> load() {
-		final Map<String, Object> result = new LinkedHashMap<>();
-		process((properties, map) -> result.putAll(getFlattenedMap(map)));
-		return result;
+	public List<MapPropertySource> load() {
+		List<MapPropertySource> source = new ArrayList<>();
+		process((properties, map) -> matchCallback(source, properties, map));
+		return source;
+	}
+
+	@SuppressWarnings("unchecked")
+	private void matchCallback(List<MapPropertySource> source, Properties properties, Map<String, Object> map) {
+		String propertySourceName = getName(properties);
+		Map<String, Object> flattenedMap = getFlattenedMap(map);
+		Set<String> negatedProfiles = (Set<String>) properties
+				.get(SpringProfileDocumentMatcher.NEGATED_PROFILES_KEY);
+		if (CollectionUtils.isEmpty(negatedProfiles)) {
+			source.add(new OriginTrackedMapPropertySource(propertySourceName, flattenedMap));
+		}
+		else {
+			YamlNegationPropertySource propertySource = new YamlNegationPropertySource(
+					propertySourceName, flattenedMap,
+					OriginTrackedYamlLoader.this.environment,
+					negatedProfiles);
+			source.add(propertySource);
+		}
+	}
+
+	private String getName(Properties properties) {
+		String documentProfiles = properties.getProperty("spring.profiles",
+				"(default)");
+		return "YAML [" + documentProfiles + "]";
 	}
 
 	/**

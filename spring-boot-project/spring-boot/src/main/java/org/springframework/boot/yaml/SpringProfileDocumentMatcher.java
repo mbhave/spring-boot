@@ -49,6 +49,8 @@ import org.springframework.util.StringUtils;
  */
 public class SpringProfileDocumentMatcher implements DocumentMatcher {
 
+	public static final String NEGATED_PROFILES_KEY = "spring.profiles.negated";
+
 	private String[] activeProfiles = new String[0];
 
 	public SpringProfileDocumentMatcher(String... profiles) {
@@ -64,7 +66,7 @@ public class SpringProfileDocumentMatcher implements DocumentMatcher {
 
 	@Override
 	public MatchStatus matches(Properties properties) {
-		return matches(extractSpringProfiles(properties));
+		return matches(extractSpringProfiles(properties), properties);
 	}
 
 	protected List<String> extractSpringProfiles(Properties properties) {
@@ -73,11 +75,12 @@ public class SpringProfileDocumentMatcher implements DocumentMatcher {
 				.map(Arrays::asList).orElse(Collections.emptyList());
 	}
 
-	private MatchStatus matches(List<String> profiles) {
+	private MatchStatus matches(List<String> profiles, Properties properties) {
 		ProfilesMatcher profilesMatcher = getProfilesMatcher();
 		Set<String> negative = extractProfiles(profiles, ProfileType.NEGATIVE);
 		Set<String> positive = extractProfiles(profiles, ProfileType.POSITIVE);
 		if (!CollectionUtils.isEmpty(negative)) {
+			properties.put(NEGATED_PROFILES_KEY, negative);
 			if (profilesMatcher.matches(negative) == MatchStatus.FOUND) {
 				return MatchStatus.NOT_FOUND;
 			}

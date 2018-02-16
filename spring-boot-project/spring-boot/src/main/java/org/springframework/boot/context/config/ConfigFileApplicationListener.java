@@ -45,6 +45,7 @@ import org.springframework.boot.env.RandomValuePropertySource;
 import org.springframework.boot.logging.DeferredLog;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.Ordered;
@@ -306,8 +307,19 @@ public class ConfigFileApplicationListener
 			this.environment = environment;
 			this.resourceLoader = resourceLoader == null ? new DefaultResourceLoader()
 					: resourceLoader;
-			this.propertySourceLoaders = SpringFactoriesLoader.loadFactories(
+			this.propertySourceLoaders = getPropertySourceLoaders();
+		}
+
+
+		private List<PropertySourceLoader> getPropertySourceLoaders() {
+			List<PropertySourceLoader> result = SpringFactoriesLoader.loadFactories(
 					PropertySourceLoader.class, getClass().getClassLoader());
+			for (PropertySourceLoader loader : result) {
+				if (loader instanceof EnvironmentAware) {
+					((EnvironmentAware) loader).setEnvironment(environment);
+				}
+			}
+			return result;
 		}
 
 		public void load() {

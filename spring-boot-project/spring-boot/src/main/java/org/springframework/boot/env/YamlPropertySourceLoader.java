@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2017 the original author or authors.
+ * Copyright 2012-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 
 package org.springframework.boot.env;
 
-import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.CompositePropertySource;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
 import org.springframework.util.ClassUtils;
@@ -30,7 +33,9 @@ import org.springframework.util.ClassUtils;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public class YamlPropertySourceLoader implements PropertySourceLoader {
+public class YamlPropertySourceLoader implements PropertySourceLoader, EnvironmentAware {
+
+	private Environment environment;
 
 	@Override
 	public String[] getFileExtensions() {
@@ -38,18 +43,35 @@ public class YamlPropertySourceLoader implements PropertySourceLoader {
 	}
 
 	@Override
-	public PropertySource<?> load(String name, Resource resource, String profile)
-			throws IOException {
+	public PropertySource<?> load(String name, Resource resource, String profile) {
 		if (!ClassUtils.isPresent("org.yaml.snakeyaml.Yaml", null)) {
 			throw new IllegalStateException("Attempted to load " + name
 					+ " but snakeyaml was not found on the classpath");
 		}
-		Map<String, Object> source = new OriginTrackedYamlLoader(resource, profile)
+		List<MapPropertySource> propertySources = new OriginTrackedYamlLoader(resource, profile, environment)
 				.load();
-		if (!source.isEmpty()) {
-			return new OriginTrackedMapPropertySource(name, source);
+		if (!propertySources.isEmpty()) {
+			if (propertySources.size() == 1) {
+				return renamePropertySource(propertySources.get(0), name);
+			}
+			CompositePropertySource result = new CompositePropertySource(name);
+			for (MapPropertySource documentPropertySource : propertySources) {
+				result.addPropertySource(documentPropertySource);
+			}
+			return result;
 		}
 		return null;
 	}
 
+	private MapPropertySource renamePropertySource(MapPropertySource ps, String name) {
+		if (ps instanceof YamlNegationPropertySource) {
+			return ((YamlNegationPropertySource) ps).withName(name);
+		}
+		return new MapPropertySource(name, ps.getSource());
+	}
+
+	@Override
+	public void setEnvironment(Environment environment) {
+		this.environment = environment;
+	}
 }

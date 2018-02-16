@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.springframework.boot.env.YamlNegationPropertySource;
+import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
@@ -67,6 +69,11 @@ class SpringIterableConfigurationPropertySource extends SpringConfigurationPrope
 	@Override
 	public ConfigurationProperty getConfigurationProperty(
 			ConfigurationPropertyName name) {
+		if (getPropertySource() instanceof YamlNegationPropertySource) { //FIXME this seems like the wrong place for this
+			if (AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME.equals(name.toString())) {
+				return null;
+			}
+		}
 		ConfigurationProperty configurationProperty = super.getConfigurationProperty(
 				name);
 		if (configurationProperty == null) {
