@@ -103,7 +103,8 @@ class HealthEndpointWebExtensionConfiguration {
 				HealthEndpointProperties properties) {
 			return new HealthEndpointWebExtension(
 					HealthIndicatorBeansComposite.get(applicationContext),
-					healthStatusHttpMapper, properties.getShowDetails());
+					healthStatusHttpMapper, properties.getShowDetails(),
+					properties.getRoles());
 		}
 
 	}

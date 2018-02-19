@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.health.HealthEndpointWebExtension;
 import org.springframework.boot.actuate.health.HealthStatusHttpMapper;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -28,6 +29,7 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -77,7 +79,8 @@ public class HealthEndpointWebExtensionTests {
 		this.contextRunner.run((context) -> {
 			HealthEndpointWebExtension extension = context
 					.getBean(HealthEndpointWebExtension.class);
-			assertThat(extension.getHealth(null).getBody().getDetails()).isEmpty();
+			assertThat(extension.getHealth(mock(SecurityContext.class)).getBody()
+					.getDetails()).isEmpty();
 		});
 	}
 
@@ -86,7 +89,9 @@ public class HealthEndpointWebExtensionTests {
 		this.contextRunner.run((context) -> {
 			HealthEndpointWebExtension extension = context
 					.getBean(HealthEndpointWebExtension.class);
-			assertThat(extension.getHealth(mock(Principal.class)).getBody().getDetails())
+			SecurityContext securityContext = mock(SecurityContext.class);
+			given(securityContext.getPrincipal()).willReturn(mock(Principal.class));
+			assertThat(extension.getHealth(securityContext).getBody().getDetails())
 					.isNotEmpty();
 		});
 	}
@@ -110,8 +115,61 @@ public class HealthEndpointWebExtensionTests {
 				.run((context) -> {
 					HealthEndpointWebExtension extension = context
 							.getBean(HealthEndpointWebExtension.class);
-					assertThat(extension.getHealth(mock(Principal.class)).getBody()
+					assertThat(extension.getHealth(mock(SecurityContext.class)).getBody()
 							.getDetails()).isEmpty();
+				});
+	}
+
+	@Test
+	public void detailsCanBeHiddenFromUnauthorizedUsers() {
+		this.contextRunner
+				.withPropertyValues(
+						"management.endpoint.health.show-details=when-authorized")
+				.run((context) -> {
+					HealthEndpointWebExtension extension = context
+							.getBean(HealthEndpointWebExtension.class);
+					SecurityContext securityContext = mock(SecurityContext.class);
+					given(securityContext.getPrincipal())
+							.willReturn(mock(Principal.class));
+					given(securityContext.isUserInRole("ACTUATOR")).willReturn(false);
+					assertThat(
+							extension.getHealth(securityContext).getBody().getDetails())
+									.isEmpty();
+				});
+	}
+
+	@Test
+	public void detailsCanBeShownToAuthorizedUsers() {
+		this.contextRunner
+				.withPropertyValues(
+						"management.endpoint.health.show-details=when-authorized")
+				.run((context) -> {
+					HealthEndpointWebExtension extension = context
+							.getBean(HealthEndpointWebExtension.class);
+					SecurityContext securityContext = mock(SecurityContext.class);
+					given(securityContext.getPrincipal())
+							.willReturn(mock(Principal.class));
+					given(securityContext.isUserInRole("ACTUATOR")).willReturn(true);
+					assertThat(
+							extension.getHealth(securityContext).getBody().getDetails())
+									.isNotEmpty();
+				});
+	}
+
+	@Test
+	public void roleCanBeCustomized() {
+		this.contextRunner.withPropertyValues(
+				"management.endpoint.health.show-details=when-authorized",
+				"management.endpoint.health.roles=ADMIN").run((context) -> {
+					HealthEndpointWebExtension extension = context
+							.getBean(HealthEndpointWebExtension.class);
+					SecurityContext securityContext = mock(SecurityContext.class);
+					given(securityContext.getPrincipal())
+							.willReturn(mock(Principal.class));
+					given(securityContext.isUserInRole("ADMIN")).willReturn(true);
+					assertThat(
+							extension.getHealth(securityContext).getBody().getDetails())
+									.isNotEmpty();
 				});
 	}
 

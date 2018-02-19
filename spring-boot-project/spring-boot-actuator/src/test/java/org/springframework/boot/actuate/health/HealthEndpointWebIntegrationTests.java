@@ -16,6 +16,7 @@
 
 package org.springframework.boot.actuate.health;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import org.junit.Test;
@@ -75,7 +76,8 @@ public class HealthEndpointWebIntegrationTests {
 			return new HealthEndpointWebExtension(
 					new CompositeHealthIndicatorFactory().createHealthIndicator(
 							new OrderedHealthAggregator(), healthIndicators),
-					new HealthStatusHttpMapper(), ShowDetails.ALWAYS);
+					new HealthStatusHttpMapper(), ShowDetails.ALWAYS,
+					Arrays.asList("ACTUATOR"));
 		}
 
 		@Bean

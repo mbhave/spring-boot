@@ -16,6 +16,8 @@
 
 package org.springframework.boot.actuate.health;
 
+import java.util.List;
+
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
@@ -41,11 +43,15 @@ public class HealthEndpointWebExtension {
 
 	private final ShowDetails showDetails;
 
+	private final List<String> roles;
+
 	public HealthEndpointWebExtension(HealthIndicator delegate,
-			HealthStatusHttpMapper statusHttpMapper, ShowDetails showDetails) {
+			HealthStatusHttpMapper statusHttpMapper, ShowDetails showDetails,
+			List<String> roles) {
 		this.delegate = delegate;
 		this.statusHttpMapper = statusHttpMapper;
 		this.showDetails = showDetails;
+		this.roles = roles;
 	}
 
 	@ReadOperation
@@ -61,10 +67,19 @@ public class HealthEndpointWebExtension {
 				|| (showDetails == ShowDetails.WHEN_AUTHENTICATED
 						&& securityContext.getPrincipal() == null)
 				|| (showDetails == ShowDetails.WHEN_AUTHORIZED
-						&& !securityContext.isUserInRole("ACTUATOR"))) {
+						&& !isUserInRole(securityContext))) {
 			health = Health.status(health.getStatus()).build();
 		}
 		return new WebEndpointResponse<>(health, status);
+	}
+
+	private boolean isUserInRole(SecurityContext securityContext) {
+		for (String role : this.roles) {
+			if (securityContext.isUserInRole(role)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
