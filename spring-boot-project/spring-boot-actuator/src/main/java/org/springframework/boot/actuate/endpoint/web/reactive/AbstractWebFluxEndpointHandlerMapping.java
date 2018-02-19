@@ -30,6 +30,7 @@ import reactor.core.scheduler.Schedulers;
 import org.springframework.boot.actuate.endpoint.InvalidEndpointRequestException;
 import org.springframework.boot.actuate.endpoint.InvocationContext;
 import org.springframework.boot.actuate.endpoint.OperationType;
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.invoke.OperationInvoker;
 import org.springframework.boot.actuate.endpoint.web.EndpointMapping;
 import org.springframework.boot.actuate.endpoint.web.EndpointMediaTypes;
@@ -40,6 +41,8 @@ import org.springframework.boot.actuate.endpoint.web.WebOperationRequestPredicat
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -277,9 +280,9 @@ public abstract class AbstractWebFluxEndpointHandlerMapping
 			return exchange.getPrincipal().defaultIfEmpty(NO_PRINCIPAL)
 					.flatMap((principal) -> {
 						Map<String, Object> arguments = getArguments(exchange, body);
-						return handleResult(
-								(Publisher<?>) this.invoker.invoke(new InvocationContext(
-										principal == NO_PRINCIPAL ? null : principal,
+						return handleResult((Publisher<?>) this.invoker
+								.invoke(new InvocationContext(new ReactiveSecurityContext(
+										principal == NO_PRINCIPAL ? null : principal),
 										arguments)),
 								exchange.getRequest().getMethod());
 					});
@@ -358,4 +361,34 @@ public abstract class AbstractWebFluxEndpointHandlerMapping
 		}
 
 	}
+
+	private static final class ReactiveSecurityContext implements SecurityContext {
+
+		private final Principal principal;
+
+		ReactiveSecurityContext(Principal principal) {
+			this.principal = principal;
+		}
+
+		@Override
+		public Principal getPrincipal() {
+			return this.principal;
+		}
+
+		@Override
+		public boolean isUserInRole(String role) {
+			Authentication auth = (Authentication) this.principal;
+			if ((auth == null) || (auth.getPrincipal() == null)) {
+				return false;
+			}
+			for (GrantedAuthority grantedAuthority : auth.getAuthorities()) {
+				if (role.equals(grantedAuthority.getAuthority())) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+	}
+
 }

@@ -16,12 +16,10 @@
 
 package org.springframework.boot.actuate.health;
 
-import java.security.Principal;
-
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExtension;
-import org.springframework.lang.Nullable;
 
 /**
  * {@link EndpointWebExtension} for the {@link HealthEndpoint}.
@@ -51,16 +49,19 @@ public class HealthEndpointWebExtension {
 	}
 
 	@ReadOperation
-	public WebEndpointResponse<Health> getHealth(@Nullable Principal principal) {
-		return getHealth(principal, this.showDetails);
+	public WebEndpointResponse<Health> getHealth(SecurityContext securityContext) {
+		return getHealth(securityContext, this.showDetails);
 	}
 
-	public WebEndpointResponse<Health> getHealth(Principal principal,
+	public WebEndpointResponse<Health> getHealth(SecurityContext securityContext,
 			ShowDetails showDetails) {
 		Health health = this.delegate.health();
 		Integer status = this.statusHttpMapper.mapStatus(health.getStatus());
 		if (showDetails == ShowDetails.NEVER
-				|| (showDetails == ShowDetails.WHEN_AUTHENTICATED && principal == null)) {
+				|| (showDetails == ShowDetails.WHEN_AUTHENTICATED
+						&& securityContext.getPrincipal() == null)
+				|| (showDetails == ShowDetails.WHEN_AUTHORIZED
+						&& !securityContext.isUserInRole("ACTUATOR"))) {
 			health = Health.status(health.getStatus()).build();
 		}
 		return new WebEndpointResponse<>(health, status);
