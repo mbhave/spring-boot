@@ -41,8 +41,8 @@ import org.springframework.boot.actuate.endpoint.web.WebOperationRequestPredicat
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorityReactiveAuthorizationManager;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -377,16 +377,8 @@ public abstract class AbstractWebFluxEndpointHandlerMapping
 
 		@Override
 		public boolean isUserInRole(String role) {
-			Authentication auth = (Authentication) this.principal;
-			if ((auth == null) || (auth.getPrincipal() == null)) {
-				return false;
-			}
-			for (GrantedAuthority grantedAuthority : auth.getAuthorities()) {
-				if (role.equals(grantedAuthority.getAuthority())) {
-					return true;
-				}
-			}
-			return false;
+			return AuthorityReactiveAuthorizationManager.hasRole(role)
+					.check(Mono.just((Authentication) this.principal), null).block().isGranted();
 		}
 
 	}
