@@ -17,7 +17,6 @@
 package org.springframework.boot.actuate.autoconfigure.health;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.boot.actuate.health.HealthEndpoint;
@@ -35,12 +34,12 @@ public class HealthEndpointProperties {
 	/**
 	 * Whether to show full health details.
 	 */
-	private ShowDetails showDetails = ShowDetails.WHEN_AUTHENTICATED;
+	private ShowDetails showDetails = ShowDetails.WHEN_AUTHORIZED;
 
 	/**
 	 * Roles that a user must have when only showing details to authorized users.
 	 */
-	private List<String> roles = new ArrayList<>(Arrays.asList("ACTUATOR"));
+	private List<String> roles = new ArrayList<>();
 
 	public ShowDetails getShowDetails() {
 		return this.showDetails;

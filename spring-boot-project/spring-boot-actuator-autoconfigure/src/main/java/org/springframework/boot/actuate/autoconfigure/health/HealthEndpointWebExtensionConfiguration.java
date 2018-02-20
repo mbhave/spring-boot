@@ -84,7 +84,7 @@ class HealthEndpointWebExtensionConfiguration {
 				HealthStatusHttpMapper healthStatusHttpMapper,
 				HealthEndpointProperties properties) {
 			return new ReactiveHealthEndpointWebExtension(this.reactiveHealthIndicator,
-					healthStatusHttpMapper, properties.getShowDetails());
+					healthStatusHttpMapper, properties.getShowDetails(), properties.getRoles());
 		}
 
 	}

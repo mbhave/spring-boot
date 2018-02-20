@@ -22,6 +22,7 @@ import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExtension;
+import org.springframework.util.CollectionUtils;
 
 /**
  * {@link EndpointWebExtension} for the {@link HealthEndpoint}.
@@ -64,16 +65,18 @@ public class HealthEndpointWebExtension {
 		Health health = this.delegate.health();
 		Integer status = this.statusHttpMapper.mapStatus(health.getStatus());
 		if (showDetails == ShowDetails.NEVER
-				|| (showDetails == ShowDetails.WHEN_AUTHENTICATED
-						&& securityContext.getPrincipal() == null)
 				|| (showDetails == ShowDetails.WHEN_AUTHORIZED
-						&& !isUserInRole(securityContext))) {
+						&& (securityContext.getPrincipal() == null
+						|| !isUserInRole(securityContext)))) {
 			health = Health.status(health.getStatus()).build();
 		}
 		return new WebEndpointResponse<>(health, status);
 	}
 
 	private boolean isUserInRole(SecurityContext securityContext) {
+		if (CollectionUtils.isEmpty(this.roles)) {
+			return true;
+		}
 		for (String role : this.roles) {
 			if (securityContext.isUserInRole(role)) {
 				return true;

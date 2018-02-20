@@ -16,14 +16,15 @@
 
 package org.springframework.boot.actuate.health;
 
-import java.security.Principal;
+import java.util.List;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExtension;
-import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Reactive {@link EndpointWebExtension} for the {@link HealthEndpoint}.
@@ -40,29 +41,45 @@ public class ReactiveHealthEndpointWebExtension {
 
 	private final ShowDetails showDetails;
 
+	private final List<String> roles;
+
 	public ReactiveHealthEndpointWebExtension(ReactiveHealthIndicator delegate,
-			HealthStatusHttpMapper statusHttpMapper, ShowDetails showDetails) {
+			HealthStatusHttpMapper statusHttpMapper, ShowDetails showDetails, List<String> roles) {
 		this.delegate = delegate;
 		this.statusHttpMapper = statusHttpMapper;
 		this.showDetails = showDetails;
+		this.roles = roles;
 	}
 
 	@ReadOperation
-	public Mono<WebEndpointResponse<Health>> health(@Nullable Principal principal) {
-		return health(principal, this.showDetails);
+	public Mono<WebEndpointResponse<Health>> health(SecurityContext securityContext) {
+		return health(securityContext, this.showDetails);
 	}
 
-	public Mono<WebEndpointResponse<Health>> health(Principal principal,
+	public Mono<WebEndpointResponse<Health>> health(SecurityContext securityContext,
 			ShowDetails showDetails) {
 		return this.delegate.health().map((health) -> {
 			Integer status = this.statusHttpMapper.mapStatus(health.getStatus());
 			if (showDetails == ShowDetails.NEVER
-					|| (showDetails == ShowDetails.WHEN_AUTHENTICATED
-							&& principal == null)) {
+					|| (showDetails == ShowDetails.WHEN_AUTHORIZED
+							&& (securityContext.getPrincipal() == null
+							|| !isUserInRole(securityContext)))) {
 				health = Health.status(health.getStatus()).build();
 			}
 			return new WebEndpointResponse<>(health, status);
 		});
+	}
+
+	private boolean isUserInRole(SecurityContext securityContext) {
+		if (CollectionUtils.isEmpty(this.roles)) {
+			return true;
+		}
+		for (String role : this.roles) {
+			if (securityContext.isUserInRole(role)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }

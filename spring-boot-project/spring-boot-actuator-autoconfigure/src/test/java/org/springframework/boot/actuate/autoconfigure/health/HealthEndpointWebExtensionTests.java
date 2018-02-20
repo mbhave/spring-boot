@@ -124,7 +124,8 @@ public class HealthEndpointWebExtensionTests {
 	public void detailsCanBeHiddenFromUnauthorizedUsers() {
 		this.contextRunner
 				.withPropertyValues(
-						"management.endpoint.health.show-details=when-authorized")
+						"management.endpoint.health.show-details=when-authorized",
+						"management.endpoint.health.roles=ACTUATOR")
 				.run((context) -> {
 					HealthEndpointWebExtension extension = context
 							.getBean(HealthEndpointWebExtension.class);
@@ -142,7 +143,8 @@ public class HealthEndpointWebExtensionTests {
 	public void detailsCanBeShownToAuthorizedUsers() {
 		this.contextRunner
 				.withPropertyValues(
-						"management.endpoint.health.show-details=when-authorized")
+						"management.endpoint.health.show-details=when-authorized",
+						"management.endpoint.health.roles=ACTUATOR")
 				.run((context) -> {
 					HealthEndpointWebExtension extension = context
 							.getBean(HealthEndpointWebExtension.class);

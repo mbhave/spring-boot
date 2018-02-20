@@ -31,11 +31,6 @@ public enum ShowDetails {
 	NEVER,
 
 	/**
-	 * Show details in the response when accessed by an authenticated user.
-	 */
-	WHEN_AUTHENTICATED,
-
-	/**
 	 * Show details in the response when accessed by an authorized user.
 	 */
 	WHEN_AUTHORIZED,
