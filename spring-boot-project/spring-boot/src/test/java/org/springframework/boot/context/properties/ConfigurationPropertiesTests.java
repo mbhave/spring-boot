@@ -745,6 +745,11 @@ public class ConfigurationPropertiesTests {
 		assertThat(bean.getFile()).isEqualTo(new File("."));
 	}
 
+	@Test
+	public void loadWhenBindingPropertyWithRootNamespacePresentAndNoDescendantsShouldNotFail() {
+		load(PersonProperties.class, "test=boot");
+	}
+
 	private AnnotationConfigApplicationContext load(Class<?> configuration,
 			String... inlinedProperties) {
 		return load(new Class<?>[] { configuration }, inlinedProperties);
