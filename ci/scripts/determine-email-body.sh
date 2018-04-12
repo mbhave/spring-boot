@@ -14,12 +14,12 @@ popd > /dev/null
 if [[ $STATE == "success" ]];then
 	echo "Build SUCCESSFUL ${BUILD_PIPELINE_NAME} / ${BUILD_JOB_NAME} " > email-details/subject
 	if [[ $WAS_PREV_SUCCESSFUL == "" ]];then
-    	echo "Build https://ci.spring.io/teams/spring-boot/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds is successful!" > email-details/body
+    	echo "Build https://ci.spring.io/teams/spring-boot/pipelines/${BUILD_PIPELINE_NAME} is successful!" > email-details/body
 	elif [[ $WAS_PREV_SUCCESSFUL == "success" ]];then
 		touch email-details/body
 	fi
 elif [[ $STATE == "failure" ]];then
-	echo "Build https://ci.spring.io/teams/spring-boot/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds has failed!" > email-details/body
+	echo "Build https://ci.spring.io/teams/spring-boot/pipelines/${BUILD_PIPELINE_NAME} has failed!" > email-details/body
 	if [[ $WAS_PREV_SUCCESSFUL == "" ]];then
 		echo "Still FAILING ${BUILD_PIPELINE_NAME} / ${BUILD_JOB_NAME} " > email-details/subject
 	elif [[ $WAS_PREV_SUCCESSFUL == "success" ]];then
