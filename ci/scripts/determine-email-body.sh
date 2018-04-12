@@ -16,7 +16,7 @@ if [[ $STATE == "success" ]];then
 	if [[ $WAS_PREV_SUCCESSFUL == "" ]];then
     	echo "Build ${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME} is successful!" > email-details/body
 	elif [[ $WAS_PREV_SUCCESSFUL == "success" ]];then
-		echo "" > email-details/body
+		touch email-details/body
 	fi
 elif [[ $STATE == "failure" ]];then
 	echo "Build ${ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME} has failed!" > email-details/body
