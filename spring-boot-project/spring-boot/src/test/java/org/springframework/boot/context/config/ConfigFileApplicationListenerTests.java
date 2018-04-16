@@ -758,6 +758,8 @@ public class ConfigFileApplicationListenerTests {
 		assertThat(environment).has(matchingProfile("morespecific"));
 		assertThat(environment).has(matchingProfile("yetmorespecific"));
 		assertThat(environment).doesNotHave(matchingProfile("missing"));
+		assertThat(this.out.toString())
+				.contains("The following profiles are active: includeprofile,specific,morespecific,yetmorespecific");
 	}
 
 	@Test
@@ -888,6 +890,11 @@ public class ConfigFileApplicationListenerTests {
 		this.initializer.postProcessEnvironment(this.environment, this.application);
 		assertThat(this.environment.getProperty("foo")).isEqualTo("bar");
 		assertThat(this.environment.getProperty("value")).isNull();
+	}
+
+	@Test
+	public void dunno() {
+
 	}
 
 	private Condition<ConfigurableEnvironment> matchingPropertySource(
