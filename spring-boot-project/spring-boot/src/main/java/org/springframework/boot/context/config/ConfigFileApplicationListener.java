@@ -327,6 +327,9 @@ public class ConfigFileApplicationListener
 			initializeProfiles();
 			while (!this.profiles.isEmpty()) {
 				Profile profile = this.profiles.poll();
+				if (profile != null && !profile.isDefaultProfile()) {
+					addProfileToEnvironment(profile.getName());
+				}
 				load(profile, this::getPositiveProfileFilter,
 						addToLoaded(MutablePropertySources::addLast, false));
 				this.processedProfiles.add(profile);
@@ -384,18 +387,11 @@ public class ConfigFileApplicationListener
 			if (this.activatedProfiles || profiles.isEmpty()) {
 				return;
 			}
-			addProfiles(profiles);
+			this.profiles.addAll(profiles);
 			this.logger.debug("Activated activeProfiles "
 					+ StringUtils.collectionToCommaDelimitedString(profiles));
 			this.activatedProfiles = true;
 			removeUnprocessedDefaultProfiles();
-		}
-
-		void addProfiles(Set<Profile> profiles) {
-			for (Profile profile : profiles) {
-				this.profiles.add(profile);
-				addProfileToEnvironment(profile.getName());
-			}
 		}
 
 		private void removeUnprocessedDefaultProfiles() {
@@ -523,7 +519,7 @@ public class ConfigFileApplicationListener
 				for (Document document : documents) {
 					if (filter.match(document)) {
 						addActiveProfiles(document.getActiveProfiles());
-						addProfiles(document.getIncludeProfiles());
+						addIncludedProfiles(document.getIncludeProfiles());
 						loaded.add(document);
 					}
 				}
@@ -537,6 +533,13 @@ public class ConfigFileApplicationListener
 				throw new IllegalStateException("Failed to load property "
 						+ "source from location '" + location + "'", ex);
 			}
+		}
+
+		private void addIncludedProfiles(Set<Profile> includeProfiles) {
+			LinkedList<Profile> existingProfiles = new LinkedList<>(this.profiles);
+			this.profiles.clear();
+			this.profiles.addAll(includeProfiles);
+			this.profiles.addAll(existingProfiles);
 		}
 
 		private List<Document> loadDocuments(PropertySourceLoader loader, String name,
