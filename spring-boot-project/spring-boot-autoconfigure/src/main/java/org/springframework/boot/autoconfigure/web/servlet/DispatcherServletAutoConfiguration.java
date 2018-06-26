@@ -18,6 +18,7 @@ package org.springframework.boot.autoconfigure.web.servlet;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletRegistration;
@@ -40,6 +41,7 @@ import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
@@ -116,12 +118,6 @@ public class DispatcherServletAutoConfiguration {
 			return resolver;
 		}
 
-		@Bean
-		public DispatcherServletPathProvider mainDispatcherServletPathProvider() {
-			return () -> DispatcherServletConfiguration.this.serverProperties.getServlet()
-					.getPath();
-		}
-
 	}
 
 	@Configuration
@@ -159,6 +155,58 @@ public class DispatcherServletAutoConfiguration {
 				registration.setMultipartConfig(this.multipartConfig);
 			}
 			return registration;
+		}
+
+		@Bean
+		@ConditionalOnMissingBean(DispatcherServletPathProvider.class)
+		public DispatcherServletPathProvider dispatcherServletPathProvider(
+				ApplicationContext context) {
+			Map<String, DispatcherServlet> beans = context
+					.getBeansOfType(DispatcherServlet.class);
+			if (beans.size() > 1) {
+				throw new IllegalStateException(
+						"Unable to determine dispatcher servlet path because multiple " +
+						 "DispatcherServlet beans were found. Please provide a bean of type DispatcherServletPathProvider.");
+			}
+			return () -> DispatcherServletRegistrationConfiguration.this.serverProperties
+					.getServlet().getPath();
+		}
+
+	}
+
+	@Configuration
+	@EnableConfigurationProperties(ServerProperties.class)
+	@Import(DispatcherServletRegistrationConfiguration.class)
+	protected static class DispatcherServletPathProviderConfiguration {
+
+		private final ServerProperties serverProperties;
+
+		public DispatcherServletPathProviderConfiguration(
+				ServerProperties serverProperties) {
+			this.serverProperties = serverProperties;
+		}
+
+		@Bean
+		@ConditionalOnBean(DispatcherServlet.class)
+		@ConditionalOnMissingBean(DispatcherServletPathProvider.class)
+		public DispatcherServletPathProvider dispatcherServletPathProvider(
+				ApplicationContext context) {
+			Map<String, ServletRegistrationBean> registrationBeans = context
+					.getBeansOfType(ServletRegistrationBean.class);
+			if (registrationBeans
+					.containsKey(DEFAULT_DISPATCHER_SERVLET_REGISTRATION_BEAN_NAME)) {
+				throw new IllegalStateException(
+						"Unable to determine dispatcher servlet path because a custom ServletRegistrationBean " +
+						 "is present. Please provide a bean of type DispatcherServletPathProvider.");
+			}
+			Map<String, DispatcherServlet> beans = context
+					.getBeansOfType(DispatcherServlet.class);
+			if (beans.size() > 1) {
+				throw new IllegalStateException(
+						"Unable to determine dispatcher servlet path because multiple " +
+						 "DispatcherServlet beans were found. Please provide a bean of type DispatcherServletPathProvider.");
+			}
+			return () -> "/";
 		}
 
 	}
