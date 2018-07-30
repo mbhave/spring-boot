@@ -89,6 +89,10 @@ class PropertySourcesDeducer {
 		FilteredPropertySources filtered = new FilteredPropertySources(
 				appliedPropertySources,
 				PropertySourcesPlaceholderConfigurer.ENVIRONMENT_PROPERTIES_PROPERTY_SOURCE_NAME);
+		if (appliedPropertySources.iterator().next().getName().equals(
+				PropertySourcesPlaceholderConfigurer.ENVIRONMENT_PROPERTIES_PROPERTY_SOURCE_NAME)) {
+			return new CompositePropertySources(environmentPropertySources, filtered);
+		}
 		return new CompositePropertySources(filtered, environmentPropertySources);
 	}
 
