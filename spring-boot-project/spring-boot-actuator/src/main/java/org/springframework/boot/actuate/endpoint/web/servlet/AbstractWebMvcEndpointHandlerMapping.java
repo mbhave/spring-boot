@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -49,6 +50,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.handler.MatchableHandlerMapping;
+import org.springframework.web.servlet.handler.RequestMatchResult;
 import org.springframework.web.servlet.mvc.condition.ConsumesRequestCondition;
 import org.springframework.web.servlet.mvc.condition.PatternsRequestCondition;
 import org.springframework.web.servlet.mvc.condition.ProducesRequestCondition;
@@ -66,7 +69,8 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMappi
  * @since 2.0.0
  */
 public abstract class AbstractWebMvcEndpointHandlerMapping
-		extends RequestMappingInfoHandlerMapping implements InitializingBean {
+		extends RequestMappingInfoHandlerMapping
+		implements InitializingBean, MatchableHandlerMapping {
 
 	private final EndpointMapping endpointMapping;
 
@@ -125,6 +129,30 @@ public abstract class AbstractWebMvcEndpointHandlerMapping
 		}
 	}
 
+	@Override
+	public RequestMatchResult match(HttpServletRequest request, String pattern) {
+		RequestMappingInfo.BuilderConfiguration config = getBuilderConfiguration();
+		RequestMappingInfo info = RequestMappingInfo.paths(pattern).options(config)
+				.build();
+		RequestMappingInfo matchingInfo = info.getMatchingCondition(request);
+		if (matchingInfo == null) {
+			return null;
+		}
+		Set<String> patterns = matchingInfo.getPatternsCondition().getPatterns();
+		String lookupPath = getUrlPathHelper().getLookupPathForRequest(request);
+		return new RequestMatchResult(patterns.iterator().next(), lookupPath,
+				getPathMatcher());
+	}
+
+	private RequestMappingInfo.BuilderConfiguration getBuilderConfiguration() {
+		RequestMappingInfo.BuilderConfiguration config = new RequestMappingInfo.BuilderConfiguration();
+		config.setUrlPathHelper(null);
+		config.setPathMatcher(null);
+		config.setSuffixPatternMatch(false);
+		config.setTrailingSlashMatch(true);
+		return config;
+	}
+
 	private void registerMappingForOperation(ExposableWebEndpoint endpoint,
 			WebOperation operation) {
 		OperationInvoker invoker = operation::invoke;
@@ -176,7 +204,10 @@ public abstract class AbstractWebMvcEndpointHandlerMapping
 
 	private PatternsRequestCondition patternsRequestConditionForPattern(String path) {
 		String[] patterns = new String[] { this.endpointMapping.createSubPath(path) };
-		return new PatternsRequestCondition(patterns, null, null, false, true);
+		RequestMappingInfo.BuilderConfiguration config = getBuilderConfiguration();
+		return new PatternsRequestCondition(patterns, config.getUrlPathHelper(),
+				config.getPathMatcher(), config.useSuffixPatternMatch(),
+				config.useTrailingSlashMatch());
 	}
 
 	@Override
