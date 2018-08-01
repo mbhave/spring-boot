@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
@@ -337,6 +338,7 @@ public class ConfigFileApplicationListener
 						addToLoaded(MutablePropertySources::addLast, false));
 				this.processedProfiles.add(profile);
 			}
+			reorderEnvironmentProfiles(this.processedProfiles);
 			load(null, this::getNegativeProfileFilter,
 					addToLoaded(MutablePropertySources::addFirst, true));
 			addLoadedPropertySources();
@@ -671,6 +673,16 @@ public class ConfigFileApplicationListener
 							? this.environment.resolvePlaceholders(value) : fallback)));
 			Collections.reverse(list);
 			return new LinkedHashSet<>(list);
+		}
+
+		private void reorderEnvironmentProfiles(List<Profile> processedProfiles) {
+			List<String> names = processedProfiles.stream().filter(profile -> {
+				if (profile != null && !profile.isDefaultProfile()) {
+					return true;
+				}
+				return false;
+			}).map(Profile::getName).collect(Collectors.toList());
+			this.environment.setActiveProfiles(StringUtils.toStringArray(names));
 		}
 
 		private void addLoadedPropertySources() {
