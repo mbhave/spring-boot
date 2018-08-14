@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -926,6 +927,21 @@ public class ConfigFileApplicationListenerTests {
 		assertThat(environment.getProperty("message")).isEqualTo("multiprofile");
 	}
 
+	@Test
+	public void propertiesFromCustomPropertySourceLoaderShouldBeUsed() {
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		assertThat(this.environment.getProperty("customloader1")).isEqualTo("true");
+	}
+
+	@Test
+	public void propertiesFromCustomPropertySourceLoaderShouldBeUsedWithSpecificResource() {
+		String location = "classpath:application.custom";
+		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
+				"spring.config.location=" + location);
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		assertThat(this.environment.getProperty("customloader1")).isEqualTo("true");
+	}
+
 	private Condition<ConfigurableEnvironment> matchingPropertySource(
 			final String sourceName) {
 		return new Condition<ConfigurableEnvironment>(
@@ -1018,7 +1034,7 @@ public class ConfigFileApplicationListenerTests {
 		@Override
 		public void postProcessEnvironment(ConfigurableEnvironment environment,
 				SpringApplication application) {
-			assertThat(environment.getPropertySources()).hasSize(4);
+			assertThat(environment.getPropertySources()).hasSize(5);
 		}
 
 	}
