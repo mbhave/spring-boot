@@ -20,6 +20,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties.AuthorizationCodeClientRegistration;
+import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties.LoginClientRegistration;
+
 /**
  * Tests for {@link OAuth2ClientProperties}.
  *
@@ -33,22 +36,44 @@ public class OAuth2ClientPropertiesTests {
 	public ExpectedException thrown = ExpectedException.none();
 
 	@Test
-	public void clientIdAbsentThrowsException() {
-		OAuth2ClientProperties.Registration registration = new OAuth2ClientProperties.Registration();
+	public void clientIdAbsentForLoginClientsThrowsException() {
+		LoginClientRegistration registration = new LoginClientRegistration();
 		registration.setClientSecret("secret");
 		registration.setProvider("google");
-		this.properties.getRegistration().put("foo", registration);
+		this.properties.getRegistration().getLogin().put("foo", registration);
 		this.thrown.expect(IllegalStateException.class);
 		this.thrown.expectMessage("Client id must not be empty.");
 		this.properties.validate();
 	}
 
 	@Test
-	public void clientSecretAbsentThrowsException() {
-		OAuth2ClientProperties.Registration registration = new OAuth2ClientProperties.Registration();
+	public void clientSecretAbsentForLoginClientsThrowsException() {
+		LoginClientRegistration registration = new LoginClientRegistration();
 		registration.setClientId("foo");
 		registration.setProvider("google");
-		this.properties.getRegistration().put("foo", registration);
+		this.properties.getRegistration().getLogin().put("foo", registration);
+		this.thrown.expect(IllegalStateException.class);
+		this.thrown.expectMessage("Client secret must not be empty.");
+		this.properties.validate();
+	}
+
+	@Test
+	public void clientIdAbsentForAuthorizationCodeClientsThrowsException() {
+		AuthorizationCodeClientRegistration registration = new AuthorizationCodeClientRegistration();
+		registration.setClientSecret("secret");
+		registration.setProvider("google");
+		this.properties.getRegistration().getAuthorizationCode().put("foo", registration);
+		this.thrown.expect(IllegalStateException.class);
+		this.thrown.expectMessage("Client id must not be empty.");
+		this.properties.validate();
+	}
+
+	@Test
+	public void clientSecretAbsentForAuthorizationCodeClientsThrowsException() {
+		AuthorizationCodeClientRegistration registration = new AuthorizationCodeClientRegistration();
+		registration.setClientId("foo");
+		registration.setProvider("google");
+		this.properties.getRegistration().getAuthorizationCode().put("foo", registration);
 		this.thrown.expect(IllegalStateException.class);
 		this.thrown.expectMessage("Client secret must not be empty.");
 		this.properties.validate();
