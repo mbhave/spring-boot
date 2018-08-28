@@ -99,6 +99,9 @@ public class OAuth2ClientProperties {
 
 	}
 
+	/**
+	 * A single client registration for OpenID Connect login.
+	 */
 	public static class LoginClientRegistration extends BaseClientRegistration {
 
 		/**
@@ -116,6 +119,9 @@ public class OAuth2ClientProperties {
 
 	}
 
+	/**
+	 * A single client registration for OAuth2 authorization_code flow.
+	 */
 	public static class AuthorizationCodeClientRegistration
 			extends BaseClientRegistration {
 
@@ -135,7 +141,7 @@ public class OAuth2ClientProperties {
 	}
 
 	/**
-	 * A single client registration.
+	 * Base class for a single client registration.
 	 */
 	public static class BaseClientRegistration {
 

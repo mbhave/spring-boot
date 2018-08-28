@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.mock.env.MockEnvironment;
@@ -29,7 +30,7 @@ import org.springframework.mock.env.MockEnvironment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test for {@link OAuth2ClientPropertiesEnvironmentPostProcessor}.
+ * Tests for {@link OAuth2ClientPropertiesEnvironmentPostProcessor}.
  *
  * @author Madhura Bhave
  */
@@ -104,6 +105,30 @@ public class OAuth2ClientPropertiesEnvironmentPostProcessorTests {
 		this.environment.getPropertySources().addFirst(source);
 		this.postProcessor.postProcessEnvironment(this.environment, null);
 		assertPropertyMigration();
+	}
+
+	@Test
+	public void postProcessorWhenNewPropertiesShouldDoNothing() {
+		Map<String, Object> properties = new HashMap<>();
+		properties.put(LOGIN_REGISTRATION_PREFIX + "client-id", "my-client-id");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "client-secret", "my-client-secret");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "redirect-uri-template",
+				"http://my-redirect-uri.com");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "provider", "github");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "scope", "user");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "client-name", "my-client-name");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "authorization-grant-type",
+				"authorization_code");
+		properties.put(LOGIN_REGISTRATION_PREFIX + "client-authentication-method",
+				"FORM");
+		MapPropertySource source = new MapPropertySource("test", properties);
+		this.environment.getPropertySources().addFirst(source);
+		MutablePropertySources propertySources = new MutablePropertySources(
+				this.environment.getPropertySources());
+		this.postProcessor.postProcessEnvironment(this.environment, null);
+		assertPropertyMigration();
+		assertThat(this.environment.getPropertySources())
+				.containsExactlyElementsOf(propertySources);
 	}
 
 	private void assertPropertyMigration() {

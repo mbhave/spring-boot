@@ -33,8 +33,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * {@link EnvironmentPostProcessor} that migrates legacy OAuth2 Client properties under
- * the `spring.security.oauth2.client.login` prefix.
+ * {@link EnvironmentPostProcessor} that migrates legacy OAuth2 login client properties
+ * under the `spring.security.oauth2.client.login` prefix.
  *
  * @author Madhura Bhave
  */
