@@ -46,8 +46,8 @@ import org.springframework.core.ResolvableType;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public class ConditionEvaluationReportLoggingListener
-		implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+public class ConditionEvaluationReportLoggingListener<T extends ConfigurableApplicationContext>
+		implements ApplicationContextInitializer<T> {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -55,8 +55,22 @@ public class ConditionEvaluationReportLoggingListener
 
 	private ConditionEvaluationReport report;
 
+	private final LogLevel logLevelForReport;
+
+	public ConditionEvaluationReportLoggingListener() {
+		this(LogLevel.DEBUG);
+	}
+
+	public ConditionEvaluationReportLoggingListener(LogLevel logLevelForReport) {
+		this.logLevelForReport = logLevelForReport;
+	}
+
+	public LogLevel getLogLevelForReport() {
+		return this.logLevelForReport;
+	}
+
 	@Override
-	public void initialize(ConfigurableApplicationContext applicationContext) {
+	public void initialize(T applicationContext) {
 		this.applicationContext = applicationContext;
 		applicationContext
 				.addApplicationListener(new ConditionEvaluationReportListener());
@@ -97,17 +111,29 @@ public class ConditionEvaluationReportLoggingListener
 					.get(this.applicationContext.getBeanFactory());
 		}
 		if (!this.report.getConditionAndOutcomesBySource().isEmpty()) {
-			if (isCrashReport && this.logger.isInfoEnabled()
-					&& !this.logger.isDebugEnabled()) {
-				this.logger.info(String
-						.format("%n%nError starting ApplicationContext. To display the "
-								+ "conditions report re-run your application with "
-								+ "'debug' enabled."));
-			}
-			if (this.logger.isDebugEnabled()) {
-				this.logger.debug(new ConditionEvaluationReportMessage(this.report));
+			if (this.getLogLevelForReport().equals(LogLevel.INFO)) {
+				if (this.logger.isInfoEnabled()) {
+					this.logger.info(new ConditionEvaluationReportMessage(this.report));
+				} else if (isCrashReport) {
+					logMessage("'info' enabled.");
+				}
+			} else {
+				if (isCrashReport && this.logger.isInfoEnabled()
+						&& !this.logger.isDebugEnabled()) {
+					logMessage("'debug' enabled.");
+				}
+				if (this.logger.isDebugEnabled()) {
+					this.logger.debug(new ConditionEvaluationReportMessage(this.report));
+				}
 			}
 		}
+	}
+
+	private void logMessage(String s) {
+		this.logger.info(String
+				.format("%n%nError starting ApplicationContext. To display the "
+						+ "conditions report re-run your application with "
+						+ s));
 	}
 
 	private class ConditionEvaluationReportListener
