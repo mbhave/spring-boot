@@ -31,9 +31,7 @@ import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoCon
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
-import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.testsupport.rule.OutputCapture;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,7 +54,7 @@ public class ConditionEvaluationReportLoggingListenerTests {
 	@Rule
 	public OutputCapture outputCapture = new OutputCapture();
 
-	private ConditionEvaluationReportLoggingListener<ConfigurableApplicationContext> initializer = new ConditionEvaluationReportLoggingListener<>();
+	private ConditionEvaluationReportLoggingListener initializer = new ConditionEvaluationReportLoggingListener();
 
 	@Test
 	public void logsDebugOnContextRefresh() {
@@ -124,7 +122,7 @@ public class ConditionEvaluationReportLoggingListenerTests {
 	public void canBeUsedInApplicationContext() {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		context.register(Config.class);
-		new ConditionEvaluationReportLoggingListener<>().initialize(context);
+		new ConditionEvaluationReportLoggingListener().initialize(context);
 		context.refresh();
 		assertThat(context.getBean(ConditionEvaluationReport.class)).isNotNull();
 	}
@@ -134,7 +132,7 @@ public class ConditionEvaluationReportLoggingListenerTests {
 		AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
 		context.setServletContext(new MockServletContext());
 		context.register(Config.class);
-		new ConditionEvaluationReportLoggingListener<>().initialize(context);
+		new ConditionEvaluationReportLoggingListener().initialize(context);
 		context.refresh();
 		assertThat(context.getBean(ConditionEvaluationReport.class)).isNotNull();
 	}

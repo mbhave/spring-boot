@@ -26,6 +26,7 @@ import org.springframework.boot.web.reactive.context.AnnotationConfigReactiveWeb
 import org.springframework.boot.web.reactive.context.ConfigurableReactiveWebApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * An {@link AbstractApplicationContextRunner ApplicationContext runner} for a
@@ -61,7 +62,7 @@ public final class ReactiveWebApplicationContextRunner extends
 
 	private ReactiveWebApplicationContextRunner(
 			Supplier<ConfigurableReactiveWebApplicationContext> contextFactory,
-			List<ApplicationContextInitializer<ConfigurableReactiveWebApplicationContext>> initializers,
+			List<ApplicationContextInitializer<? super ConfigurableReactiveWebApplicationContext>> initializers,
 			TestPropertyValues environmentProperties, TestPropertyValues systemProperties,
 			ClassLoader classLoader, ApplicationContext parent,
 			List<Configurations> configurations) {
@@ -72,7 +73,7 @@ public final class ReactiveWebApplicationContextRunner extends
 	@Override
 	protected ReactiveWebApplicationContextRunner newInstance(
 			Supplier<ConfigurableReactiveWebApplicationContext> contextFactory,
-			List<ApplicationContextInitializer<ConfigurableReactiveWebApplicationContext>> initializers,
+			List<ApplicationContextInitializer<? super ConfigurableReactiveWebApplicationContext>> initializers,
 			TestPropertyValues environmentProperties, TestPropertyValues systemProperties,
 			ClassLoader classLoader, ApplicationContext parent,
 			List<Configurations> configurations) {

@@ -46,8 +46,8 @@ import org.springframework.core.ResolvableType;
  * @author Phillip Webb
  * @author Andy Wilkinson
  */
-public class ConditionEvaluationReportLoggingListener<T extends ConfigurableApplicationContext>
-		implements ApplicationContextInitializer<T> {
+public class ConditionEvaluationReportLoggingListener
+		implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
@@ -70,7 +70,7 @@ public class ConditionEvaluationReportLoggingListener<T extends ConfigurableAppl
 	}
 
 	@Override
-	public void initialize(T applicationContext) {
+	public void initialize(ConfigurableApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
 		applicationContext
 				.addApplicationListener(new ConditionEvaluationReportListener());
