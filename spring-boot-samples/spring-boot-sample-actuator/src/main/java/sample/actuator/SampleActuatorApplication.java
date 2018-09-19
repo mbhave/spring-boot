@@ -17,11 +17,14 @@
 package sample.actuator;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 @SpringBootApplication
 @EnableConfigurationProperties(ServiceProperties.class)
@@ -34,6 +37,23 @@ public class SampleActuatorApplication {
 	@Bean
 	public HealthIndicator helloHealthIndicator() {
 		return () -> Health.up().withDetail("hello", "world").build();
+	}
+
+	@Bean
+	public WebSecurityConfigurerAdapter adapter() {
+		return new WebSecurityConfigurerAdapter() {
+			@Override
+			protected void configure(HttpSecurity http) throws Exception {
+				http.authorizeRequests()
+//				.requestMatchers(new MvcRequestMatcher(introspector, "/demo/actuator/health")).permitAll()
+//                .mvcMatchers("/").permitAll()
+//                .mvcMatchers("/login").permitAll()
+//                .mvcMatchers("/docs/**").permitAll()
+						.requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+						.requestMatchers(EndpointRequest.toAnyEndpoint()).authenticated()
+						.anyRequest().authenticated();
+			}
+		};
 	}
 
 }
