@@ -303,6 +303,26 @@ public class CollectionBinderTests {
 	}
 
 	@Test
+	public void bindToNonScalarCollectionWithValuesMissing() {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo[0].name", "n1");
+		source.put("foo[1].name", "n2");
+		source.put("foo[1].namespace", "ns2");
+		source.put("foo[2].name", "n3");
+		source.put("foo[2].namespace", "ns3");
+		this.sources.add(source);
+		Bindable<List<Source>> target = Bindable.listOf(Source.class);
+		List<Source> result = this.binder.bind("foo", target).get();
+		assertThat(result).hasSize(3);
+		List<String> names = result.stream().map(Source::getName)
+				.collect(Collectors.toList());
+		assertThat(names).containsExactly("n1", "n2", "n3");
+		List<String> namespaces = result.stream().map(Source::getNamespace)
+				.collect(Collectors.toList());
+		assertThat(namespaces).containsExactly(null, "ns2", "ns3");
+	}
+
+	@Test
 	public void bindToImmutableCollectionShouldReturnPopulatedCollection() {
 		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
 		source.put("foo.values", "a,b,c");
@@ -562,6 +582,38 @@ public class CollectionBinderTests {
 
 		public List<String> getValues() {
 			return Collections.unmodifiableList(this.values);
+		}
+
+	}
+
+	public static class Source {
+
+		private String name;
+
+		private String namespace;
+
+		public Source() {
+		}
+
+		public Source(String name, String namespace) {
+			this.name = name;
+			this.namespace = namespace;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getNamespace() {
+			return namespace;
+		}
+
+		public void setNamespace(String namespace) {
+			this.namespace = namespace;
 		}
 
 	}
