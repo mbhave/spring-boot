@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.PropertySourcesPlaceholdersResolver;
 import org.springframework.boot.context.properties.bind.handler.IgnoreErrorsBindHandler;
 import org.springframework.boot.context.properties.bind.handler.IgnoreTopLevelConverterNotFoundBindHandler;
+import org.springframework.boot.context.properties.bind.handler.InvalidConfigurationPropertyValueBindHandler;
 import org.springframework.boot.context.properties.bind.handler.NoUnboundElementsBindHandler;
 import org.springframework.boot.context.properties.bind.validation.ValidationBindHandler;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
@@ -114,7 +115,8 @@ class ConfigurationPropertiesBinder {
 
 	private BindHandler getBindHandler(ConfigurationProperties annotation,
 			List<Validator> validators) {
-		BindHandler handler = new IgnoreTopLevelConverterNotFoundBindHandler();
+		BindHandler parent = new IgnoreTopLevelConverterNotFoundBindHandler();
+		BindHandler handler = new InvalidConfigurationPropertyValueBindHandler(parent);
 		if (annotation.ignoreInvalidFields()) {
 			handler = new IgnoreErrorsBindHandler(handler);
 		}

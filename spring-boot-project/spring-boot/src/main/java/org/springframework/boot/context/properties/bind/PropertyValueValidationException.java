@@ -13,17 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.springframework.boot.context.properties.bind;
 
-package sample.jpa;
+/**
+ * Error thrown when a configuration property value fails validation.
+ *
+ * @author Madhura Bhave
+ * @since 2.0.0
+ */
+public class PropertyValueValidationException extends RuntimeException {
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+	private final Object value;
 
-@SpringBootApplication
-public class SampleJpaApplication {
+	private final String reason;
 
-	public static void main(String[] args) {
-		SpringApplication.run(SampleJpaApplication.class, "--app.datasource.schema=classpath:does-not-exist.sql");
+	public PropertyValueValidationException(Object value, String reason) {
+		this.value = value;
+		this.reason = reason;
 	}
 
+	public Object getValue() {
+		return this.value;
+	}
+
+	public String getReason() {
+		return this.reason;
+	}
 }

@@ -16,14 +16,18 @@
 
 package org.springframework.boot.autoconfigure.jdbc;
 
+import java.util.Collections;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
 import org.springframework.boot.test.context.FilteredClassLoader;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Tests for {@link DataSourceProperties}.
@@ -148,6 +152,15 @@ public class DataSourcePropertiesTests {
 		properties.setDataPassword("bar");
 		assertThat(properties.getDataUsername()).isEqualTo("foo");
 		assertThat(properties.getDataPassword()).isEqualTo("bar");
+	}
+
+	@Test
+	public void invalidSchemaLocationThrowsException() {
+		DataSourceProperties properties = new DataSourceProperties();
+		properties.setApplicationContext(new AnnotationConfigApplicationContext());
+		assertThatExceptionOfType(InvalidDataSourcePropertyValueException.class)
+				.isThrownBy(() -> properties
+						.setSchema(Collections.singletonList("does-not-exist")));
 	}
 
 }

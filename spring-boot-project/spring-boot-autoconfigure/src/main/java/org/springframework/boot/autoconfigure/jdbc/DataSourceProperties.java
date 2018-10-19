@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.InitializingBean;
@@ -32,6 +33,9 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jdbc.DataSourceInitializationMode;
 import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.io.Resource;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
@@ -47,7 +51,8 @@ import org.springframework.util.StringUtils;
  * @since 1.1.0
  */
 @ConfigurationProperties(prefix = "spring.datasource")
-public class DataSourceProperties implements BeanClassLoaderAware, InitializingBean {
+public class DataSourceProperties
+		implements BeanClassLoaderAware, InitializingBean, ApplicationContextAware {
 
 	private ClassLoader classLoader;
 
@@ -154,6 +159,8 @@ public class DataSourceProperties implements BeanClassLoaderAware, InitializingB
 	private Xa xa = new Xa();
 
 	private String uniqueName;
+
+	private ApplicationContext context;
 
 	@Override
 	public void setBeanClassLoader(ClassLoader classLoader) {
@@ -399,6 +406,15 @@ public class DataSourceProperties implements BeanClassLoaderAware, InitializingB
 	}
 
 	public void setSchema(List<String> schema) {
+		if (schema != null) {
+			for (String location : schema) {
+				Resource resource = this.context.getResource(location);
+				if (!resource.exists()) {
+					throw new InvalidDataSourcePropertyValueException(
+							resource, "The specified resource does not exist.");
+				}
+			}
+		}
 		this.schema = schema;
 	}
 
@@ -476,6 +492,12 @@ public class DataSourceProperties implements BeanClassLoaderAware, InitializingB
 
 	public void setXa(Xa xa) {
 		this.xa = xa;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext)
+			throws BeansException {
+		this.context = applicationContext;
 	}
 
 	/**

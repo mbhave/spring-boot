@@ -25,7 +25,6 @@ import javax.sql.DataSource;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jdbc.DataSourceInitializationMode;
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
@@ -148,26 +147,21 @@ class DataSourceInitializer {
 	private List<Resource> getScripts(String propertyName, List<String> resources,
 			String fallback) {
 		if (resources != null) {
-			return getResources(propertyName, resources, true);
+			return getResources(resources);
 		}
 		String platform = this.properties.getPlatform();
 		List<String> fallbackResources = new ArrayList<>();
 		fallbackResources.add("classpath*:" + fallback + "-" + platform + ".sql");
 		fallbackResources.add("classpath*:" + fallback + ".sql");
-		return getResources(propertyName, fallbackResources, false);
+		return getResources(fallbackResources);
 	}
 
-	private List<Resource> getResources(String propertyName, List<String> locations,
-			boolean validate) {
+	private List<Resource> getResources(List<String> locations) {
 		List<Resource> resources = new ArrayList<>();
 		for (String location : locations) {
 			for (Resource resource : doGetResources(location)) {
 				if (resource.exists()) {
 					resources.add(resource);
-				}
-				else if (validate) {
-					throw new InvalidConfigurationPropertyValueException(propertyName,
-							resource, "The specified resource does not exist.");
 				}
 			}
 		}
