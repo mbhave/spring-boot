@@ -35,13 +35,18 @@ import static org.hamcrest.Matchers.allOf;
 /**
  * @author Madhura Bhave
  */
-public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCallback, CharSequence {
+public class StreamCaptureExtension
+		implements BeforeEachCallback, AfterEachCallback, CharSequence {
 
 	private CaptureOutputStream captureOut;
 
 	private CaptureOutputStream captureErr;
 
-	private ByteArrayOutputStream copy;
+	private ByteArrayOutputStream sysoutCopy;
+
+	private ByteArrayOutputStream syserrCopy;
+
+	private ByteArrayOutputStream mergedCopy;
 
 	private List<Matcher<? super String>> matchers = new ArrayList<>();
 
@@ -64,23 +69,33 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 	}
 
 	public void reset() {
-
+		this.sysoutCopy.reset();
+		this.syserrCopy.reset();
+		this.mergedCopy.reset();
 	}
 
 	protected void captureOutput() {
 		AnsiOutputControl.get().disableAnsiOutput();
-		this.copy = new ByteArrayOutputStream();
-		this.captureOut = new CaptureOutputStream(System.out, this.copy);
-		this.captureErr = new CaptureOutputStream(System.err, this.copy);
+		initialize();
+		this.captureOut = new CaptureOutputStream(System.out, this.sysoutCopy,
+				this.mergedCopy);
+		this.captureErr = new CaptureOutputStream(System.err, this.syserrCopy,
+				this.mergedCopy);
 		System.setOut(new PrintStream(this.captureOut));
 		System.setErr(new PrintStream(this.captureErr));
+	}
+
+	private void initialize() {
+		this.sysoutCopy = new ByteArrayOutputStream();
+		this.syserrCopy = new ByteArrayOutputStream();
+		this.mergedCopy = new ByteArrayOutputStream();
 	}
 
 	protected void releaseOutput() {
 		AnsiOutputControl.get().enabledAnsiOutput();
 		System.setOut(this.captureOut.getOriginal());
 		System.setErr(this.captureErr.getOriginal());
-		this.copy = null;
+		this.sysoutCopy = null;
 	}
 
 	public void flush() {
@@ -95,32 +110,43 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 
 	@Override
 	public int length() {
-		return 0;
+		return (this.mergedCopy == null ? 0 : this.mergedCopy.toString().length());
 	}
 
 	@Override
 	public char charAt(int index) {
-		return 0;
+		if (this.mergedCopy == null) {
+			throw new IndexOutOfBoundsException();
+		}
+		return this.mergedCopy.toString().charAt(index);
 	}
 
 	@Override
 	public CharSequence subSequence(int start, int end) {
-		return null;
+		if (this.mergedCopy == null) {
+			throw new IndexOutOfBoundsException();
+		}
+		return this.mergedCopy.toString().subSequence(start, end);
 	}
 
 	@Override
 	public String toString() {
 		flush();
-		return this.copy.toString();
+		return this.mergedCopy.toString();
+	}
+
+	public String justStdError() {
+		flush();
+		return this.syserrCopy.toString();
 	}
 
 	/**
-	 * Verify that the output is matched by the supplied {@code matcher}. Verification is
-	 * performed after the test method has executed.
-	 * @param matcher the matcher
+	*
+	 * @return the output of System.out
 	 */
-	public void expect(Matcher<? super String> matcher) {
-		this.matchers.add(matcher);
+	public String justStdOut() {
+		flush();
+		return this.sysoutCopy.toString();
 	}
 
 	private static class CaptureOutputStream extends OutputStream {
@@ -129,14 +155,19 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 
 		private final OutputStream copy;
 
-		CaptureOutputStream(PrintStream original, OutputStream copy) {
+		private final OutputStream additional;
+
+		CaptureOutputStream(PrintStream original, OutputStream copy,
+				OutputStream merged) {
 			this.original = original;
 			this.copy = copy;
+			this.additional = merged;
 		}
 
 		@Override
 		public void write(int b) throws IOException {
 			this.copy.write(b);
+			this.additional.write(b);
 			this.original.write(b);
 			this.original.flush();
 		}
@@ -149,6 +180,7 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 		@Override
 		public void write(byte[] b, int off, int len) throws IOException {
 			this.copy.write(b, off, len);
+			this.additional.write(b, off, len);
 			this.original.write(b, off, len);
 		}
 
@@ -159,6 +191,7 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 		@Override
 		public void flush() throws IOException {
 			this.copy.flush();
+			this.additional.flush();
 			this.original.flush();
 		}
 
@@ -200,4 +233,5 @@ public class StreamCaptureExtension implements BeforeEachCallback, AfterEachCall
 		}
 
 	}
+
 }

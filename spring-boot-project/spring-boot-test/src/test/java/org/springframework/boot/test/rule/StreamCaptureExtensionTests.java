@@ -21,26 +21,48 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
+ * Tests for {@link StreamCaptureExtension}.
+ *
  * @author Madhura Bhave
  */
 public class StreamCaptureExtensionTests {
 
 	@RegisterExtension
-	public StreamCaptureExtension outputCapture = new StreamCaptureExtension();
+	StreamCaptureExtension output = new StreamCaptureExtension();
 
 	@Test
-	public void toStringShouldReturnAllCapturedOutput() {
+	void captureShouldReturnAllCapturedOutput() {
 		System.out.println("Hello World");
-		assertThat(this.outputCapture.toString()).contains("Hello World");
+		System.err.println("Error!!!");
+		assertThat(this.output).contains("Hello World");
+		assertThat(this.output).contains("Error!!!");
 	}
 
 	@Test
-	public void reset() {
+	void reset() {
 		System.out.println("Hello");
-		this.outputCapture.reset();
+		System.err.println("Error1");
+		this.output.reset();
 		System.out.println("World");
-		assertThat(this.outputCapture.toString()).doesNotContain("Hello")
-				.contains("World");
+		System.err.println("Error2");
+		assertThat(this.output).doesNotContain("Hello")
+				.doesNotContain("Error1").contains("World").contains("Error2");
+	}
+
+	@Test
+	void errorShouldReturnOnlyErrorOutput() {
+		System.out.println("Hello World");
+		System.err.println("Error!!!");
+		assertThat(this.output.justStdError()).contains("Error!!!");
+		assertThat(this.output.justStdError()).doesNotContain("Hello World");
+	}
+
+	@Test
+	void outShouldReturnOnlyOut() {
+		System.out.println("Hello World");
+		System.err.println("Error!!!");
+		assertThat(this.output.justStdOut()).contains("Hello World");
+		assertThat(this.output.justStdOut()).doesNotContain("Error!!!");
 	}
 
 }
