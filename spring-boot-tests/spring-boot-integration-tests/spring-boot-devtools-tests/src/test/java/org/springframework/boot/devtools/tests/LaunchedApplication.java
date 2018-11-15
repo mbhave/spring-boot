@@ -17,6 +17,7 @@
 package org.springframework.boot.devtools.tests;
 
 import java.io.File;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -36,11 +37,11 @@ class LaunchedApplication {
 
 	private Process remoteProcess;
 
-	private final Function<Integer, Process> remoteProcessRestarter;
+	private final BiFunction<Integer, File, Process> remoteProcessRestarter;
 
 	LaunchedApplication(File classesDirectory, File standardOut, File standardError,
 			Process localProcess, Process remoteProcess,
-			Function<Integer, Process> remoteProcessRestarter) {
+			BiFunction<Integer, File, Process> remoteProcessRestarter) {
 		this.classesDirectory = classesDirectory;
 		this.standardOut = standardOut;
 		this.standardError = standardError;
@@ -52,7 +53,7 @@ class LaunchedApplication {
 	public void restartRemote(int port) throws InterruptedException {
 		if (this.remoteProcessRestarter != null) {
 			stop(this.remoteProcess);
-			this.remoteProcess = this.remoteProcessRestarter.apply(port);
+			this.remoteProcess = this.remoteProcessRestarter.apply(port, this.classesDirectory);
 		}
 	}
 

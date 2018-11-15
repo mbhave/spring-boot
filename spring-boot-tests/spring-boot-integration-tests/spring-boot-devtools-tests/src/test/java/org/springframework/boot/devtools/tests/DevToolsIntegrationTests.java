@@ -186,10 +186,10 @@ public class DevToolsIntegrationTests {
 
 	@Test
 	public void createAControllerAndThenDeleteIt() throws Exception {
-		if (this.applicationLauncher instanceof RemoteApplicationLauncher) {
-			throw new AssumptionViolatedException(
-					"Unable to test this when port changes");
-		}
+//		if (this.applicationLauncher instanceof RemoteApplicationLauncher) {
+//			throw new AssumptionViolatedException(
+//					"Unable to test this when port changes");
+//		}
 		TestRestTemplate template = new TestRestTemplate();
 		String urlBase = "http://localhost:" + awaitServerPort();
 		assertThat(template.getForObject(urlBase + "/one", String.class))

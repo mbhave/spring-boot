@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.springframework.boot.devtools.RemoteSpringApplication;
@@ -43,19 +44,19 @@ abstract class RemoteApplicationLauncher implements ApplicationLauncher {
 				createApplicationClassPath(), "com.example.DevToolsTestApplication",
 				"--server.port=0", "--spring.devtools.remote.secret=secret");
 		int port = awaitServerPort(applicationJvm.getStandardOut());
-		Function<Integer, Process> remoteRestarter = getRemoteRestarter(javaLauncher);
+		BiFunction<Integer, File, Process> remoteRestarter = getRemoteRestarter(javaLauncher);
 		return new LaunchedApplication(new File("target/remote"),
 				applicationJvm.getStandardOut(), applicationJvm.getStandardError(),
-				applicationJvm.getProcess(), remoteRestarter.apply(port),
+				applicationJvm.getProcess(), remoteRestarter.apply(port, null),
 				remoteRestarter);
 	}
 
-	private Function<Integer, Process> getRemoteRestarter(JvmLauncher javaLauncher) {
-		return (port) -> {
+	private BiFunction<Integer, File, Process> getRemoteRestarter(JvmLauncher javaLauncher) {
+		return (port, classesDirectory) -> {
 			try {
 				LaunchedJvm remoteSpringApplicationJvm = javaLauncher.launch(
 						"remote-spring-application",
-						createRemoteSpringApplicationClassPath(),
+						createRemoteSpringApplicationClassPath(classesDirectory),
 						RemoteSpringApplication.class.getName(),
 						"--spring.devtools.remote.secret=secret",
 						"http://localhost:" + port);
@@ -70,12 +71,14 @@ abstract class RemoteApplicationLauncher implements ApplicationLauncher {
 
 	protected abstract String createApplicationClassPath() throws Exception;
 
-	private String createRemoteSpringApplicationClassPath() throws Exception {
-		File remoteDirectory = new File("target/remote");
-		FileSystemUtils.deleteRecursively(remoteDirectory);
-		remoteDirectory.mkdirs();
-		FileSystemUtils.copyRecursively(new File("target/test-classes/com"),
-				new File("target/remote/com"));
+	private String createRemoteSpringApplicationClassPath(File classesDirectory) throws Exception {
+		if (classesDirectory == null) {
+			File remoteDirectory = new File("target/remote");
+			FileSystemUtils.deleteRecursively(remoteDirectory);
+			remoteDirectory.mkdirs();
+			FileSystemUtils.copyRecursively(new File("target/test-classes/com"),
+					new File("target/remote/com"));
+		}
 		List<String> entries = new ArrayList<>();
 		entries.add("target/remote");
 		for (File jar : new File("target/dependencies").listFiles()) {
