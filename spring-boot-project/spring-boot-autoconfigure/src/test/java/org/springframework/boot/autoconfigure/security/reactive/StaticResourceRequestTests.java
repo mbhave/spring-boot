@@ -19,7 +19,7 @@ package org.springframework.boot.autoconfigure.security.reactive;
 import java.time.Duration;
 
 import org.assertj.core.api.AssertDelegateTarget;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.security.StaticResourceLocation;
 import org.springframework.boot.autoconfigure.web.ServerProperties;

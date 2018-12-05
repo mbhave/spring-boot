@@ -24,8 +24,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.core.io.ByteArrayResource;
 
@@ -54,7 +54,7 @@ public class JacksonTesterIntegrationTests {
 
 	private static final String JSON = "{\"name\":\"Spring\",\"age\":123}";
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		this.objectMapper = new ObjectMapper();
 		JacksonTester.initFields(this, this.objectMapper);

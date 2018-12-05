@@ -18,11 +18,11 @@ package sample.bitronix;
 
 import bitronix.tm.resource.jms.PoolingConnectionFactory;
 import org.assertj.core.api.Condition;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.test.rule.OutputCapture;
+import org.springframework.boot.test.extension.OutputCapture;
 import org.springframework.context.ApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,8 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SampleBitronixApplicationTests {
 
-	@Rule
-	public final OutputCapture output = new OutputCapture();
+	@RegisterExtension
+	OutputCapture output = new OutputCapture();
 
 	@Test
 	public void testTransactionRollback() throws Exception {

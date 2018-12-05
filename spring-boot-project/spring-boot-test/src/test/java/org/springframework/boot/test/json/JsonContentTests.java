@@ -17,7 +17,7 @@
 package org.springframework.boot.test.json;
 
 import com.jayway.jsonpath.Configuration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.core.ResolvableType;
 

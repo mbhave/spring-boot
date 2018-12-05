@@ -20,63 +20,36 @@ import java.io.File;
 
 import org.cassandraunit.spring.CassandraDataSet;
 import org.cassandraunit.spring.EmbeddedCassandra;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runner.RunWith;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.rule.OutputCapture;
+import org.springframework.boot.test.extension.OutputCapture;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.TestExecutionListeners.MergeMode;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Tests for {@link SampleCassandraApplication}.
  */
 @TestExecutionListeners(mergeMode = MergeMode.MERGE_WITH_DEFAULTS,
 		listeners = { OrderedCassandraTestExecutionListener.class })
-@RunWith(SpringRunner.class)
+@ExtendWith(OutputCapture.class)
 @SpringBootTest
 @CassandraDataSet(keyspace = "mykeyspace", value = "setup.cql")
 @EmbeddedCassandra(timeout = 60000)
 public class SampleCassandraApplicationTests {
 
-	@ClassRule
-	public static final SkipOnWindows skipOnWindows = new SkipOnWindows();
-
-	@ClassRule
-	public static final OutputCapture output = new OutputCapture();
-
 	@Test
-	public void testDefaultSettings() {
-		assertThat(output.toString()).contains("firstName='Alice', lastName='Smith'");
+	public void testDefaultSettings(OutputCapture output) {
+		assumeFalse(this::runningOnWindows);
+		assertThat(output).contains("firstName='Alice', lastName='Smith'");
 	}
 
-	static class SkipOnWindows implements TestRule {
-
-		@Override
-		public Statement apply(Statement base, Description description) {
-			return new Statement() {
-
-				@Override
-				public void evaluate() throws Throwable {
-					if (!runningOnWindows()) {
-						base.evaluate();
-					}
-				}
-
-				private boolean runningOnWindows() {
-					return File.separatorChar == '\\';
-				}
-
-			};
-		}
-
+	private boolean runningOnWindows() {
+		return File.separatorChar == '\\';
 	}
 
 }

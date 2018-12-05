@@ -16,12 +16,12 @@
 
 package sample.simple;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-import org.springframework.boot.test.rule.OutputCapture;
+import org.springframework.boot.test.extension.OutputCapture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,17 +33,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class SampleSimpleApplicationTests {
 
-	@Rule
-	public final OutputCapture output = new OutputCapture();
+	@RegisterExtension
+	OutputCapture output = new OutputCapture();
 
 	private String profiles;
 
-	@Before
+	@BeforeEach
 	public void init() {
 		this.profiles = System.getProperty("spring.profiles.active");
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		if (this.profiles != null) {
 			System.setProperty("spring.profiles.active", this.profiles);
