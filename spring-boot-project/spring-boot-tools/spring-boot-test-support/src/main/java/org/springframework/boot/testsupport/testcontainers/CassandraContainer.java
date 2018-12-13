@@ -22,8 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import org.junit.AssumptionViolatedException;
 import org.rnorth.ducttape.TimeoutException;
 import org.rnorth.ducttape.unreliables.Unreliables;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy;
 
@@ -33,15 +35,35 @@ import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy;
  * @author Andy Wilkinson
  * @author Madhura Bhave
  */
-public class CassandraContainer extends Container {
+public class CassandraContainer extends GenericContainer {
 
 	private static final int PORT = 9042;
 
 	public CassandraContainer() {
-		super("cassandra:3.11.1", PORT,
-				(container) -> container.waitingFor(new WaitStrategy(container))
-						.withStartupAttempts(5)
-						.withStartupTimeout(Duration.ofSeconds(120)));
+		super("cassandra:3.11.1");
+	}
+
+	@Override
+	public void start() {
+		try {
+			DockerClientFactory.instance().client();
+			super.start();
+		}
+		catch (Exception ex) {
+			throw new AssumptionViolatedException(
+					"Could not find a valid Docker environment.");
+		}
+	}
+
+	public Integer getMappedPort() {
+		return super.getMappedPort(PORT);
+	}
+
+	public static CassandraContainer get() {
+		CassandraContainer container = new CassandraContainer();
+		container.withStartupAttempts(5).waitingFor(new WaitStrategy(container))
+				.withStartupTimeout(Duration.ofSeconds(120));
+		return container;
 	}
 
 	private static final class WaitStrategy extends HostPortWaitStrategy {

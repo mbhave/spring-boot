@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CassandraDataAutoConfigurationIntegrationTests {
 
 	@ClassRule
-	public static CassandraContainer cassandra = new CassandraContainer();
+	public static CassandraContainer cassandra = CassandraContainer.get();
 
 	private AnnotationConfigApplicationContext context;
 
