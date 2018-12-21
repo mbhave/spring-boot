@@ -18,6 +18,7 @@ package org.springframework.boot.context.properties.bind;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -448,6 +449,17 @@ public class CollectionBinderTests {
 		assertThat(result.getValues()).containsExactly("a", "b", "c");
 	}
 
+	@Test
+	public void bindToBeanWithEnumSetCollection() {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo.values[0]", "foo-bar, bar-baz");
+		this.sources.add(source);
+		BeanWithEnumsetCollection result = this.binder
+				.bind("foo", Bindable.of(BeanWithEnumsetCollection.class)).get();
+		assertThat(result.getValues().get(0)).containsExactly(
+				BinderTests.ExampleEnum.FOO_BAR, BinderTests.ExampleEnum.BAR_BAZ);
+	}
+
 	public static class ExampleCollectionBean {
 
 		private List<String> items = new ArrayList<>();
@@ -562,6 +574,20 @@ public class CollectionBinderTests {
 
 		public List<String> getValues() {
 			return Collections.unmodifiableList(this.values);
+		}
+
+	}
+
+	public static class BeanWithEnumsetCollection {
+
+		private List<EnumSet<BinderTests.ExampleEnum>> values;
+
+		public void setValues(List<EnumSet<BinderTests.ExampleEnum>> values) {
+			this.values = values;
+		}
+
+		public List<EnumSet<BinderTests.ExampleEnum>> getValues() {
+			return this.values;
 		}
 
 	}
