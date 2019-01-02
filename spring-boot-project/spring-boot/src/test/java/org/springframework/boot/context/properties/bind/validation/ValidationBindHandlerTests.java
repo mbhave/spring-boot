@@ -162,6 +162,19 @@ public class ValidationBindHandlerTests {
 				this.handler);
 	}
 
+	@Test
+	public void bindShouldValidateWhenTopLevelPropertyFailsWithIgnorableException() {
+		this.sources.add(new MockConfigurationPropertySource("foo", "hello"));
+		ExampleValidatedBean bean = new ExampleValidatedBean();
+		assertThatExceptionOfType(BindException.class)
+				.isThrownBy(
+						() -> this.binder.bind("foo",
+								Bindable.of(ExampleValidatedBean.class)
+										.withExistingValue(bean),
+								this.handler))
+				.withCauseInstanceOf(BindValidationException.class);
+	}
+
 	private BindValidationException bindAndExpectValidationError(Runnable action) {
 		try {
 			action.run();

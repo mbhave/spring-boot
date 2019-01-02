@@ -27,8 +27,10 @@ import org.springframework.boot.context.properties.bind.AbstractBindHandler;
 import org.springframework.boot.context.properties.bind.BindContext;
 import org.springframework.boot.context.properties.bind.BindHandler;
 import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.handler.IgnoreTopLevelConverterNotFoundBindHandler;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
+import org.springframework.util.ClassUtils;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Validator;
@@ -74,6 +76,19 @@ public class ValidationBindHandler extends AbstractBindHandler {
 			throw this.exceptions.pop();
 		}
 		super.onFinish(name, target, context, result);
+	}
+
+	@Override
+	public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
+			BindContext context, Exception error) throws Exception {
+		if (context.getDepth() == 0 && ClassUtils.isAssignableValue(
+				IgnoreTopLevelConverterNotFoundBindHandler.IGNORABLE_EXCEPTION, error)) {
+			validate(name, target, context, null);
+			if (!this.exceptions.isEmpty()) {
+				throw this.exceptions.pop();
+			}
+		}
+		return super.onFailure(name, target, context, error);
 	}
 
 	private void validate(ConfigurationPropertyName name, Bindable<?> target,

@@ -22,6 +22,7 @@ import org.springframework.boot.context.properties.bind.BindHandler;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.core.convert.ConverterNotFoundException;
+import org.springframework.util.ClassUtils;
 
 /**
  * {@link BindHandler} that can be used to ignore top-level
@@ -31,6 +32,11 @@ import org.springframework.core.convert.ConverterNotFoundException;
  * @since 2.0.1
  */
 public class IgnoreTopLevelConverterNotFoundBindHandler extends AbstractBindHandler {
+
+	/**
+	 * Top-level exception type that can be ignored.
+	 */
+	public static final Class<?> IGNORABLE_EXCEPTION = ConverterNotFoundException.class;
 
 	/**
 	 * Create a new {@link IgnoreTopLevelConverterNotFoundBindHandler} instance.
@@ -49,7 +55,8 @@ public class IgnoreTopLevelConverterNotFoundBindHandler extends AbstractBindHand
 	@Override
 	public Object onFailure(ConfigurationPropertyName name, Bindable<?> target,
 			BindContext context, Exception error) throws Exception {
-		if (context.getDepth() == 0 && error instanceof ConverterNotFoundException) {
+		if (context.getDepth() == 0
+				&& ClassUtils.isAssignableValue(IGNORABLE_EXCEPTION, error)) {
 			return null;
 		}
 		throw error;
