@@ -27,6 +27,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClas
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
+import org.springframework.boot.autoconfigure.web.servlet.JerseyApplicationPath;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 
@@ -64,6 +65,11 @@ public class JerseyManagementChildContextConfiguration {
 		this.resourceConfigCustomizers.orderedStream()
 				.forEach((customizer) -> customizer.customize(resourceConfig));
 		return resourceConfig;
+	}
+
+	@Bean
+	public JerseyApplicationPath jerseyApplicationPath() {
+		return () -> "/";
 	}
 
 }
