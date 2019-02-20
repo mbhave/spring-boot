@@ -41,7 +41,7 @@ public enum ManagementPortType {
 	 */
 	DIFFERENT;
 
-	static ManagementPortType get(Environment environment) {
+	public static ManagementPortType get(Environment environment) {
 		Integer serverPort = getPortProperty(environment, "server.");
 		Integer managementPort = getPortProperty(environment, "management.server.");
 		if (managementPort != null && managementPort < 0) {
