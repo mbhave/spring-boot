@@ -32,6 +32,7 @@ import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.context.annotation.ImportSelector;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
@@ -118,13 +119,21 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 
 		private void registerBeanDefinition(BeanDefinitionRegistry registry,
 				ConfigurableListableBeanFactory beanFactory, String name, Class<?> type) {
+			assertHasAnnotation(type);
 			registry.registerBeanDefinition(name,
 					createBeanDefinition(beanFactory, name, type));
 		}
 
+		private void assertHasAnnotation(Class<?> type) {
+			Assert.notNull(
+					AnnotationUtils.findAnnotation(type, ConfigurationProperties.class),
+					() -> "No " + ConfigurationProperties.class.getSimpleName()
+							+ " annotation found on  '" + type.getName() + "'.");
+		}
+
 		private BeanDefinition createBeanDefinition(
 				ConfigurableListableBeanFactory beanFactory, String name, Class<?> type) {
-			if (useImmediateBinding(type)) {
+			if (shouldBindBeanBeforeRegistering(type)) {
 				return ConfigurationPropertiesBeanDefinition.from(beanFactory, name,
 						type);
 			}
@@ -135,16 +144,14 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 			}
 		}
 
-		private boolean useImmediateBinding(Class<?> type) {
+		private boolean shouldBindBeanBeforeRegistering(Class<?> type) {
 			Constructor<?>[] constructors = type.getDeclaredConstructors();
 			boolean autowiredPresent = Arrays.stream(constructors).anyMatch(
 					(c) -> AnnotationUtils.findAnnotation(c, Autowired.class) != null);
 			if (autowiredPresent) {
 				return false;
 			}
-			return (constructors.length == 1 && constructors[0].getParameterCount() > 0
-					|| Arrays.stream(constructors)
-							.anyMatch((c) -> c.getParameterCount() == 0));
+			return (constructors.length == 1 && constructors[0].getParameterCount() > 0);
 		}
 
 	}

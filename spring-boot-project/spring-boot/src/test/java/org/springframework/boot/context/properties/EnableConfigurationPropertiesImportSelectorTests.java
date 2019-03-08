@@ -1,0 +1,142 @@
+/*
+ * Copyright 2012-2019 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.springframework.boot.context.properties;
+
+import java.io.IOException;
+
+import org.junit.Test;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.core.type.classreading.SimpleMetadataReaderFactory;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Tests for {@link EnableConfigurationPropertiesImportSelector}.
+ *
+ * @author Madhura Bhave
+ */
+public class EnableConfigurationPropertiesImportSelectorTests {
+
+	private final EnableConfigurationPropertiesImportSelector importSelector = new EnableConfigurationPropertiesImportSelector();
+
+	private final EnableConfigurationPropertiesImportSelector.ConfigurationPropertiesBeanRegistrar registrar = new EnableConfigurationPropertiesImportSelector.ConfigurationPropertiesBeanRegistrar();
+
+	private final DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+
+	@Test
+	public void selectImports() {
+		String[] imports = this.importSelector.selectImports(null);
+		assertThat(imports).containsExactly(
+				EnableConfigurationPropertiesImportSelector.ConfigurationPropertiesBeanRegistrar.class
+						.getName(),
+				ConfigurationPropertiesBindingPostProcessorRegistrar.class.getName());
+	}
+
+	@Test
+	public void typeWithDefaultConstructorShouldRegisterGenericBeanDefinition()
+			throws Exception {
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(TestConfiguration.class), this.beanFactory);
+		BeanDefinition beanDefinition = this.beanFactory.getBeanDefinition(
+				"foo-org.springframework.boot.context.properties.EnableConfigurationPropertiesImportSelectorTests$FooProperties");
+		assertThat(beanDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+	}
+
+	@Test
+	public void typeWithAutowiredOnConstructorShouldRegisterGenericBeanDefintion()
+			throws Exception {
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(TestConfiguration.class), this.beanFactory);
+		BeanDefinition beanDefinition = this.beanFactory.getBeanDefinition(
+				"bar-org.springframework.boot.context.properties.EnableConfigurationPropertiesImportSelectorTests$BarProperties");
+		assertThat(beanDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+	}
+
+	@Test
+	public void typeWithOneConstructorWithParametersShouldRegisterConfigurationPropertiesBeanDefinition()
+			throws Exception {
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(TestConfiguration.class), this.beanFactory);
+		BeanDefinition beanDefinition = this.beanFactory.getBeanDefinition(
+				"baz-org.springframework.boot.context.properties.EnableConfigurationPropertiesImportSelectorTests$BazProperties");
+		assertThat(beanDefinition)
+				.isExactlyInstanceOf(ConfigurationPropertiesBeanDefinition.class);
+	}
+
+	@Test
+	public void typeWithMultipleConstructorsShouldRegisterGenericBeanDefinition()
+			throws Exception {
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(TestConfiguration.class), this.beanFactory);
+		BeanDefinition beanDefinition = this.beanFactory.getBeanDefinition(
+				"bing-org.springframework.boot.context.properties.EnableConfigurationPropertiesImportSelectorTests$BingProperties");
+		assertThat(beanDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+	}
+
+	private AnnotationMetadata getAnnotationMetadata(Class<?> source) throws IOException {
+		return new SimpleMetadataReaderFactory().getMetadataReader(source.getName())
+				.getAnnotationMetadata();
+	}
+
+	@EnableConfigurationProperties({ FooProperties.class, BarProperties.class,
+			BazProperties.class, BingProperties.class })
+	public static class TestConfiguration {
+
+	}
+
+	@ConfigurationProperties(prefix = "foo")
+	public static class FooProperties {
+
+	}
+
+	@ConfigurationProperties(prefix = "bar")
+	public static class BarProperties {
+
+		@Autowired
+		public BarProperties(String foo) {
+
+		}
+
+	}
+
+	@ConfigurationProperties(prefix = "baz")
+	public static class BazProperties {
+
+		public BazProperties(String foo) {
+
+		}
+
+	}
+
+	@ConfigurationProperties(prefix = "bing")
+	public static class BingProperties {
+
+		public BingProperties() {
+
+		}
+
+		public BingProperties(String foo) {
+
+		}
+
+	}
+
+}

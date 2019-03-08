@@ -16,16 +16,21 @@
 
 package org.springframework.boot.context.properties;
 
+import java.lang.annotation.Annotation;
 import java.util.function.Supplier;
 
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.util.Assert;
+import org.springframework.validation.annotation.Validated;
 
 /**
+ * {@link GenericBeanDefinition} that can be used for registering
+ * {@link ConfigurationProperties} beans that need to be bound before registering.
+ *
  * @author Stephane Nicoll
+ * @author Madhura Bhave
  */
 final class ConfigurationPropertiesBeanDefinition extends GenericBeanDefinition {
 
@@ -40,8 +45,13 @@ final class ConfigurationPropertiesBeanDefinition extends GenericBeanDefinition 
 	private static <T> Supplier<T> createBean(ConfigurableListableBeanFactory beanFactory,
 			String beanName, Class<T> type) {
 		return () -> {
-			ConfigurationProperties annotation = getAnnotation(type);
-			Bindable<T> bindable = Bindable.of(type).withAnnotations(annotation);
+			ConfigurationProperties annotation = getAnnotation(type,
+					ConfigurationProperties.class);
+			Validated validated = getAnnotation(type, Validated.class);
+			Annotation[] annotations = (validated != null)
+					? new Annotation[] { annotation, validated }
+					: new Annotation[] { annotation };
+			Bindable<T> bindable = Bindable.of(type).withAnnotations(annotations);
 			ConfigurationPropertiesBinder binder = beanFactory.getBean(
 					ConfigurationPropertiesBinder.BEAN_NAME,
 					ConfigurationPropertiesBinder.class);
@@ -51,18 +61,13 @@ final class ConfigurationPropertiesBeanDefinition extends GenericBeanDefinition 
 			catch (Exception ex) {
 				throw new ConfigurationPropertiesBindException(beanName, type, annotation,
 						ex);
-
 			}
 		};
 	}
 
-	private static ConfigurationProperties getAnnotation(Class<?> type) {
-		ConfigurationProperties annotation = AnnotationUtils.findAnnotation(type,
-				ConfigurationProperties.class);
-		Assert.notNull(annotation,
-				() -> "No " + ConfigurationProperties.class.getSimpleName()
-						+ " annotation found on  '" + type.getName() + "'.");
-		return annotation;
+	private static <A extends Annotation> A getAnnotation(Class<?> type,
+			Class<A> annotationType) {
+		return AnnotationUtils.findAnnotation(type, annotationType);
 	}
 
 }
