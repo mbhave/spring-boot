@@ -22,6 +22,9 @@ import org.junit.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.boot.BaseScanPackages;
+import org.springframework.boot.context.properties.scan.ConfigurationPropertiesScanConfiguration;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.core.type.classreading.SimpleMetadataReaderFactory;
 
@@ -118,6 +121,41 @@ public class EnableConfigurationPropertiesImportSelectorTests {
 		verifyZeroInteractions(factory);
 	}
 
+	@Test
+	public void registerBeanDefintionsShouldScanForConfigurationProperties()
+			throws IOException {
+		BaseScanPackages.register(this.beanFactory,
+				"org.springframework.boot.context.properties");
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(ConfigurationPropertiesScanConfiguration.class),
+				this.beanFactory);
+		BeanDefinition bingDefinition = this.beanFactory.getBeanDefinition(
+				"bing-org.springframework.boot.context.properties.scan.ConfigurationPropertiesScanConfiguration$BingProperties");
+		BeanDefinition fooDefinition = this.beanFactory.getBeanDefinition(
+				"foo-org.springframework.boot.context.properties.scan.ConfigurationPropertiesScanConfiguration$FooProperties");
+		BeanDefinition barDefinition = this.beanFactory.getBeanDefinition(
+				"bar-org.springframework.boot.context.properties.scan.ConfigurationPropertiesScanConfiguration$BarProperties");
+		assertThat(bingDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+		assertThat(fooDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+		assertThat(barDefinition)
+				.isExactlyInstanceOf(ConfigurationPropertiesBeanDefinition.class);
+	}
+
+	@Test
+	public void scanWhenBeanDefinitionExistsShouldSkip() throws IOException {
+		DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+		beanFactory.setAllowBeanDefinitionOverriding(false);
+		BaseScanPackages.register(beanFactory,
+				"org.springframework.boot.context.properties.scan");
+		this.registrar.registerBeanDefinitions(
+				getAnnotationMetadata(
+						ConfigurationPropertiesScanConfiguration.TestConfiguration.class),
+				beanFactory);
+		BeanDefinition fooDefinition = beanFactory.getBeanDefinition(
+				"foo-org.springframework.boot.context.properties.scan.ConfigurationPropertiesScanConfiguration$FooProperties");
+		assertThat(fooDefinition).isExactlyInstanceOf(GenericBeanDefinition.class);
+	}
+
 	private AnnotationMetadata getAnnotationMetadata(Class<?> source) throws IOException {
 		return new SimpleMetadataReaderFactory().getMetadataReader(source.getName())
 				.getAnnotationMetadata();
@@ -126,6 +164,11 @@ public class EnableConfigurationPropertiesImportSelectorTests {
 	@EnableConfigurationProperties({ FooProperties.class, BarProperties.class,
 			BingProperties.class })
 	static class TestConfiguration {
+
+	}
+
+	@Configuration
+	static class TestScanningConfiguration {
 
 	}
 

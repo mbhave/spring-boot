@@ -29,11 +29,14 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.boot.BaseScanPackages;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.context.annotation.ImportSelector;
 import org.springframework.core.KotlinDetector;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -74,8 +77,9 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 		@Override
 		public void registerBeanDefinitions(AnnotationMetadata metadata,
 				BeanDefinitionRegistry registry) {
-			getTypes(metadata).forEach((type) -> register(registry,
-					(ConfigurableListableBeanFactory) registry, type));
+			ConfigurableListableBeanFactory beanFactory = (ConfigurableListableBeanFactory) registry;
+			getTypes(metadata).forEach((type) -> register(registry, beanFactory, type));
+			registerViaScanning(registry, beanFactory);
 		}
 
 		private List<Class<?>> getTypes(AnnotationMetadata metadata) {
@@ -167,6 +171,43 @@ class EnableConfigurationPropertiesImportSelector implements ImportSelector {
 				constructors.addAll(Arrays.asList(type.getDeclaredConstructors()));
 			}
 			return constructors;
+		}
+
+		protected void registerViaScanning(BeanDefinitionRegistry registry,
+				ConfigurableListableBeanFactory beanFactory) {
+			List<String> packages = ConfigurationPropertiesScanPackages.get(beanFactory)
+					.getPackageNames();
+			if (packages.isEmpty() && BaseScanPackages.has(beanFactory)) {
+				packages = BaseScanPackages.get(beanFactory);
+			}
+			scan(packages, beanFactory, registry);
+		}
+
+		protected void scan(List<String> packages,
+				ConfigurableListableBeanFactory beanFactory,
+				BeanDefinitionRegistry registry) {
+			ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(
+					false);
+			scanner.addIncludeFilter(
+					new AnnotationTypeFilter(ConfigurationProperties.class));
+			for (String basePackage : packages) {
+				if (StringUtils.hasText(basePackage)) {
+					for (BeanDefinition candidate : scanner
+							.findCandidateComponents(basePackage)) {
+						String beanClassName = candidate.getBeanClassName();
+						try {
+							Class<?> type = Class.forName(beanClassName);
+							String name = getName(type);
+							if (!containsBeanDefinition(beanFactory, name)) {
+								registerBeanDefinition(registry, beanFactory, name, type);
+							}
+						}
+						catch (ClassNotFoundException ex) {
+							// Ignore
+						}
+					}
+				}
+			}
 		}
 
 	}
