@@ -32,12 +32,12 @@ import org.springframework.core.annotation.AliasFor;
  * annotation.
  *
  * @author Madhura Bhave
- * @see ConfigurationPropertiesScanPackages
+ * @see ConfigurationPropertiesScanRegistrar
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Import(ConfigurationPropertiesScanPackages.ConfigurationPropertiesScanRegistrar.class)
+@Import(ConfigurationPropertiesScanRegistrar.class)
 public @interface ConfigurationPropertiesScan {
 
 	/**

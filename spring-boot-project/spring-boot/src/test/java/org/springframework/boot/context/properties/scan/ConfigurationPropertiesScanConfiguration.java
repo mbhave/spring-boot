@@ -16,6 +16,7 @@
 package org.springframework.boot.context.properties.scan;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
@@ -23,8 +24,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  *
  * @author Madhura Bhave
  */
+@ConfigurationPropertiesScan
 public class ConfigurationPropertiesScanConfiguration {
 
+	@ConfigurationPropertiesScan
 	@EnableConfigurationProperties({ FooProperties.class })
 	public static class TestConfiguration {
 
