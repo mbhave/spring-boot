@@ -36,7 +36,6 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.context.properties.source.MockConfigurationPropertySource;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
@@ -101,80 +100,91 @@ public class BinderTests {
 	@Test
 	public void bindToValueWhenPropertyIsMissingShouldReturnUnbound() {
 		this.sources.add(new MockConfigurationPropertySource());
-		BindResult<String> result = this.binder.bind("foo", Bindable.of(String.class));
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
 		assertThat(result.isBound()).isFalse();
 	}
 
 	@Test
 	public void bindToValueShouldReturnPropertyValue() {
-		this.sources.add(new MockConfigurationPropertySource("foo", 123));
-		BindResult<Integer> result = this.binder.bind("foo", Bindable.of(Integer.class));
-		assertThat(result.get()).isEqualTo(123);
+		this.sources.add(new MockConfigurationPropertySource("foo.int-value", 123));
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getIntValue()).isEqualTo(123);
 	}
 
 	@Test
 	public void bindToValueShouldReturnPropertyValueFromSecondSource() {
 		this.sources.add(new MockConfigurationPropertySource("foo", 123));
-		this.sources.add(new MockConfigurationPropertySource("bar", 234));
-		BindResult<Integer> result = this.binder.bind("bar", Bindable.of(Integer.class));
-		assertThat(result.get()).isEqualTo(234);
+		this.sources.add(new MockConfigurationPropertySource("bar.int-value", 234));
+		BindResult<SimpleBean> result = this.binder.bind("bar",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getIntValue()).isEqualTo(234);
 	}
 
 	@Test
 	public void bindToValueShouldReturnConvertedPropertyValue() {
-		this.sources.add(new MockConfigurationPropertySource("foo", "123"));
-		BindResult<Integer> result = this.binder.bind("foo", Bindable.of(Integer.class));
-		assertThat(result.get()).isEqualTo(123);
+		this.sources.add(new MockConfigurationPropertySource("foo.int-value", "123"));
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getIntValue()).isEqualTo(123);
 	}
 
 	@Test
 	public void bindToValueWhenMultipleCandidatesShouldReturnFirst() {
-		this.sources.add(new MockConfigurationPropertySource("foo", 123));
-		this.sources.add(new MockConfigurationPropertySource("foo", 234));
-		BindResult<Integer> result = this.binder.bind("foo", Bindable.of(Integer.class));
-		assertThat(result.get()).isEqualTo(123);
+		this.sources.add(new MockConfigurationPropertySource("foo.int-value", 123));
+		this.sources.add(new MockConfigurationPropertySource("foo.int-value", 234));
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getIntValue()).isEqualTo(123);
 	}
 
 	@Test
 	public void bindToValueWithPlaceholdersShouldResolve() {
 		StandardEnvironment environment = new StandardEnvironment();
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(environment, "bar=23");
-		this.sources.add(new MockConfigurationPropertySource("foo", "1${bar}"));
+		this.sources.add(new MockConfigurationPropertySource("foo.int-value", "1${bar}"));
 		this.binder = new Binder(this.sources,
 				new PropertySourcesPlaceholdersResolver(environment));
-		BindResult<Integer> result = this.binder.bind("foo", Bindable.of(Integer.class));
-		assertThat(result.get()).isEqualTo(123);
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getIntValue()).isEqualTo(123);
 	}
 
 	@Test
 	public void bindToValueWithMissingPlaceholderShouldResolveToValueWithPlaceholder() {
 		StandardEnvironment environment = new StandardEnvironment();
-		this.sources.add(new MockConfigurationPropertySource("foo", "${bar}"));
+		this.sources
+				.add(new MockConfigurationPropertySource("foo.string-value", "${bar}"));
 		this.binder = new Binder(this.sources,
 				new PropertySourcesPlaceholdersResolver(environment));
-		BindResult<String> result = this.binder.bind("foo", Bindable.of(String.class));
-		assertThat(result.get()).isEqualTo("${bar}");
+		BindResult<SimpleBean> result = this.binder.bind("foo",
+				Bindable.of(SimpleBean.class));
+		assertThat(result.get().getStringValue()).isEqualTo("${bar}");
 	}
 
 	@Test
 	public void bindToValueWithCustomPropertyEditorShouldReturnConvertedValue() {
 		this.binder = new Binder(this.sources, null, null, (registry) -> registry
 				.registerCustomEditor(JavaBean.class, new JavaBeanPropertyEditor()));
-		this.sources.add(new MockConfigurationPropertySource("foo", "123"));
-		BindResult<JavaBean> result = this.binder.bind("foo",
-				Bindable.of(JavaBean.class));
-		assertThat(result.get().getValue()).isEqualTo("123");
+		this.sources.add(new MockConfigurationPropertySource("foo.bean", "123"));
+		BindResult<NestedJavaBean> result = this.binder.bind("foo",
+				Bindable.of(NestedJavaBean.class));
+		assertThat(result.get().getBean().getValue()).isEqualTo("123");
 	}
 
 	@Test
 	public void bindToValueShouldTriggerOnSuccess() {
-		this.sources.add(new MockConfigurationPropertySource("foo", "1", "line1"));
+		this.sources
+				.add(new MockConfigurationPropertySource("foo.int-value", "1", "line1"));
 		BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
-		Bindable<Integer> target = Bindable.of(Integer.class);
+		Bindable<SimpleBean> target = Bindable.of(SimpleBean.class);
+		Bindable<Integer> intTarget = Bindable.of(Integer.class);
 		this.binder.bind("foo", target, handler);
 		InOrder ordered = inOrder(handler);
-		ordered.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")),
-				eq(target), any(), eq(1));
+		ordered.verify(handler).onSuccess(
+				eq(ConfigurationPropertyName.of("foo.int-value")), eq(intTarget), any(),
+				eq(1));
 	}
 
 	@Test
@@ -220,24 +230,19 @@ public class BinderTests {
 
 	@Test
 	public void bindWhenHasMalformedDateShouldThrowException() {
-		this.sources.add(new MockConfigurationPropertySource("foo",
+		this.sources.add(new MockConfigurationPropertySource("foo.local-date",
 				"2014-04-01T01:30:00.000-05:00"));
 		assertThatExceptionOfType(BindException.class)
-				.isThrownBy(() -> this.binder.bind("foo", Bindable.of(LocalDate.class)))
+				.isThrownBy(() -> this.binder.bind("foo", Bindable.of(SimpleBean.class)))
 				.withCauseInstanceOf(ConversionFailedException.class);
 	}
 
 	@Test
 	public void bindWhenHasAnnotationsShouldChangeConvertedValue() {
-		this.sources.add(new MockConfigurationPropertySource("foo",
-				"2014-04-01T01:30:00.000-05:00"));
-		DateTimeFormat annotation = AnnotationUtils.synthesizeAnnotation(
-				Collections.singletonMap("iso", DateTimeFormat.ISO.DATE_TIME),
-				DateTimeFormat.class, null);
-		LocalDate result = this.binder
-				.bind("foo", Bindable.of(LocalDate.class).withAnnotations(annotation))
-				.get();
-		assertThat(result.toString()).isEqualTo("2014-04-01");
+		this.sources
+				.add(new MockConfigurationPropertySource("foo.local-date", "2014-04-01"));
+		SimpleBean result = this.binder.bind("foo", Bindable.of(SimpleBean.class)).get();
+		assertThat(result.getLocalDate().toString()).isEqualTo("2014-04-01");
 	}
 
 	@Test
@@ -303,6 +308,41 @@ public class BinderTests {
 		Bindable<JavaBean> target = Bindable.of(JavaBean.class);
 		JavaBean result = this.binder.bind("", target).get();
 		assertThat(result.getValue()).isEqualTo("hello");
+	}
+
+	public static class SimpleBean {
+
+		private String stringValue;
+
+		private Integer intValue;
+
+		@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+		private LocalDate localDate;
+
+		public String getStringValue() {
+			return this.stringValue;
+		}
+
+		public void setStringValue(String stringValue) {
+			this.stringValue = stringValue;
+		}
+
+		public Integer getIntValue() {
+			return this.intValue;
+		}
+
+		public void setIntValue(Integer intValue) {
+			this.intValue = intValue;
+		}
+
+		public LocalDate getLocalDate() {
+			return this.localDate;
+		}
+
+		public void setLocalDate(LocalDate localDate) {
+			this.localDate = localDate;
+		}
+
 	}
 
 	public static class JavaBean {
@@ -384,6 +424,20 @@ public class BinderTests {
 
 		public void setBar(T bar) {
 			this.bar = bar;
+		}
+
+	}
+
+	public static class NestedJavaBean {
+
+		private JavaBean bean;
+
+		public JavaBean getBean() {
+			return this.bean;
+		}
+
+		public void setBean(JavaBean bean) {
+			this.bean = bean;
 		}
 
 	}

@@ -252,7 +252,10 @@ public class Binder {
 
 	private <T> Object bindObject(ConfigurationPropertyName name, Bindable<T> target,
 			BindHandler handler, Context context, boolean allowRecursiveBinding) {
-		ConfigurationProperty property = findProperty(name, context);
+		ConfigurationProperty property = null;
+		if (context.getDepth() != 0) {
+			property = findProperty(name, context);
+		}
 		if (property == null && containsNoDescendantOf(context.getSources(), name)) {
 			return null;
 		}

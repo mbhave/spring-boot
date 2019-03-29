@@ -805,6 +805,20 @@ public class ConfigurationPropertiesTests {
 		assertThat(x.get(1).getB()).isEqualTo(1);
 	}
 
+	@Test
+	public void loadWhenConfigurationPropertiesPrefixMatchesPropertyInEnvironment() {
+		MutablePropertySources sources = this.context.getEnvironment()
+				.getPropertySources();
+		Map<String, Object> source = new HashMap<>();
+		source.put("test.a", "baz");
+		source.put("test", "bar");
+		sources.addLast(new MapPropertySource("test", source));
+		load(WithStringConstructorPropertiesConfiguration.class);
+		WithStringConstructorProperties bean = this.context
+				.getBean(WithStringConstructorProperties.class);
+		assertThat(bean.getA()).isEqualTo("baz");
+	}
+
 	private AnnotationConfigApplicationContext load(Class<?> configuration,
 			String... inlinedProperties) {
 		return load(new Class<?>[] { configuration }, inlinedProperties);
@@ -1851,6 +1865,34 @@ public class ConfigurationPropertiesTests {
 
 		public void setB(int b) {
 			this.b = b;
+		}
+
+	}
+
+	@EnableConfigurationProperties(WithStringConstructorProperties.class)
+	@Configuration
+	static class WithStringConstructorPropertiesConfiguration {
+
+	}
+
+	@ConfigurationProperties(prefix = "test")
+	static class WithStringConstructorProperties {
+
+		private String a;
+
+		public WithStringConstructorProperties() {
+		}
+
+		public WithStringConstructorProperties(String a) {
+			this.a = a;
+		}
+
+		public String getA() {
+			return this.a;
+		}
+
+		public void setA(String a) {
+			this.a = a;
 		}
 
 	}
