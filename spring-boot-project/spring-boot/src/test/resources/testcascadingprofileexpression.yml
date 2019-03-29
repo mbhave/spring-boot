@@ -1,0 +1,25 @@
+spring.profiles: a
+spring.profiles.include: x,y
+---
+spring.profiles: x
+spring.profiles.include: z
+---
+spring.profiles: a & b
+spring.profiles.include: c,d
+my:
+  value: aandb
+---
+spring.profiles: c
+spring.profiles.include: f
+my:
+  value: c
+---
+spring.profiles: "!e"
+spring.profiles.include: g
+my:
+  value: note
+---
+spring.profiles: d & f
+spring.profiles.include: h
+my:
+  value: dandf

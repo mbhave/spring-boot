@@ -30,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.logging.Log;
 
@@ -304,6 +306,10 @@ public class ConfigFileApplicationListener
 
 		private List<Profile> processedProfiles;
 
+		private List<Profile> additionalProfilesToProcess;
+
+		private List<Profiles> matchedProfileExpressions;
+
 		private boolean activatedProfiles;
 
 		private Map<Profile, MutablePropertySources> loaded;
@@ -323,21 +329,23 @@ public class ConfigFileApplicationListener
 		public void load() {
 			this.profiles = new LinkedList<>();
 			this.processedProfiles = new LinkedList<>();
+			this.additionalProfilesToProcess = new LinkedList<>();
 			this.activatedProfiles = false;
 			this.loaded = new LinkedHashMap<>();
+			this.matchedProfileExpressions = new LinkedList<>();
 			initializeProfiles();
 			while (!this.profiles.isEmpty()) {
 				Profile profile = this.profiles.poll();
 				if (profile != null && !profile.isDefaultProfile()) {
 					addProfileToEnvironment(profile.getName());
 				}
-				load(profile, this::getPositiveProfileFilter,
-						addToLoaded(MutablePropertySources::addLast, false));
+				DocumentResourceProcessor processor = simpleDocumentResourceProcessor(
+						profile, addToLoaded(MutablePropertySources::addLast, false));
+				load(profile, this::getPositiveProfileFilter, processor);
 				this.processedProfiles.add(profile);
 			}
+			evaluateProfileExpressions();
 			resetEnvironmentProfiles(this.processedProfiles);
-			load(null, this::getNegativeProfileFilter,
-					addToLoaded(MutablePropertySources::addFirst, true));
 			addLoadedPropertySources();
 		}
 
@@ -406,6 +414,36 @@ public class ConfigFileApplicationListener
 					(profile) -> (profile != null && profile.isDefaultProfile()));
 		}
 
+		private DocumentResourceProcessor simpleDocumentResourceProcessor(Profile profile,
+				DocumentConsumer consumer) {
+			return (documentResource, filter) -> {
+				List<Document> loaded = new ArrayList<>();
+				for (Document document : documentResource.getDocuments()) {
+					if (filter.match(document)) {
+						addActiveProfiles(document.getActiveProfiles());
+						addIncludedProfiles(document.getIncludeProfiles());
+						loaded.add(document);
+					}
+				}
+				addPropertySourcesForResource(documentResource, loaded, consumer,
+						profile);
+			};
+		}
+
+		protected void addPropertySourcesForResource(DocumentResource documentResource,
+				List<Document> loaded, DocumentConsumer consumer, Profile profile) {
+			Collections.reverse(loaded);
+			if (!loaded.isEmpty()) {
+				loaded.forEach((document) -> consumer.accept(profile, document));
+				if (this.logger.isDebugEnabled()) {
+					StringBuilder description = getDescription("Loaded config file ",
+							documentResource.getLocation(),
+							documentResource.getResource(), profile);
+					this.logger.debug(description);
+				}
+			}
+		}
+
 		private DocumentFilter getPositiveProfileFilter(Profile profile) {
 			return (Document document) -> {
 				if (profile == null) {
@@ -418,10 +456,28 @@ public class ConfigFileApplicationListener
 			};
 		}
 
-		private DocumentFilter getNegativeProfileFilter(Profile profile) {
-			return (Document document) -> (profile == null
-					&& !ObjectUtils.isEmpty(document.getProfiles()) && this.environment
-							.acceptsProfiles(Profiles.of(document.getProfiles())));
+		private DocumentFilter getProfileExpressionFilter(Profile profile) {
+			return (Document document) -> {
+				if ((profile == null && !ObjectUtils.isEmpty(document.getProfiles())
+						&& this.environment
+								.acceptsProfiles(Profiles.of(document.getProfiles())))) {
+					String name = document.getPropertySource().getName();
+					if (!hasDocumentBeenLoaded(name)) {
+						this.matchedProfileExpressions
+								.add(Profiles.of(document.getProfiles()));
+					}
+					return true;
+				}
+				else {
+					return false;
+				}
+			};
+		}
+
+		private boolean hasDocumentBeenLoaded(String name) {
+			return this.loaded.values().stream().flatMap(
+					(Function<MutablePropertySources, Stream<PropertySource<?>>>) MutablePropertySources::stream)
+					.anyMatch(propertySource -> propertySource.getName().equals(name));
 		}
 
 		private DocumentConsumer addToLoaded(
@@ -442,22 +498,24 @@ public class ConfigFileApplicationListener
 		}
 
 		private void load(Profile profile, DocumentFilterFactory filterFactory,
-				DocumentConsumer consumer) {
+				DocumentResourceProcessor processor) {
 			getSearchLocations().forEach((location) -> {
 				boolean isFolder = location.endsWith("/");
 				Set<String> names = isFolder ? getSearchNames() : NO_SEARCH_NAMES;
-				names.forEach(
-						(name) -> load(location, name, profile, filterFactory, consumer));
+				names.forEach((name) -> load(location, name, profile, filterFactory,
+						processor));
 			});
 		}
 
 		private void load(String location, String name, Profile profile,
-				DocumentFilterFactory filterFactory, DocumentConsumer consumer) {
+				DocumentFilterFactory filterFactory,
+				DocumentResourceProcessor processor) {
 			if (!StringUtils.hasText(name)) {
 				for (PropertySourceLoader loader : this.propertySourceLoaders) {
 					if (canLoadFileExtension(loader, location)) {
-						load(loader, location, profile,
-								filterFactory.getDocumentFilter(profile), consumer);
+						DocumentFilter documentFilter = filterFactory
+								.getDocumentFilter(profile);
+						load(loader, location, profile, documentFilter, processor);
 						return;
 					}
 				}
@@ -467,7 +525,7 @@ public class ConfigFileApplicationListener
 				for (String fileExtension : loader.getFileExtensions()) {
 					if (processed.add(fileExtension)) {
 						loadForFileExtension(loader, location + name, "." + fileExtension,
-								profile, filterFactory, consumer);
+								profile, filterFactory, processor);
 					}
 				}
 			}
@@ -481,29 +539,30 @@ public class ConfigFileApplicationListener
 
 		private void loadForFileExtension(PropertySourceLoader loader, String prefix,
 				String fileExtension, Profile profile,
-				DocumentFilterFactory filterFactory, DocumentConsumer consumer) {
+				DocumentFilterFactory filterFactory,
+				DocumentResourceProcessor processor) {
 			DocumentFilter defaultFilter = filterFactory.getDocumentFilter(null);
 			DocumentFilter profileFilter = filterFactory.getDocumentFilter(profile);
 			if (profile != null) {
 				// Try profile-specific file & profile section in profile file (gh-340)
 				String profileSpecificFile = prefix + "-" + profile + fileExtension;
-				load(loader, profileSpecificFile, profile, defaultFilter, consumer);
-				load(loader, profileSpecificFile, profile, profileFilter, consumer);
+				load(loader, profileSpecificFile, profile, defaultFilter, processor);
+				load(loader, profileSpecificFile, profile, profileFilter, processor);
 				// Try profile specific sections in files we've already processed
 				for (Profile processedProfile : this.processedProfiles) {
 					if (processedProfile != null) {
 						String previouslyLoaded = prefix + "-" + processedProfile
 								+ fileExtension;
-						load(loader, previouslyLoaded, profile, profileFilter, consumer);
+						load(loader, previouslyLoaded, profile, profileFilter, processor);
 					}
 				}
 			}
 			// Also try the profile-specific section (if any) of the normal file
-			load(loader, prefix + fileExtension, profile, profileFilter, consumer);
+			load(loader, prefix + fileExtension, profile, profileFilter, processor);
 		}
 
 		private void load(PropertySourceLoader loader, String location, Profile profile,
-				DocumentFilter filter, DocumentConsumer consumer) {
+				DocumentFilter filter, DocumentResourceProcessor processor) {
 			try {
 				Resource resource = this.resourceLoader.getResource(location);
 				if (resource == null || !resource.exists()) {
@@ -534,23 +593,9 @@ public class ConfigFileApplicationListener
 					}
 					return;
 				}
-				List<Document> loaded = new ArrayList<>();
-				for (Document document : documents) {
-					if (filter.match(document)) {
-						addActiveProfiles(document.getActiveProfiles());
-						addIncludedProfiles(document.getIncludeProfiles());
-						loaded.add(document);
-					}
-				}
-				Collections.reverse(loaded);
-				if (!loaded.isEmpty()) {
-					loaded.forEach((document) -> consumer.accept(profile, document));
-					if (this.logger.isDebugEnabled()) {
-						StringBuilder description = getDescription("Loaded config file ",
-								location, resource, profile);
-						this.logger.debug(description);
-					}
-				}
+				DocumentResource documentResource = new DocumentResource(documents,
+						resource, location);
+				processor.process(documentResource, filter);
 			}
 			catch (Exception ex) {
 				throw new IllegalStateException("Failed to load property "
@@ -681,6 +726,50 @@ public class ConfigFileApplicationListener
 							? this.environment.resolvePlaceholders(value) : fallback)));
 			Collections.reverse(list);
 			return new LinkedHashSet<>(list);
+		}
+
+		private void evaluateProfileExpressions() {
+			do {
+				this.additionalProfilesToProcess
+						.forEach((p) -> this.environment.addActiveProfile(p.getName()));
+				this.additionalProfilesToProcess.clear();
+				load(null, this::getProfileExpressionFilter,
+						profileExpressionsDocumentProcessor(
+								addToLoaded(MutablePropertySources::addFirst, true)));
+			}
+			while (!this.additionalProfilesToProcess.isEmpty());
+			validatePreviouslyMatchedExpressions();
+		}
+
+		private DocumentResourceProcessor profileExpressionsDocumentProcessor(
+				DocumentConsumer consumer) {
+			return (documentResource, filter) -> {
+				List<Document> loaded = new ArrayList<>();
+				for (Document document : documentResource.getDocuments()) {
+					if (filter.match(document)) {
+						loaded.add(document);
+						document.getIncludeProfiles()
+								.forEach(this::addAdditionalProfilesToProcess);
+					}
+				}
+				addPropertySourcesForResource(documentResource, loaded, consumer, null);
+			};
+		}
+
+		private void addAdditionalProfilesToProcess(Profile profile) {
+			if (!this.processedProfiles.contains(profile)) {
+				this.processedProfiles.add(profile);
+				this.additionalProfilesToProcess.add(profile);
+			}
+		}
+
+		private void validatePreviouslyMatchedExpressions() {
+			this.matchedProfileExpressions.forEach((e) -> {
+				if (!this.environment.acceptsProfiles(e)) {
+					throw new IllegalStateException("Profile expression " + e.toString()
+							+ "is no longer accepted by the environment as the environment profiles were updated by another profile being included.");
+				}
+			});
 		}
 
 		/**
@@ -888,6 +977,45 @@ public class ConfigFileApplicationListener
 	private interface DocumentConsumer {
 
 		void accept(Profile profile, Document document);
+
+	}
+
+	/**
+	 * Used to process a {@link DocumentResource} using the given {@link DocumentFilter}.
+	 */
+	@FunctionalInterface
+	private interface DocumentResourceProcessor {
+
+		void process(DocumentResource resource, DocumentFilter filter);
+
+	}
+
+	private static class DocumentResource {
+
+		private final List<Document> documents = new ArrayList<>();
+
+		private final Resource resource;
+
+		private final String location;
+
+		private DocumentResource(List<Document> documents, Resource resource,
+				String location) {
+			this.documents.addAll(documents);
+			this.resource = resource;
+			this.location = location;
+		}
+
+		public List<Document> getDocuments() {
+			return this.documents;
+		}
+
+		public Resource getResource() {
+			return this.resource;
+		}
+
+		public String getLocation() {
+			return this.location;
+		}
 
 	}
 

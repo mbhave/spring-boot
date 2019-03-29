@@ -63,6 +63,7 @@ import org.springframework.test.context.support.TestPropertySourceUtils;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 /**
  * Tests for {@link ConfigFileApplicationListener}.
@@ -526,6 +527,23 @@ public class ConfigFileApplicationListenerTests {
 	@Test
 	public void yamlProfileExpressionsNoMatch() {
 		assertProfileExpression("fromyamlfile", "dev");
+	}
+
+	@Test
+	public void yamlProfileExpressionsWithProfileIncludes() {
+		this.environment.setActiveProfiles("a", "b");
+		this.initializer.setSearchNames("testcascadingprofileexpression");
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		assertThat(this.environment.getActiveProfiles()).containsExactly("a", "x", "z",
+				"y", "b", "c", "d", "g", "f", "h");
+	}
+
+	@Test
+	public void yamlProfileExpressionsWithError() {
+		this.environment.setActiveProfiles("a", "b");
+		this.initializer.setSearchNames("testprofileexpressionserror");
+		assertThatIllegalStateException().isThrownBy(() -> this.initializer
+				.postProcessEnvironment(this.environment, this.application));
 	}
 
 	private void assertProfileExpression(String value, String... activeProfiles) {
