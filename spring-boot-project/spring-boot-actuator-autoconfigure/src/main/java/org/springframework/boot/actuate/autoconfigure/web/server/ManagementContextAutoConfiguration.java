@@ -35,6 +35,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -121,6 +122,7 @@ public class ManagementContextAutoConfiguration {
 
 	@Configuration(proxyBeanMethods = false)
 	@ConditionalOnManagementPort(ManagementPortType.DIFFERENT)
+	@Lazy(false)
 	static class DifferentManagementContextConfiguration
 			implements SmartInitializingSingleton {
 

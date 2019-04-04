@@ -40,6 +40,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.groovy.GroovyBeanDefinitionReader;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -1352,7 +1353,15 @@ public class SpringApplication {
 		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
 				throws BeansException {
 			for (String name : beanFactory.getBeanDefinitionNames()) {
-				beanFactory.getBeanDefinition(name).setLazyInit(true);
+				BeanDefinition beanDefinition = beanFactory.getBeanDefinition(name);
+				if (beanDefinition instanceof AbstractBeanDefinition) {
+					Boolean lazyInit = ((AbstractBeanDefinition) beanDefinition)
+							.getLazyInit();
+					if (lazyInit != null && !lazyInit) {
+						continue;
+					}
+				}
+				beanDefinition.setLazyInit(true);
 			}
 		}
 
