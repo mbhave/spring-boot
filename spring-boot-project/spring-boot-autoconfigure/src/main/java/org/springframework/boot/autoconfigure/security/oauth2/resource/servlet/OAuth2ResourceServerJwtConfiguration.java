@@ -15,6 +15,12 @@
  */
 package org.springframework.boot.autoconfigure.security.oauth2.resource.servlet;
 
+import java.io.InputStreamReader;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.IssuerUriCondition;
@@ -24,7 +30,10 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoderJwkSupport;
+import org.springframework.util.FileCopyUtils;
+import org.springframework.util.ResourceUtils;
 
 /**
  * Configures a {@link JwtDecoder} when a JWK Set URI or OpenID Connect Issuer URI is
@@ -48,6 +57,23 @@ class OAuth2ResourceServerJwtConfiguration {
 	public JwtDecoder jwtDecoderByJwkKeySetUri() {
 		return new NimbusJwtDecoderJwkSupport(this.properties.getJwkSetUri(),
 				this.properties.getJwsAlgorithm());
+	}
+
+	@Bean
+	@ConditionalOnProperty(
+			name = "spring.security.oauth2.resourceserver.jwt.public-key-location")
+	public JwtDecoder jwtDecoderByPublicKeyValue() throws Exception {
+		String keyValue = FileCopyUtils.copyToString(new InputStreamReader(ResourceUtils
+				.getURL(this.properties.getPublicKeyLocation()).openStream()));
+		RSAPublicKey publicKey = (RSAPublicKey) KeyFactory.getInstance("RSA")
+				.generatePublic(new X509EncodedKeySpec(getKeySpec(keyValue)));
+		return NimbusJwtDecoder.withPublicKey(publicKey).build();
+	}
+
+	private byte[] getKeySpec(String keyValue) {
+		keyValue = keyValue.replace("-----BEGIN PUBLIC KEY-----", "")
+				.replace("-----END PUBLIC KEY-----", "").replace("\n", "");
+		return Base64.getDecoder().decode(getKeySpec(keyValue));
 	}
 
 	@Bean

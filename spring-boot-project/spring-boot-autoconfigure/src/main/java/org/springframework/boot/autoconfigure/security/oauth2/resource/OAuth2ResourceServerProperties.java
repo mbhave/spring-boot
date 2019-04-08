@@ -50,6 +50,8 @@ public class OAuth2ResourceServerProperties {
 		 */
 		private String issuerUri;
 
+		private String publicKeyLocation;
+
 		public String getJwkSetUri() {
 			return this.jwkSetUri;
 		}
@@ -74,6 +76,13 @@ public class OAuth2ResourceServerProperties {
 			this.issuerUri = issuerUri;
 		}
 
+		public String getPublicKeyLocation() {
+			return this.publicKeyLocation;
+		}
+
+		public void setPublicKeyLocation(String publicKeyLocation) {
+			this.publicKeyLocation = publicKeyLocation;
+		}
 	}
 
 }
