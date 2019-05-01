@@ -20,14 +20,16 @@ import org.junit.Test;
 
 import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
+import org.springframework.boot.actuate.audit.AuditEventsEndpoint;
 import org.springframework.boot.actuate.audit.InMemoryAuditEventRepository;
 import org.springframework.boot.actuate.audit.listener.AbstractAuditListener;
 import org.springframework.boot.actuate.security.AbstractAuthenticationAuditListener;
 import org.springframework.boot.actuate.security.AbstractAuthorizationAuditListener;
 import org.springframework.boot.actuate.security.AuthenticationAuditListener;
 import org.springframework.boot.actuate.security.AuthorizationAuditListener;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.event.AbstractAuthorizationEvent;
@@ -43,51 +45,131 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class AuditAutoConfigurationTests {
 
-	private AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+	private ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(AuditAutoConfiguration.class));
 
 	@Test
 	public void defaultConfiguration() {
-		registerAndRefresh(AuditAutoConfiguration.class);
-		assertThat(this.context.getBean(AuditEventRepository.class)).isNotNull();
-		assertThat(this.context.getBean(AuthenticationAuditListener.class)).isNotNull();
-		assertThat(this.context.getBean(AuthorizationAuditListener.class)).isNotNull();
+		this.contextRunner.run((context) -> {
+			assertThat(context).doesNotHaveBean(AuditEventRepository.class);
+			assertThat(context).doesNotHaveBean(AuthenticationAuditListener.class);
+			assertThat(context).doesNotHaveBean(AuthorizationAuditListener.class);
+		});
+	}
+
+	@Test
+	public void inMemoryAuditEventRepositoryEnabled() {
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.run((context) -> {
+					assertThat(context.getBean(AuditEventRepository.class)).isNotNull();
+					assertThat(context.getBean(AuthenticationAuditListener.class))
+							.isNotNull();
+					assertThat(context.getBean(AuthorizationAuditListener.class))
+							.isNotNull();
+				});
 	}
 
 	@Test
 	public void ownAuditEventRepository() {
-		registerAndRefresh(CustomAuditEventRepositoryConfiguration.class,
-				AuditAutoConfiguration.class);
-		assertThat(this.context.getBean(AuditEventRepository.class))
-				.isInstanceOf(TestAuditEventRepository.class);
+		this.contextRunner
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.withUserConfiguration(CustomAuditEventRepositoryConfiguration.class)
+				.run((context) -> {
+					assertThat(context.getBean(AuditEventRepository.class))
+							.isInstanceOf(TestAuditEventRepository.class);
+					assertThat(context.getBean(AuthenticationAuditListener.class))
+							.isNotNull();
+					assertThat(context.getBean(AuthorizationAuditListener.class))
+							.isNotNull();
+				});
+	}
+
+	@Test
+	public void customAuditEventRepositoryWithInMemoryEnabled() {
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.withUserConfiguration(CustomAuditEventRepositoryConfiguration.class)
+				.run((context) -> assertThat(context.getBean(AuditEventRepository.class))
+						.isInstanceOf(TestAuditEventRepository.class));
 	}
 
 	@Test
 	public void ownAuthenticationAuditListener() {
-		registerAndRefresh(CustomAuthenticationAuditListenerConfiguration.class,
-				AuditAutoConfiguration.class);
-		assertThat(this.context.getBean(AbstractAuthenticationAuditListener.class))
-				.isInstanceOf(TestAuthenticationAuditListener.class);
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.withUserConfiguration(
+						CustomAuthenticationAuditListenerConfiguration.class)
+				.run((context) -> assertThat(
+						context.getBean(AbstractAuthenticationAuditListener.class))
+								.isInstanceOf(TestAuthenticationAuditListener.class));
 	}
 
 	@Test
 	public void ownAuthorizationAuditListener() {
-		registerAndRefresh(CustomAuthorizationAuditListenerConfiguration.class,
-				AuditAutoConfiguration.class);
-		assertThat(this.context.getBean(AbstractAuthorizationAuditListener.class))
-				.isInstanceOf(TestAuthorizationAuditListener.class);
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.withUserConfiguration(
+						CustomAuthorizationAuditListenerConfiguration.class)
+				.run((context) -> assertThat(
+						context.getBean(AbstractAuthorizationAuditListener.class))
+								.isInstanceOf(TestAuthorizationAuditListener.class));
 	}
 
 	@Test
 	public void ownAuditListener() {
-		registerAndRefresh(CustomAuditListenerConfiguration.class,
-				AuditAutoConfiguration.class);
-		assertThat(this.context.getBean(AbstractAuditListener.class))
-				.isInstanceOf(TestAuditListener.class);
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.withUserConfiguration(CustomAuditListenerConfiguration.class)
+				.run((context) -> assertThat(context.getBean(AbstractAuditListener.class))
+						.isInstanceOf(TestAuditListener.class));
 	}
 
-	private void registerAndRefresh(Class<?>... annotatedClasses) {
-		this.context.register(annotatedClasses);
-		this.context.refresh();
+	@Test
+	public void runShouldHaveEndpointBean() {
+		this.contextRunner
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents",
+						"management.auditevents.inmemory.enabled=true")
+				.run((context) -> assertThat(context)
+						.hasSingleBean(AuditEventsEndpoint.class));
+	}
+
+	@Test
+	public void runShouldHaveEndpointBeanWithCustomRepository() {
+		this.contextRunner
+				.withPropertyValues(
+						"management.endpoints.web.exposure.include=auditevents")
+				.withUserConfiguration(CustomAuditEventRepositoryConfiguration.class)
+				.run((context) -> assertThat(context)
+						.hasSingleBean(AuditEventsEndpoint.class));
+	}
+
+	@Test
+	public void runWhenNotExposedShouldNotHaveEndpointBean() {
+		this.contextRunner
+				.withPropertyValues("management.auditevents.inmemory.enabled=true")
+				.run((context) -> assertThat(context)
+						.doesNotHaveBean(AuditEventsEndpoint.class));
+	}
+
+	@Test
+	public void runWhenEnabledPropertyIsFalseShouldNotHaveEndpoint() {
+		this.contextRunner
+				.withPropertyValues("management.endpoint.auditevents.enabled:false",
+						"management.endpoints.web.exposure.include=*",
+						"management.auditevents.inmemory.enabled=true")
+				.run((context) -> assertThat(context)
+						.doesNotHaveBean(AuditEventsEndpoint.class));
 	}
 
 	@Configuration(proxyBeanMethods = false)
