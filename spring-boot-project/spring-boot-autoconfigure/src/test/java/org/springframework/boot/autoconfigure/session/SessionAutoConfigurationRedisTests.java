@@ -16,8 +16,9 @@
 
 package org.springframework.boot.autoconfigure.session;
 
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
@@ -41,10 +42,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Stephane Nicoll
  * @author Vedran Pavic
  */
+@Testcontainers
 public class SessionAutoConfigurationRedisTests
 		extends AbstractSessionAutoConfigurationTests {
 
-	@ClassRule
+	@Container
 	public static RedisContainer redis = new RedisContainer();
 
 	protected final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
