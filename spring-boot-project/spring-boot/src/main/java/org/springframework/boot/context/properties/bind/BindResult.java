@@ -118,6 +118,8 @@ public final class BindResult<T> {
 	 * value has been bound.
 	 * @param type the type to create if no value was bound
 	 * @return the value, if bound, otherwise a new instance of {@code type}
+	 * @deprecated since 2.2.0 in favor of {@link Binder#bindOrCreate(String, Bindable)}
+	 * ()}
 	 */
 	public T orElseCreate(Class<? extends T> type) {
 		Assert.notNull(type, "Type must not be null");

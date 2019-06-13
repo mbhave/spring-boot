@@ -135,6 +135,84 @@ public class Binder {
 	}
 
 	/**
+	 * Bind the specified target {@link Bindable} using this binder's
+	 * {@link ConfigurationPropertySource property sources} or create a new instance using
+	 * the type of the {@link Bindable} if the result of the binding is {@code null}.
+	 * @param name the configuration property name to bind
+	 * @param target the target bindable
+	 * @param <T> the bound type
+	 * @return the bound or created object
+	 * @see #bindOrCreate(ConfigurationPropertyName, Bindable, BindHandler)
+	 */
+	public <T> T bindOrCreate(String name, Bindable<T> target) {
+		return bindOrCreate(ConfigurationPropertyName.of(name), target, null);
+	}
+
+	/**
+	 * Bind the specified target {@link Bindable} using this binder's
+	 * {@link ConfigurationPropertySource property sources} or create a new instance using
+	 * the type of the {@link Bindable} if the result of the binding is {@code null}.
+	 * @param name the configuration property name to bind
+	 * @param target the target bindable
+	 * @param handler the bind handler
+	 * @param <T> the bound type
+	 * @return the bound or created object
+	 * @see #bindOrCreate(ConfigurationPropertyName, Bindable, BindHandler)
+	 */
+	public <T> T bindOrCreate(String name, Bindable<T> target, BindHandler handler) {
+		return bindOrCreate(ConfigurationPropertyName.of(name), target, handler);
+	}
+
+	/**
+	 * Bind the specified target {@link Bindable} using this binder's
+	 * {@link ConfigurationPropertySource property sources} or create a new instance using
+	 * the type of the {@link Bindable} if the result of the binding is {@code null}.
+	 * @param name the configuration property name to bind
+	 * @param target the target bindable
+	 * @param handler the bind handler (may be {@code null})
+	 * @param <T> the bound or created type
+	 * @return the bound or created object
+	 */
+	public <T> T bindOrCreate(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler) {
+		Assert.notNull(name, "Name must not be null");
+		Assert.notNull(target, "Target must not be null");
+		handler = (handler != null) ? handler : BindHandler.DEFAULT;
+		Context context = new Context();
+		T bound = bind(name, target, handler, context, false);
+		if (bound != null) {
+			return bound;
+		}
+		T created = create(name, target, handler, context);
+		return created;
+	}
+
+	private <T> T create(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler, Context context) {
+		T created = (T) createBean(target, context);
+		try {
+			handleCreateResult(name, target, handler, context, created);
+		}
+		catch (Exception ex) {
+			if (ex instanceof BindException) {
+				throw (BindException) ex;
+			}
+			throw new BindException(name, target, null, ex);
+		}
+		return created;
+	}
+
+	private Object createBean(Bindable<?> target, Context context) {
+		Class<?> type = target.getType().resolve();
+		Stream<?> boundBeans = BEAN_BINDERS.stream().map((b) -> b.create(type, context));
+		return boundBeans.filter(Objects::nonNull).findFirst().orElse(null);
+	}
+
+	private <T> T handleCreateResult(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
+			Context context, T result) throws Exception {
+		handler.onFinish(name, target, context, result);
+		return result;
+	}
+
+	/**
 	 * Bind the specified target {@link Class} using this binder's
 	 * {@link ConfigurationPropertySource property sources}.
 	 * @param name the configuration property name to bind

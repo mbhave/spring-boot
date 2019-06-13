@@ -280,9 +280,58 @@ class BinderTests {
 		assertThat(result.getValue()).isEqualTo("hello");
 	}
 
+	@Test
+	void bindOrCreateWhenBindSuccessfulShouldReturnBoundValue() {
+		this.sources.add(new MockConfigurationPropertySource("foo.value", "bar"));
+		JavaBean result = this.binder.bindOrCreate("foo", Bindable.of(JavaBean.class));
+		assertThat(result.getValue()).isEqualTo("bar");
+		assertThat(result.getItems()).isEmpty();
+	}
+
+	@Test
+	void bindOrCreateWhenUnboundShouldReturnCreatedValue() {
+		JavaBean value = this.binder.bindOrCreate("foo", Bindable.of(JavaBean.class));
+		assertThat(value).isNotNull();
+		assertThat(value).isInstanceOf(JavaBean.class);
+	}
+
 	public static class JavaBean {
 
 		private String value;
+
+		private List<String> items = Collections.emptyList();
+
+		public String getValue() {
+			return this.value;
+		}
+
+		public void setValue(String value) {
+			this.value = value;
+		}
+
+		public List<String> getItems() {
+			return this.items;
+		}
+
+	}
+
+	public static class NestedJavaBean {
+
+		private DefaultValuesBean valuesBean = new DefaultValuesBean();
+
+		public DefaultValuesBean getValuesBean() {
+			return this.valuesBean;
+		}
+
+		public void setValuesBean(DefaultValuesBean valuesBean) {
+			this.valuesBean = valuesBean;
+		}
+
+	}
+
+	public static class DefaultValuesBean {
+
+		private String value = "hello";
 
 		private List<String> items = Collections.emptyList();
 

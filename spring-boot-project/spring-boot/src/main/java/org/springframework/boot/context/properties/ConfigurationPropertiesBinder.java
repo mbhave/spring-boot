@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.PropertyEditorRegistry;
 import org.springframework.boot.context.properties.bind.BindHandler;
-import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.PropertySourcesPlaceholdersResolver;
@@ -85,12 +84,12 @@ class ConfigurationPropertiesBinder implements ApplicationContextAware {
 		this.jsr303Present = ConfigurationPropertiesJsr303Validator.isJsr303Present(applicationContext);
 	}
 
-	public <T> BindResult<T> bind(Bindable<T> target) {
+	public <T> T bind(Bindable<T> target) {
 		ConfigurationProperties annotation = target.getAnnotation(ConfigurationProperties.class);
 		Assert.state(annotation != null, () -> "Missing @ConfigurationProperties on " + target);
 		List<Validator> validators = getValidators(target);
 		BindHandler bindHandler = getBindHandler(annotation, validators);
-		return getBinder().bind(annotation.prefix(), target, bindHandler);
+		return getBinder().bindOrCreate(annotation.prefix(), target, bindHandler);
 	}
 
 	private Validator getConfigurationPropertiesValidator(ApplicationContext applicationContext,
