@@ -38,6 +38,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.AllNestedConditions;
+import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -61,6 +63,7 @@ import org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -138,7 +141,7 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
-@ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+@Conditional(WebMvcAutoConfiguration.WebMvcAutoConfigurationCondition.class)
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
 @AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
 		ValidationAutoConfiguration.class })
@@ -619,6 +622,34 @@ public class WebMvcAutoConfiguration {
 				return MEDIA_TYPE_ALL_LIST;
 			}
 			return this.delegate.resolveMediaTypes(webRequest);
+		}
+
+	}
+
+	static class WebMvcAutoConfigurationCondition extends AllNestedConditions {
+
+		public WebMvcAutoConfigurationCondition() {
+			super(ConfigurationPhase.REGISTER_BEAN);
+		}
+
+		@Override
+		protected ConditionOutcome getFinalMatchOutcome(MemberMatchOutcomes memberOutcomes) {
+			ConditionOutcome finalMatchOutcome = super.getFinalMatchOutcome(memberOutcomes);
+			if (!finalMatchOutcome.isMatch() && memberOutcomes.getNonMatches().size() == 1) {
+				throw new InvalidWebMvcConfigurationException();
+			}
+			return finalMatchOutcome;
+		}
+
+		@ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+		static class HasWebMvcConfigurationSupportBean {
+
+		}
+
+		@ConditionalOnProperty(value = "spring.mvc.use-manual-configuration", havingValue = "false",
+				matchIfMissing = true)
+		static class IsManualConfiguration {
+
 		}
 
 	}
