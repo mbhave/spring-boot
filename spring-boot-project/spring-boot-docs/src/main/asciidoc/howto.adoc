@@ -3049,7 +3049,7 @@ The following example shows how to build an executable archive with Ant:
 	</target>
 ----
 
-The {github-code}/spring-boot-samples/spring-boot-sample-ant[Ant Sample] has a
+The {github-code}/spring-boot-samples/spring-boot-smoke-test-ant[Ant Sample] has a
 `build.xml` file with a `manual` task that should work if you run it with the following
 command:
 
