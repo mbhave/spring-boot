@@ -25,6 +25,7 @@ import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
 import org.springframework.boot.logging.LogFile;
+import org.springframework.boot.logging.LoggingSystemProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -68,11 +69,13 @@ public class LogFileWebEndpoint {
 		if (this.externalFile != null) {
 			return new FileSystemResource(this.externalFile);
 		}
-		LogFile logFile = LogFile.get(this.environment);
-		if (logFile == null) {
+		String path = System.getProperty(LoggingSystemProperties.LOG_PATH);
+		String file = System.getProperty(LoggingSystemProperties.LOG_FILE);
+		if (path == null && file == null) {
 			logger.debug("Missing 'logging.file' or 'logging.path' properties");
 			return null;
 		}
+		LogFile logFile = new LogFile(file, path);
 		return new FileSystemResource(logFile.toString());
 	}
 

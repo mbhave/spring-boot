@@ -64,7 +64,7 @@ public class LogFile {
 	 * @param file a reference to the file to write
 	 * @param path a reference to the logging path to use if {@code file} is not specified
 	 */
-	LogFile(String file, String path) {
+	public LogFile(String file, String path) {
 		Assert.isTrue(StringUtils.hasLength(file) || StringUtils.hasLength(path), "File or Path must not be empty");
 		this.file = file;
 		this.path = path;
