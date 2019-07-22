@@ -3,4 +3,6 @@ SET PATH=%PATH%;C:\Program Files\Git\usr\bin
 cd git-repo
 
 echo ".\mvnw clean install" > build.log
-.\mvnw clean install >> build.log 2>&1 || (sleep 1 && tail -n 3000 build.log && exit 1)
+.\mvnw clean install -DskipTests >> build.log 2>&1 && exit 1
+cd spring-boot-tests/spring-boot-smoke-tests/spring-boot-smoke-test-jetty-jsp
+..\..\..\mvnw install
