@@ -16,12 +16,18 @@
 
 package smoketest.jetty.jsp;
 
+import org.eclipse.jetty.server.handler.ContextHandler;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.embedded.jetty.JettyEmbeddedWebAppContext;
+import org.springframework.boot.web.embedded.jetty.JettyServerCustomizer;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -32,17 +38,34 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * @author Phillip Webb
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
+		classes = { SampleWebJspApplicationTests.JettyCustomizerConfig.class, SampleJettyJspApplication.class })
 class SampleWebJspApplicationTests {
 
 	@Autowired
 	private TestRestTemplate restTemplate;
+
+	@Autowired
+	private ApplicationContext context;
 
 	@Test
 	void testJspWithEl() {
 		ResponseEntity<String> entity = this.restTemplate.getForEntity("/", String.class);
 		assertThat(entity.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(entity.getBody()).contains("/resources/text.txt");
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class JettyCustomizerConfig {
+
+		@Bean
+		public JettyServerCustomizer customizer() {
+			return server -> {
+				JettyEmbeddedWebAppContext handler = (JettyEmbeddedWebAppContext) server.getHandler();
+				handler.addAliasCheck(new ContextHandler.ApproveAliases());
+			};
+		}
+
 	}
 
 }
