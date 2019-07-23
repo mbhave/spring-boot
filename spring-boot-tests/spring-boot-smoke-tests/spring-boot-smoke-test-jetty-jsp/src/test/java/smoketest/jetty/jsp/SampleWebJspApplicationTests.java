@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.embedded.jetty.JettyEmbeddedWebAppContext;
 import org.springframework.boot.web.embedded.jetty.JettyServerCustomizer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -59,9 +58,9 @@ class SampleWebJspApplicationTests {
 	static class JettyCustomizerConfig {
 
 		@Bean
-		public JettyServerCustomizer customizer() {
-			return server -> {
-				JettyEmbeddedWebAppContext handler = (JettyEmbeddedWebAppContext) server.getHandler();
+		JettyServerCustomizer customizer() {
+			return (server) -> {
+				ContextHandler handler = (ContextHandler) server.getHandler();
 				handler.addAliasCheck(new ContextHandler.ApproveAliases());
 			};
 		}
