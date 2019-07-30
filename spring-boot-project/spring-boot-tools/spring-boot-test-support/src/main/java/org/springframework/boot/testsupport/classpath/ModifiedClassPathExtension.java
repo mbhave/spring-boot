@@ -84,13 +84,18 @@ class ModifiedClassPathExtension implements InvocationInterceptor {
 		Class<?> testClass = extensionContext.getRequiredTestClass();
 		Method testMethod = invocationContext.getExecutable();
 		ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+		ClassLoader originalSystemClassLoader = ClassLoader.getSystemClassLoader();
 		URLClassLoader modifiedClassLoader = ModifiedClassPathClassLoader.get(testClass);
 		Thread.currentThread().setContextClassLoader(modifiedClassLoader);
+		Field scl = ClassLoader.class.getDeclaredField("scl");
+		scl.setAccessible(true);
+		scl.set(null, modifiedClassLoader);
 		try {
 			runTest(modifiedClassLoader, testClass.getName(), testMethod.getName());
 		}
 		finally {
 			Thread.currentThread().setContextClassLoader(originalClassLoader);
+			scl.set(null, originalSystemClassLoader);
 		}
 	}
 
