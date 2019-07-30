@@ -18,6 +18,7 @@ package org.springframework.boot.actuate.logging;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,7 +30,6 @@ import org.springframework.boot.actuate.logging.LoggersEndpoint.LoggerLevels;
 import org.springframework.boot.actuate.logging.LoggersEndpoint.SingleLoggerLevels;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggerConfiguration;
-import org.springframework.boot.logging.LoggerGroup;
 import org.springframework.boot.logging.LoggerGroups;
 import org.springframework.boot.logging.LoggingSystem;
 
@@ -53,9 +53,10 @@ class LoggersEndpointTests {
 
 	@BeforeEach
 	void setup() {
-		Map<String, LoggerGroup> groups = Collections.singletonMap("test",
-				new LoggerGroup("test", Collections.singletonList("test.member"), LogLevel.DEBUG));
-		this.loggerGroups = new LoggerGroups(this.loggingSystem, groups);
+		Map<String, List<String>> groups = Collections.singletonMap("test", Collections.singletonList("test.member"));
+		this.loggerGroups = new LoggerGroups(groups);
+		this.loggerGroups.get("test").configureLogLevel(LogLevel.DEBUG, (a, b) -> {
+		});
 	}
 
 	@Test
@@ -64,7 +65,7 @@ class LoggersEndpointTests {
 		given(this.loggingSystem.getLoggerConfigurations())
 				.willReturn(Collections.singletonList(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG)));
 		given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
-		Map<String, Object> result = new LoggersEndpoint(this.loggingSystem, null).loggers();
+		Map<String, Object> result = new LoggersEndpoint(this.loggingSystem, new LoggerGroups()).loggers();
 		Map<String, LoggerLevels> loggers = (Map<String, LoggerLevels>) result.get("loggers");
 		Set<LogLevel> levels = (Set<LogLevel>) result.get("levels");
 		SingleLoggerLevels rootLevels = (SingleLoggerLevels) loggers.get("ROOT");
@@ -72,7 +73,8 @@ class LoggersEndpointTests {
 		assertThat(rootLevels.getEffectiveLevel()).isEqualTo("DEBUG");
 		assertThat(levels).containsExactly(LogLevel.OFF, LogLevel.FATAL, LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO,
 				LogLevel.DEBUG, LogLevel.TRACE);
-		assertThat(result.get("groups")).isNull();
+		Map<String, LoggerGroups> groups = (Map<String, LoggerGroups>) result.get("groups");
+		assertThat(groups).isEmpty();
 	}
 
 	@Test
@@ -82,8 +84,8 @@ class LoggersEndpointTests {
 				.willReturn(Collections.singletonList(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG)));
 		given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
 		Map<String, Object> result = new LoggersEndpoint(this.loggingSystem, this.loggerGroups).loggers();
-		Map<String, LoggerLevels> loggerGroups = (Map<String, LoggerLevels>) result.get("groups");
-		LoggerLevels groupLevel = loggerGroups.get("test");
+		Map<String, GroupLoggerLevels> loggerGroups = (Map<String, GroupLoggerLevels>) result.get("groups");
+		GroupLoggerLevels groupLevel = loggerGroups.get("test");
 		Map<String, LoggerLevels> loggers = (Map<String, LoggerLevels>) result.get("loggers");
 		Set<LogLevel> levels = (Set<LogLevel>) result.get("levels");
 		SingleLoggerLevels rootLevels = (SingleLoggerLevels) loggers.get("ROOT");
@@ -93,6 +95,7 @@ class LoggersEndpointTests {
 				LogLevel.DEBUG, LogLevel.TRACE);
 		assertThat(loggerGroups).isNotNull();
 		assertThat(groupLevel.getConfiguredLevel()).isEqualTo("DEBUG");
+		assertThat(groupLevel.getMembers()).containsExactly("test.member");
 	}
 
 	@Test
@@ -128,13 +131,13 @@ class LoggersEndpointTests {
 	@Test
 	void configureLogLevelInLoggerGroupShouldSetLevelOnLoggingSystem() {
 		new LoggersEndpoint(this.loggingSystem, this.loggerGroups).configureLogLevel("test", LogLevel.DEBUG);
-		verify(this.loggerGroups).updateGroupLevel("test", LogLevel.DEBUG);
+		verify(this.loggingSystem).setLogLevel("test.member", LogLevel.DEBUG);
 	}
 
 	@Test
 	void configureLogLevelWithNullInLoggerGroupShouldSetLevelOnLoggingSystem() {
 		new LoggersEndpoint(this.loggingSystem, this.loggerGroups).configureLogLevel("test", null);
-		verify(this.loggerGroups).updateGroupLevel("test", null);
+		verify(this.loggingSystem).setLogLevel("test.member", null);
 	}
 
 }

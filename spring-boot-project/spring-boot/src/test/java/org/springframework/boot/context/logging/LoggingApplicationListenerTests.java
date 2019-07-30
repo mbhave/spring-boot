@@ -286,7 +286,7 @@ class LoggingApplicationListenerTests {
 		assertThat(this.output).contains("testdebugwebgroup");
 		assertThat(this.output).contains("testdebugsqlgroup");
 		LoggerGroups loggerGroups = (LoggerGroups) ReflectionTestUtils.getField(this.initializer, "loggerGroups");
-		assertThat(loggerGroups.getGroup("web").getConfiguredLevel()).isEqualTo(LogLevel.DEBUG);
+		assertThat(loggerGroups.get("web").getConfiguredLevel()).isEqualTo(LogLevel.DEBUG);
 	}
 
 	@Test

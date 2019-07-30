@@ -79,7 +79,8 @@ public class LoggersEndpoint {
 
 	private Map<String, LoggerLevels> getGroups() {
 		Map<String, LoggerLevels> groups = new LinkedHashMap<>();
-		this.loggerGroups.forEach((group) -> groups.put(group.getName(), new LoggerLevels(group.getConfiguredLevel())));
+		this.loggerGroups.forEach((group) -> groups.put(group.getName(),
+				new GroupLoggerLevels(group.getConfiguredLevel(), group.getMembers())));
 		return groups;
 	}
 

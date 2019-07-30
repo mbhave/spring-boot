@@ -19,8 +19,9 @@ package org.springframework.boot.actuate.logging;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import net.minidev.json.JSONArray;
 import org.hamcrest.collection.IsIterableContainingInAnyOrder;
@@ -33,7 +34,6 @@ import org.springframework.boot.actuate.endpoint.http.ActuatorMediaType;
 import org.springframework.boot.actuate.endpoint.web.test.WebEndpointTest;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggerConfiguration;
-import org.springframework.boot.logging.LoggerGroup;
 import org.springframework.boot.logging.LoggerGroups;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -73,27 +73,12 @@ class LoggersEndpointWebIntegrationTests {
 		this.loggingSystem = context.getBean(LoggingSystem.class);
 		this.loggerGroups = context.getBean(LoggerGroups.class);
 		Mockito.reset(this.loggingSystem);
-		Mockito.reset(this.loggerGroups);
 		given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
 	}
 
 	@WebEndpointTest
-	void getLoggersShouldReturnAllLoggerConfigurations() {
-		given(this.loggingSystem.getLoggerConfigurations())
-				.willReturn(Collections.singletonList(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG)));
-		this.client.get().uri("/actuator/loggers").exchange().expectStatus().isOk().expectBody().jsonPath("$.length()")
-				.isEqualTo(3).jsonPath("levels")
-				.isEqualTo(jsonArrayOf("OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE")).jsonPath("groups")
-				.isEmpty().jsonPath("loggers.length()").isEqualTo(1).jsonPath("loggers.ROOT.length()").isEqualTo(2)
-				.jsonPath("loggers.ROOT.configuredLevel").isEqualTo(null).jsonPath("loggers.ROOT.effectiveLevel")
-				.isEqualTo("DEBUG");
-	}
-
-	@WebEndpointTest
 	void getLoggerShouldReturnAllLoggerConfigurationsWithLoggerGroups() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.stream())
-				.willReturn(Stream.of(new LoggerGroup("test", members, LogLevel.DEBUG)));
+		setLogLevelToDebug("test");
 		given(this.loggingSystem.getLoggerConfigurations())
 				.willReturn(Collections.singletonList(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG)));
 		this.client.get().uri("/actuator/loggers").exchange().expectStatus().isOk().expectBody().jsonPath("$.length()")
@@ -101,12 +86,13 @@ class LoggersEndpointWebIntegrationTests {
 				.isEqualTo(jsonArrayOf("OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"))
 				.jsonPath("loggers.length()").isEqualTo(1).jsonPath("loggers.ROOT.length()").isEqualTo(2)
 				.jsonPath("loggers.ROOT.configuredLevel").isEqualTo(null).jsonPath("loggers.ROOT.effectiveLevel")
-				.isEqualTo("DEBUG").jsonPath("groups.length()").isEqualTo(1).jsonPath("groups.test.configuredLevel")
+				.isEqualTo("DEBUG").jsonPath("groups.length()").isEqualTo(2).jsonPath("groups.test.configuredLevel")
 				.isEqualTo("DEBUG");
 	}
 
 	@WebEndpointTest
 	void getLoggerShouldReturnLogLevels() {
+		setLogLevelToDebug("test");
 		given(this.loggingSystem.getLoggerConfiguration("ROOT"))
 				.willReturn(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG));
 		this.client.get().uri("/actuator/loggers/ROOT").exchange().expectStatus().isOk().expectBody()
@@ -121,9 +107,7 @@ class LoggersEndpointWebIntegrationTests {
 
 	@WebEndpointTest
 	void getLoggerGroupShouldReturnConfiguredLogLevelAndMembers() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("test"))
-				.willReturn(new LoggerGroup("test", members, LogLevel.DEBUG));
+		setLogLevelToDebug("test");
 		this.client.get().uri("actuator/loggers/test").exchange().expectStatus().isOk().expectBody()
 				.jsonPath("$.length()").isEqualTo(2).jsonPath("members")
 				.value(IsIterableContainingInAnyOrder.containsInAnyOrder("test.member1", "test.member2"))
@@ -147,23 +131,19 @@ class LoggersEndpointWebIntegrationTests {
 
 	@WebEndpointTest
 	void setLoggerGroupUsingActuatorV2JsonShouldSetLogLevel() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("test"))
-				.willReturn(new LoggerGroup("test", members, LogLevel.DEBUG));
 		this.client.post().uri("/actuator/loggers/test")
 				.contentType(MediaType.parseMediaType(ActuatorMediaType.V2_JSON))
 				.body(Collections.singletonMap("configuredLevel", "debug")).exchange().expectStatus().isNoContent();
-		verify(this.loggerGroups).updateGroupLevel("test", LogLevel.DEBUG);
+		verify(this.loggingSystem).setLogLevel("test.member1", LogLevel.DEBUG);
+		verify(this.loggingSystem).setLogLevel("test.member2", LogLevel.DEBUG);
 	}
 
 	@WebEndpointTest
 	void setLoggerGroupUsingApplicationJsonShouldSetLogLevel() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("test"))
-				.willReturn(new LoggerGroup("test", members, LogLevel.DEBUG));
 		this.client.post().uri("/actuator/loggers/test").contentType(MediaType.APPLICATION_JSON)
 				.body(Collections.singletonMap("configuredLevel", "debug")).exchange().expectStatus().isNoContent();
-		verify(this.loggerGroups).updateGroupLevel("test", LogLevel.DEBUG);
+		verify(this.loggingSystem).setLogLevel("test.member1", LogLevel.DEBUG);
+		verify(this.loggingSystem).setLogLevel("test.member2", LogLevel.DEBUG);
 	}
 
 	@WebEndpointTest
@@ -191,24 +171,20 @@ class LoggersEndpointWebIntegrationTests {
 
 	@WebEndpointTest
 	void setLoggerGroupWithNullLogLevel() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("test"))
-				.willReturn(new LoggerGroup("test", members, LogLevel.DEBUG));
 		this.client.post().uri("/actuator/loggers/test")
 				.contentType(MediaType.parseMediaType(ActuatorMediaType.V2_JSON))
 				.body(Collections.singletonMap("configuredLevel", null)).exchange().expectStatus().isNoContent();
-		verify(this.loggerGroups).updateGroupLevel("test", null);
+		verify(this.loggingSystem).setLogLevel("test.member1", null);
+		verify(this.loggingSystem).setLogLevel("test.member2", null);
 	}
 
 	@WebEndpointTest
 	void setLoggerGroupWithNoLogLevel() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("test"))
-				.willReturn(new LoggerGroup("test", members, LogLevel.DEBUG));
 		this.client.post().uri("/actuator/loggers/test")
 				.contentType(MediaType.parseMediaType(ActuatorMediaType.V2_JSON)).body(Collections.emptyMap())
 				.exchange().expectStatus().isNoContent();
-		verify(this.loggerGroups).updateGroupLevel("test", null);
+		verify(this.loggingSystem).setLogLevel("test.member1", null);
+		verify(this.loggingSystem).setLogLevel("test.member2", null);
 	}
 
 	@WebEndpointTest
@@ -222,12 +198,15 @@ class LoggersEndpointWebIntegrationTests {
 
 	@WebEndpointTest
 	void logLevelForLoggerGroupWithNameThatCouldBeMistakenForAPathExtension() {
-		List<String> members = Arrays.asList("test.member1", "test.member2");
-		given(this.loggerGroups.getGroup("com.png"))
-				.willReturn(new LoggerGroup("com.png", members, LogLevel.DEBUG));
-		this.client.get().uri("/actuator/loggers/com.png").exchange().expectStatus().isOk().expectBody()
+		setLogLevelToDebug("group.png");
+		this.client.get().uri("/actuator/loggers/group.png").exchange().expectStatus().isOk().expectBody()
 				.jsonPath("$.length()").isEqualTo(2).jsonPath("configuredLevel").isEqualTo("DEBUG").jsonPath("members")
-				.value(IsIterableContainingInAnyOrder.containsInAnyOrder("test.member1", "test.member2"));
+				.value(IsIterableContainingInAnyOrder.containsInAnyOrder("png.member1", "png.member2"));
+	}
+
+	private void setLogLevelToDebug(String name) {
+		this.loggerGroups.get(name).configureLogLevel(LogLevel.DEBUG, (a, b) -> {
+		});
 	}
 
 	private JSONArray jsonArrayOf(Object... entries) {
@@ -246,7 +225,14 @@ class LoggersEndpointWebIntegrationTests {
 
 		@Bean
 		LoggerGroups loggingGroups() {
-			return mock(LoggerGroups.class);
+			return getLoggerGroups();
+		}
+
+		private LoggerGroups getLoggerGroups() {
+			Map<String, List<String>> groups = new LinkedHashMap<>();
+			groups.put("test", Arrays.asList("test.member1", "test.member2"));
+			groups.put("group.png", Arrays.asList("png.member1", "png.member2"));
+			return new LoggerGroups(groups);
 		}
 
 		@Bean

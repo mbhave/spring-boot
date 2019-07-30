@@ -23,8 +23,8 @@ import java.util.function.BiConsumer;
 
 /**
  * A single logger group.
- * 
- * @author HaiTao Zhang
+ *
+ * @author Madhura Bhave
  * @author Phillip Webb
  * @since 2.2.0
  */
