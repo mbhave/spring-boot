@@ -119,6 +119,8 @@ import org.springframework.web.servlet.resource.AppCacheManifestTransformer;
 import org.springframework.web.servlet.resource.EncodedResourceResolver;
 import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 import org.springframework.web.servlet.resource.ResourceResolver;
+import org.springframework.web.servlet.resource.ResourceUrlProvider;
+import org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.ContentNegotiatingViewResolver;
@@ -189,14 +191,18 @@ public class WebMvcAutoConfiguration {
 
 		private ResourceLoader resourceLoader;
 
+		private ResourceUrlProvider resourceUrlProvider;
+
 		public WebMvcAutoConfigurationAdapter(ResourceProperties resourceProperties, WebMvcProperties mvcProperties,
 				ListableBeanFactory beanFactory, ObjectProvider<HttpMessageConverters> messageConvertersProvider,
-				ObjectProvider<ResourceHandlerRegistrationCustomizer> resourceHandlerRegistrationCustomizerProvider) {
+				ObjectProvider<ResourceHandlerRegistrationCustomizer> resourceHandlerRegistrationCustomizerProvider,
+				ObjectProvider<ResourceUrlProvider> resourceUrlProvider) {
 			this.resourceProperties = resourceProperties;
 			this.mvcProperties = mvcProperties;
 			this.beanFactory = beanFactory;
 			this.messageConvertersProvider = messageConvertersProvider;
 			this.resourceHandlerRegistrationCustomizer = resourceHandlerRegistrationCustomizerProvider.getIfAvailable();
+//			this.resourceUrlProvider = resourceUrlProvider.getIfAvailable();
 		}
 
 		@Override
@@ -340,8 +346,14 @@ public class WebMvcAutoConfiguration {
 
 		@Bean
 		public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext) {
-			return new WelcomePageHandlerMapping(new TemplateAvailabilityProviders(applicationContext),
-					applicationContext, getWelcomePage(), this.mvcProperties.getStaticPathPattern());
+			WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(
+					new TemplateAvailabilityProviders(applicationContext), applicationContext, getWelcomePage(),
+					this.mvcProperties.getStaticPathPattern());
+			if (this.resourceUrlProvider != null) {
+				welcomePageHandlerMapping.setResourceUrlInterceptor(
+						new ResourceUrlProviderExposingInterceptor(this.resourceUrlProvider));
+			}
+			return welcomePageHandlerMapping;
 		}
 
 		static String[] getResourceLocations(String[] staticLocations) {

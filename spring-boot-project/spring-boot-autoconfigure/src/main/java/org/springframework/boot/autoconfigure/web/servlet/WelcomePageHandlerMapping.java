@@ -33,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.handler.AbstractUrlHandlerMapping;
 import org.springframework.web.servlet.mvc.ParameterizableViewController;
+import org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor;
 
 /**
  * An {@link AbstractUrlHandlerMapping} for an application's welcome page. Supports both
@@ -80,6 +81,10 @@ final class WelcomePageHandlerMapping extends AbstractUrlHandlerMapping {
 			}
 		}
 		return null;
+	}
+
+	public void setResourceUrlInterceptor(ResourceUrlProviderExposingInterceptor interceptor) {
+		super.setInterceptors(interceptor);
 	}
 
 	private List<MediaType> getAcceptedMediaTypes(HttpServletRequest request) {
