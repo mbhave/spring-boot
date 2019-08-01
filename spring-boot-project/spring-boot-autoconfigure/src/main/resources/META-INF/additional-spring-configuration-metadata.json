@@ -977,6 +977,17 @@
       "defaultValue": true,
       "deprecation": {
         "replacement": "spring.liquibase.check-change-log-location",
+        "reason": "Liquibase has it's own check that checks if the change log location exists making this property redundant.",
+        "level": "error"
+      }
+    },
+    {
+      "name": "spring.liquibase.check-change-log-location",
+      "type": "java.lang.Boolean",
+      "description": "Check the change log location exists.",
+      "defaultValue": true,
+      "deprecation": {
+        "reason": "Liquibase has it's own check that checks if the change log location exists making this property redundant.",
         "level": "error"
       }
     },
