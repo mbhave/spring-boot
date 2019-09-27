@@ -27,6 +27,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.rsocket.context.LocalRSocketServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.rsocket.RSocketRequester;
+import org.springframework.security.rsocket.metadata.BasicAuthenticationEncoder;
+import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
+
+import static org.springframework.security.rsocket.metadata.UsernamePasswordMetadata.BASIC_AUTHENTICATION_MIME_TYPE;
 
 @SpringBootTest(properties = "spring.rsocket.server.port=0")
 public class SampleRSocketApplicationTests {
@@ -38,8 +42,18 @@ public class SampleRSocketApplicationTests {
 	private RSocketRequester.Builder builder;
 
 	@Test
-	void testRSocketEndpoint() {
+	void unauthenticatedAccessToRSocketEndpoint() {
 		RSocketRequester requester = this.builder.connectTcp("localhost", this.port).block(Duration.ofSeconds(5));
+		Mono<Project> result = requester.route("find.project.spring-boot").retrieveMono(Project.class);
+		StepVerifier.create(result).expectErrorMessage("Access Denied").verify();
+	}
+
+	@Test
+	void rSocketEndpoint() {
+		RSocketRequester requester = this.builder
+				.rsocketStrategies(builder -> builder.encoder(new BasicAuthenticationEncoder()))
+				.setupMetadata(new UsernamePasswordMetadata("user", "password"), BASIC_AUTHENTICATION_MIME_TYPE)
+				.connectTcp("localhost", this.port).block(Duration.ofSeconds(5));
 		Mono<Project> result = requester.route("find.project.spring-boot").retrieveMono(Project.class);
 		StepVerifier.create(result)
 				.assertNext((project) -> Assertions.assertThat(project.getName()).isEqualTo("spring-boot"))
