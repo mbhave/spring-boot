@@ -26,10 +26,12 @@ import java.util.Map;
 
 import javax.validation.Validation;
 
+import com.atomikos.util.Assert;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.InOrder;
 
+import org.springframework.beans.BeanInstantiationException;
 import org.springframework.boot.context.properties.bind.validation.ValidationBindHandler;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
@@ -332,6 +334,21 @@ class BinderTests {
 		assertThat(result.isBound()).isFalse();
 	}
 
+	@Test
+	void bindExceptionWhenBeanInitializationFailsShouldHaveNullConfigurationProperty() {
+		MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+		source.put("foo.bar", "hello");
+		this.sources.add(source);
+		Bindable<ValidatingConstructorBean> target = Bindable.of(ValidatingConstructorBean.class);
+		assertThatExceptionOfType(BindException.class).isThrownBy(() -> this.binder.bind("foo", target))
+				.satisfies(this::noConfigurationProperty);
+	}
+
+	private void noConfigurationProperty(BindException ex) {
+		assertThat(ex.getCause()).isInstanceOf(BeanInstantiationException.class);
+		assertThat(ex.getProperty()).isNull();
+	}
+
 	static class JavaBean {
 
 		private String value;
@@ -456,6 +473,28 @@ class BinderTests {
 			JavaBean value = new JavaBean();
 			value.setValue(text);
 			setValue(value);
+		}
+
+	}
+
+	static class ValidatingConstructorBean {
+
+		private final String foo;
+
+		private final String bar;
+
+		ValidatingConstructorBean(String foo, String bar) {
+			Assert.notNull("Foo must not be null", foo);
+			this.foo = foo;
+			this.bar = bar;
+		}
+
+		String getFoo() {
+			return this.foo;
+		}
+
+		String getBar() {
+			return this.bar;
 		}
 
 	}

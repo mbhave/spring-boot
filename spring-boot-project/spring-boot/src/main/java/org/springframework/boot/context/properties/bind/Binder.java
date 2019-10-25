@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.PropertyEditorRegistry;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
@@ -327,6 +328,9 @@ public class Binder {
 	private <T> T handleBindError(ConfigurationPropertyName name, Bindable<T> target, BindHandler handler,
 			Context context, Exception error) {
 		try {
+			if (error instanceof BeanInstantiationException) {
+				context.clearConfigurationProperty();
+			}
 			Object result = handler.onFailure(name, target, context, error);
 			return context.getConverter().convert(result, target);
 		}
