@@ -16,6 +16,7 @@
 
 package org.springframework.boot.context.properties.bind;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
