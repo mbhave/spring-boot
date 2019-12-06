@@ -116,7 +116,7 @@ public class ExplodedArchive implements Archive {
 
 	protected Archive getNestedArchive(Entry entry) throws IOException {
 		File file = ((FileEntry) entry).getFile();
-		return (file.isDirectory() ? new ExplodedArchive(file) : new JarFileArchive(file));
+		return (file.isDirectory() ? new ExplodedArchive(file) : new SimpleJarFileArchive(file));
 	}
 
 	@Override
@@ -237,6 +237,36 @@ public class ExplodedArchive implements Archive {
 		@Override
 		public String getName() {
 			return this.name;
+		}
+
+	}
+
+	private static class SimpleJarFileArchive implements Archive {
+
+		private final URL url;
+
+		SimpleJarFileArchive(File file) throws IOException {
+			this.url = file.toURI().toURL();
+		}
+
+		@Override
+		public URL getUrl() throws MalformedURLException {
+			return this.url;
+		}
+
+		@Override
+		public Manifest getManifest() throws IOException {
+			return null;
+		}
+
+		@Override
+		public List<Archive> getNestedArchives(EntryFilter filter) throws IOException {
+			return null;
+		}
+
+		@Override
+		public Iterator<Entry> iterator() {
+			return null;
 		}
 
 	}

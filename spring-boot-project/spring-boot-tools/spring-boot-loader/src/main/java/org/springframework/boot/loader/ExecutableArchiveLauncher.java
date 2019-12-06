@@ -22,6 +22,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.Manifest;
 
 import org.springframework.boot.loader.archive.Archive;
+import org.springframework.boot.loader.archive.ExplodedArchive;
 
 /**
  * Base class for executable archive {@link Launcher}s.
@@ -41,6 +42,11 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 		catch (Exception ex) {
 			throw new IllegalStateException(ex);
 		}
+	}
+
+	@Override
+	protected boolean isExploded() {
+		return this.archive instanceof ExplodedArchive;
 	}
 
 	protected ExecutableArchiveLauncher(Archive archive) {

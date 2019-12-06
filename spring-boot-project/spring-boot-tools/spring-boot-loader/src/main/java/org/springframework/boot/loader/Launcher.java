@@ -19,6 +19,7 @@ package org.springframework.boot.loader;
 import java.io.File;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -46,9 +47,15 @@ public abstract class Launcher {
 	 * @throws Exception if the application fails to launch
 	 */
 	protected void launch(String[] args) throws Exception {
-		JarFile.registerUrlProtocolHandler();
+		if (!isExploded()) {
+			JarFile.registerUrlProtocolHandler();
+		}
 		ClassLoader classLoader = createClassLoader(getClassPathArchives());
 		launch(args, getMainClass(), classLoader);
+	}
+
+	protected boolean isExploded() {
+		return false;
 	}
 
 	/**
@@ -72,7 +79,10 @@ public abstract class Launcher {
 	 * @throws Exception if the classloader cannot be created
 	 */
 	protected ClassLoader createClassLoader(URL[] urls) throws Exception {
-		return new LaunchedURLClassLoader(urls, getClass().getClassLoader());
+		if (!isExploded()) {
+			return new LaunchedURLClassLoader(urls, getClass().getClassLoader());
+		}
+		return new URLClassLoader(urls, getClass().getClassLoader());
 	}
 
 	/**
