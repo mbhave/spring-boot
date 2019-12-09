@@ -452,7 +452,7 @@ public class PropertiesLauncher extends Launcher {
 		for (String path : this.paths) {
 			for (Archive archive : getClassPathArchives(path)) {
 				if (archive instanceof ExplodedArchive) {
-					List<Archive> nested = new ArrayList<>(archive.getNestedArchives(new ArchiveEntryFilter()));
+					List<Archive> nested = new ArrayList<>(archive.getNestedArchives(new ArchiveEntryFilter(), null));
 					nested.add(0, archive);
 					lib.addAll(nested);
 				}
@@ -543,7 +543,7 @@ public class PropertiesLauncher extends Launcher {
 			root = "";
 		}
 		EntryFilter filter = new PrefixMatchingArchiveFilter(root);
-		List<Archive> archives = new ArrayList<>(parent.getNestedArchives(filter));
+		List<Archive> archives = new ArrayList<>(parent.getNestedArchives(filter, null));
 		if (("".equals(root) || ".".equals(root)) && !path.endsWith(".jar") && parent != this.parent) {
 			// You can't find the root with an entry filter so it has to be added
 			// explicitly. But don't add the root of the parent archive.
@@ -562,7 +562,7 @@ public class PropertiesLauncher extends Launcher {
 					return entry.getName().equals(JarLauncher.BOOT_INF_CLASSES);
 				}
 				return entry.getName().startsWith(JarLauncher.BOOT_INF_LIB);
-			}));
+			}, null));
 		}
 		catch (IOException ex) {
 			// Ignore

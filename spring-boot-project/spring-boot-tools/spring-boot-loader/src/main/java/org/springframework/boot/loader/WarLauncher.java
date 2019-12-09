@@ -54,6 +54,11 @@ public class WarLauncher extends ExecutableArchiveLauncher {
 		}
 	}
 
+	@Override
+	protected String getPackagingRoot() {
+		return WEB_INF;
+	}
+
 	public static void main(String[] args) throws Exception {
 		new WarLauncher().launch(args);
 	}

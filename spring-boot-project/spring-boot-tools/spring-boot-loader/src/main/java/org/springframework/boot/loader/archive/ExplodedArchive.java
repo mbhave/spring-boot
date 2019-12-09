@@ -99,14 +99,20 @@ public class ExplodedArchive implements Archive {
 	}
 
 	@Override
-	public List<Archive> getNestedArchives(EntryFilter filter) throws IOException {
+	public List<Archive> getNestedArchives(EntryFilter filter, String packagingRoot) throws IOException {
 		List<Archive> nestedArchives = new ArrayList<>();
-		for (Entry entry : this) {
-			if (filter.matches(entry)) {
+		Iterator<Entry> iterator = iterator(filter, packagingRoot);
+		while (iterator.hasNext()) {
+			Entry entry = iterator.next();
+			if (entry != null) {
 				nestedArchives.add(getNestedArchive(entry));
 			}
 		}
 		return Collections.unmodifiableList(nestedArchives);
+	}
+
+	public Iterator<Entry> iterator(EntryFilter filter, String packagingRoot) {
+		return new FileEntryIterator(this.root, this.recursive, filter, packagingRoot);
 	}
 
 	@Override
@@ -136,19 +142,31 @@ public class ExplodedArchive implements Archive {
 
 		private final Comparator<File> entryComparator = new EntryComparator();
 
+		private final EntryFilter skipResursiveFilter;
+
 		private final File root;
 
 		private final boolean recursive;
 
+		private boolean processDirectoryNotMatchingPackingRoot = true;
+
 		private final Deque<Iterator<File>> stack = new LinkedList<>();
+
+		private final String packagingRoot;
 
 		private File current;
 
 		FileEntryIterator(File root, boolean recursive) {
+			this(root, recursive, (entry) -> true, null);
+		}
+
+		FileEntryIterator(File root, boolean recursive, EntryFilter skipResursiveFilter, String packagingRoot) {
 			this.root = root;
-			this.recursive = recursive;
+			this.skipResursiveFilter = skipResursiveFilter;
 			this.stack.add(listFiles(root));
+			this.recursive = recursive;
 			this.current = poll();
+			this.packagingRoot = (packagingRoot != null) ? packagingRoot : root.getName();
 		}
 
 		@Override
@@ -162,12 +180,25 @@ public class ExplodedArchive implements Archive {
 				throw new NoSuchElementException();
 			}
 			File file = this.current;
-			if (file.isDirectory() && (this.recursive || file.getParentFile().equals(this.root))) {
+			this.current = poll();
+			if (file.getAbsolutePath().contains(this.packagingRoot)) {
+				this.processDirectoryNotMatchingPackingRoot = false;
+			}
+			// Once BOOT-INF is found do we need to keep looking at other directories like
+			// META-INF etc
+			if (!this.processDirectoryNotMatchingPackingRoot && !file.getAbsolutePath().contains(this.packagingRoot)) {
+				return null;
+			}
+			String name = file.toURI().getPath().substring(this.root.toURI().getPath().length());
+			FileEntry fileEntry = new FileEntry(name, file);
+			// if the entry can be added directly (BOOT-INF/classes) we don't need to look
+			// at it's nested entries
+			boolean skipRecursive = this.skipResursiveFilter.matches(fileEntry);
+
+			if (file.isDirectory() && (this.recursive || file.getParentFile().equals(this.root)) && !skipRecursive) {
 				this.stack.addFirst(listFiles(file));
 			}
-			this.current = poll();
-			String name = file.toURI().getPath().substring(this.root.toURI().getPath().length());
-			return new FileEntry(name, file);
+			return (skipRecursive ? fileEntry : null);
 		}
 
 		private Iterator<File> listFiles(File file) {
@@ -260,7 +291,7 @@ public class ExplodedArchive implements Archive {
 		}
 
 		@Override
-		public List<Archive> getNestedArchives(EntryFilter filter) throws IOException {
+		public List<Archive> getNestedArchives(EntryFilter filter, String packagingRoot) throws IOException {
 			return null;
 		}
 

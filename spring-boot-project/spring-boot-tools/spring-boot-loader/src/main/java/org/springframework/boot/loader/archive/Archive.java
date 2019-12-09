@@ -50,10 +50,11 @@ public interface Archive extends Iterable<Archive.Entry>, AutoCloseable {
 	/**
 	 * Returns nested {@link Archive}s for entries that match the specified filter.
 	 * @param filter the filter used to limit entries
+	 * @param packagingRoot packaging root
 	 * @return nested archives
 	 * @throws IOException if nested archives cannot be read
 	 */
-	List<Archive> getNestedArchives(EntryFilter filter) throws IOException;
+	List<Archive> getNestedArchives(EntryFilter filter, String packagingRoot) throws IOException;
 
 	/**
 	 * Closes the {@code Archive}, releasing any open resources.

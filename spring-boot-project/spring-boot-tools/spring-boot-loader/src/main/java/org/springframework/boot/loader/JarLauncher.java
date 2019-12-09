@@ -29,15 +29,22 @@ import org.springframework.boot.loader.archive.Archive;
  */
 public class JarLauncher extends ExecutableArchiveLauncher {
 
-	static final String BOOT_INF_CLASSES = "BOOT-INF/classes/";
+	private static final String BOOT_INF = "BOOT-INF/";
 
-	static final String BOOT_INF_LIB = "BOOT-INF/lib/";
+	static final String BOOT_INF_CLASSES = BOOT_INF + "classes/";
+
+	static final String BOOT_INF_LIB = BOOT_INF + "lib/";
 
 	public JarLauncher() {
 	}
 
 	protected JarLauncher(Archive archive) {
 		super(archive);
+	}
+
+	@Override
+	protected String getPackagingRoot() {
+		return BOOT_INF;
 	}
 
 	@Override

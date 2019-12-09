@@ -72,7 +72,8 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 
 	@Override
 	protected List<Archive> getClassPathArchives() throws Exception {
-		List<Archive> archives = new ArrayList<>(this.archive.getNestedArchives(this::isNestedArchive));
+		List<Archive> archives = new ArrayList<>(
+				this.archive.getNestedArchives(this::isNestedArchive, getPackagingRoot()));
 		postProcessClassPathArchives(archives);
 		return archives;
 	}
@@ -93,5 +94,7 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 	 */
 	protected void postProcessClassPathArchives(List<Archive> archives) throws Exception {
 	}
+
+	protected abstract String getPackagingRoot();
 
 }
