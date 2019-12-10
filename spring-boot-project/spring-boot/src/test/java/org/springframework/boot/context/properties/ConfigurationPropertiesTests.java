@@ -919,6 +919,16 @@ class ConfigurationPropertiesTests {
 		assertThat(bean.getNested().getOuter().getAge()).isEqualTo(5);
 	}
 
+	@Test
+	void boundPropertiesShouldBeRecorded() {
+		load(NestedConfiguration.class, "name=foo", "nested.name=bar");
+		ConfigurationPropertiesBoundPropertiesHolder recorder = this.context.getBean(
+				ConfigurationPropertiesBoundPropertiesHolder.BEAN_NAME,
+				ConfigurationPropertiesBoundPropertiesHolder.class);
+		assertThat(recorder.getProperties().stream().map((c) -> c.getName().toString())).contains("name",
+				"nested.name");
+	}
+
 	private AnnotationConfigApplicationContext load(Class<?> configuration, String... inlinedProperties) {
 		return load(new Class<?>[] { configuration }, inlinedProperties);
 	}

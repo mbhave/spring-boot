@@ -338,6 +338,7 @@ public class Binder {
 			Assert.state(result != null, () -> "Unable to create instance for " + target.getType());
 		}
 		handler.onFinish(name, target, context, result);
+		context.clearConfigurationProperty();
 		return context.getConverter().convert(result, target);
 	}
 
@@ -576,7 +577,7 @@ public class Binder {
 			}
 		}
 
-		private void setConfigurationProperty(ConfigurationProperty configurationProperty) {
+		void setConfigurationProperty(ConfigurationProperty configurationProperty) {
 			this.configurationProperty = configurationProperty;
 		}
 
