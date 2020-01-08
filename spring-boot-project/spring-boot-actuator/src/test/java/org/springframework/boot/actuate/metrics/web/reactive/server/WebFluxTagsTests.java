@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.AbstractServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.mock;
  *
  * @author Brian Clozel
  * @author Michael McFadyen
+ * @author Madhura Bhave
  */
 class WebFluxTagsTests {
 
@@ -115,6 +117,19 @@ class WebFluxTagsTests {
 		this.exchange.getResponse().setStatusCode(null);
 		Tag tag = WebFluxTags.outcome(this.exchange);
 		assertThat(tag.getValue()).isEqualTo("UNKNOWN");
+	}
+
+	@Test
+	void outcomeTagIsSuccessWhenResponseStatusIsAvailableFromUnderlyingServer() {
+		ServerWebExchange exchange = mock(ServerWebExchange.class);
+		ServerHttpRequest request = mock(ServerHttpRequest.class);
+		AbstractServerHttpResponse response = mock(AbstractServerHttpResponse.class);
+		given(response.getStatusCode()).willReturn(HttpStatus.OK);
+		given(response.getStatusCodeValue()).willReturn(null);
+		given(exchange.getRequest()).willReturn(request);
+		given(exchange.getResponse()).willReturn(response);
+		Tag tag = WebFluxTags.outcome(exchange);
+		assertThat(tag.getValue()).isEqualTo("SUCCESS");
 	}
 
 	@Test
