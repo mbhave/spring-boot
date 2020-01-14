@@ -25,9 +25,12 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
+import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -491,6 +494,24 @@ public class JarFileTests {
 		InputStream inputStream = multiRelease.getInputStream(entry);
 		assertThat(inputStream.available()).isEqualTo(1);
 		assertThat(inputStream.read()).isEqualTo(getJavaVersion());
+	}
+
+	@Test
+	public void jarFileEntryWithEpochTimeOfZeroShouldNotFail() throws Exception {
+		File file = this.temporaryFolder.newFile();
+		FileOutputStream fileOutputStream = new FileOutputStream(file);
+		try (JarOutputStream jarOutputStream = new JarOutputStream(fileOutputStream)) {
+			jarOutputStream.setComment("outer");
+			JarEntry entry = new JarEntry("1.dat");
+			entry.setCreationTime(FileTime.fromMillis(0));
+			entry.setLastModifiedTime(FileTime.fromMillis(0));
+			jarOutputStream.putNextEntry(entry);
+			jarOutputStream.write(new byte[] { (byte) 1 });
+			jarOutputStream.closeEntry();
+		}
+		JarFile jarFile = new JarFile(file);
+		Enumeration<java.util.jar.JarEntry> entries = jarFile.entries();
+		assertThat(entries.nextElement().getName()).isEqualTo("1.dat");
 	}
 
 	private int getJavaVersion() {
