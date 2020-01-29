@@ -101,12 +101,20 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 
 	@Override
 	protected Iterator<Archive> getClassPathArchivesIterator() throws Exception {
-		Archive.EntryFilter searchFilter = (entry) -> isSearchCandidate(entry) && !isFolderIndexed(entry);
-		Iterator<Archive> archives = this.archive.getNestedArchives(searchFilter, this::isNestedArchive);
+		Archive.EntryFilter searchFilter = (entry) -> isSearchCandidate(entry);
+		Iterator<Archive> archives = this.archive.getNestedArchives(searchFilter,
+				(entry) -> isNestedArchive(entry) && !isEntryIndexed(entry));
 		if (isPostProcessingClassPathArchives()) {
 			archives = applyClassPathArchivePostProcessing(archives);
 		}
 		return archives;
+	}
+
+	private boolean isEntryIndexed(Archive.Entry entry) {
+		if (this.classPathIndex != null) {
+			return this.classPathIndex.containsEntry(entry.getName());
+		}
+		return false;
 	}
 
 	private boolean isFolderIndexed(Archive.Entry entry) {

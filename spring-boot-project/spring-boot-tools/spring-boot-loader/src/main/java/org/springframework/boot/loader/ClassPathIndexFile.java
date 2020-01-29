@@ -127,4 +127,10 @@ final class ClassPathIndexFile {
 		}
 	}
 
+	public boolean containsEntry(String name) {
+		if (name == null || name.isEmpty()) {
+			return false;
+		}
+		return this.lines.contains(name);
+	}
 }
