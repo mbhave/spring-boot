@@ -1,0 +1,20 @@
+<the_root>
+	<layers>
+		<layer>configuration</layer>
+		<layer>application</layer>
+		<layer>snapshot-dependencies</layer>
+		<layer>my-dependencies-name</layer>
+	</layers>
+	<libraries>
+		<strategy id="snapshot-dependencies" layer="snapshot-dependencies"/>
+		<strategy id="dependencies" layer="my-dependencies-name"/>
+	</libraries>
+	<classes>
+		<strategy id ="configuration" layer="configuration">
+			<names>
+				<include>application*.*</include>
+			</names>
+		</strategy>
+		<strategy id="application"/>
+	</classes>
+</the_root>

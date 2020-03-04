@@ -1,0 +1,13 @@
+<the_root>
+	<layers>
+		<layer>snapshots</layer>
+		<layer>my-deps</layer>
+	</layers>
+	<libraries>
+		<!--		The default strategy for snapshots-->
+		<strategy id="snapshot-dependencies" layer="snapshot-dependencies"/>
+		<!--		Strategy for including dependencies with given coordinates-->
+		<strategy id="my-deps" layer="my-deps"/>
+		<!--		Default dependencies strategy with layer name renamed-->
+	</libraries>
+</the_root>

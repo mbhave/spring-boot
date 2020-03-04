@@ -38,6 +38,10 @@ public class Library {
 
 	private final boolean unpackRequired;
 
+	private final String artifactId;
+
+	private final String groupId;
+
 	/**
 	 * Create a new {@link Library}.
 	 * @param file the source file
@@ -66,10 +70,17 @@ public class Library {
 	 * @param unpackRequired if the library needs to be unpacked before it can be used
 	 */
 	public Library(String name, File file, LibraryScope scope, boolean unpackRequired) {
+		this(name, file, scope, unpackRequired, null, null);
+	}
+
+	public Library(String name, File file, LibraryScope scope, boolean unpackRequired, String artifactId,
+			String groupId) {
 		this.name = (name != null) ? name : file.getName();
 		this.file = file;
 		this.scope = scope;
 		this.unpackRequired = unpackRequired;
+		this.artifactId = artifactId;
+		this.groupId = groupId;
 	}
 
 	/**
@@ -118,4 +129,11 @@ public class Library {
 		return this.file.lastModified();
 	}
 
+	public String getArtifactId() {
+		return this.artifactId;
+	}
+
+	public String getGroupId() {
+		return this.groupId;
+	}
 }

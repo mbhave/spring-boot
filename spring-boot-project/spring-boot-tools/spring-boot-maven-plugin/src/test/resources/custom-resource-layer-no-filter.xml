@@ -1,0 +1,10 @@
+<the_root>
+	<layers>
+		<layer>application</layer>
+		<layer>my-resources</layer>
+	</layers>
+	<classes>
+		<strategy id="my-resources"/>
+		<strategy id="application"/>
+	</classes>
+</the_root>

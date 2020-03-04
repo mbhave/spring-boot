@@ -16,11 +16,15 @@
 
 package org.springframework.boot.maven;
 
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Dependency;
@@ -31,7 +35,10 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.artifact.filter.collection.ArtifactsFilter;
 import org.apache.maven.shared.artifact.filter.collection.ScopeFilter;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
+import org.springframework.boot.loader.tools.Layers;
 import org.springframework.boot.loader.tools.Layout;
 import org.springframework.boot.loader.tools.LayoutFactory;
 import org.springframework.boot.loader.tools.Layouts.Expanded;
@@ -41,6 +48,7 @@ import org.springframework.boot.loader.tools.Layouts.None;
 import org.springframework.boot.loader.tools.Layouts.War;
 import org.springframework.boot.loader.tools.Libraries;
 import org.springframework.boot.loader.tools.Packager;
+import org.springframework.boot.maven.layer.CustomLayersProvider;
 
 /**
  * Abstract base class for classes that work with an {@link Packager}.
@@ -127,10 +135,26 @@ public abstract class AbstractPackagerMojo extends AbstractDependencyFilterMojo 
 			packager.setLayout(this.layout.layout());
 		}
 		if (this.layered != null && this.layered.isEnabled()) {
+			try {
+				Document document = getDocumentIfAvailable();
+				CustomLayersProvider customLayersProvider = new CustomLayersProvider();
+				Layers layers = customLayersProvider.getLayers(document);
+				packager.setLayers(layers);
+			}
+			catch (Exception ex) {
+
+			}
 			packager.setLayout(new LayeredJar());
 			packager.setIncludeRelevantJarModeJars(this.layered.isIncludeLayerTools());
 		}
 		return packager;
+	}
+
+	private Document getDocumentIfAvailable() throws Exception {
+		InputSource inputSource = new InputSource(new FileInputStream(this.project.getBasedir() + "/src/layers"));
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+		return builder.parse(inputSource);
 	}
 
 	/**
