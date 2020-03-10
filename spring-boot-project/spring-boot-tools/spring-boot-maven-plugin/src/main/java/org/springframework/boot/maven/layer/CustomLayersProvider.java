@@ -62,46 +62,47 @@ public class CustomLayersProvider {
 					layers.addAll(getLayers(ele));
 				}
 				if ("libraries".equals(nodeName)) {
-					libraryStrategies = getLibraryStrategies(ele.getElementsByTagName("strategy"));
+					libraryStrategies = getLibraryStrategies(ele.getChildNodes());
 				}
 				if ("classes".equals(nodeName)) {
-					resourceStrategies = getResourceStrategies(ele.getElementsByTagName("strategy"));
+					resourceStrategies = getResourceStrategies(ele.getChildNodes());
 				}
 			}
 		}
 		return new CustomLayers(layers, resourceStrategies, libraryStrategies);
 	}
 
-	private LibraryStrategies getLibraryStrategies(NodeList strategies) {
+	private LibraryStrategies getLibraryStrategies(NodeList nodes) {
 		Map<String, LibraryStrategy> strategy = new LinkedHashMap<>();
-		for (int i = 0; i < strategies.getLength(); i++) {
-			Node item = strategies.item(i);
-			List<LibraryFilter> filters = new ArrayList<>();
+		for (int i = 0; i < nodes.getLength(); i++) {
+			Node item = nodes.item(i);
 			if (item instanceof Element) {
 				Element element = (Element) item;
 				String id = element.getAttribute("id");
 				String layer = (element.getAttribute("layer").isEmpty() ? id : element.getAttribute("layer"));
-				if (item.getChildNodes().getLength() == 0) {
+				if ("default-strategy".equals(element.getTagName())) {
 					try {
 						LibraryStrategy libraryStrategy = LibraryStrategies.defaultStrategy(id, layer);
 						strategy.put(id, libraryStrategy);
-						continue;
 					}
 					catch (Exception ex) {
 						throw new IllegalArgumentException("No default strategy found for id '" + id
 								+ "' and custom strategy definition must not be empty.");
 					}
 				}
-				NodeList filterList = item.getChildNodes();
-				for (int k = 0; k < filterList.getLength(); k++) {
-					Node filter = filterList.item(k);
-					if (filter instanceof Element) {
-						List<String> includeList = getPatterns(i, (Element) filter, "include");
-						List<String> excludeList = getPatterns(i, (Element) filter, "exclude");
-						addLibraryFilter(filters, filter, includeList, excludeList);
+				if ("strategy".equals(element.getTagName())) {
+					List<LibraryFilter> filters = new ArrayList<>();
+					NodeList filterList = item.getChildNodes();
+					for (int k = 0; k < filterList.getLength(); k++) {
+						Node filter = filterList.item(k);
+						if (filter instanceof Element) {
+							List<String> includeList = getPatterns(i, (Element) filter, "include");
+							List<String> excludeList = getPatterns(i, (Element) filter, "exclude");
+							addLibraryFilter(filters, filter, includeList, excludeList);
+						}
 					}
+					strategy.put(id, new CustomLibraryStrategy(layer, filters));
 				}
-				strategy.put(id, new CustomLibraryStrategy(layer, filters));
 			}
 		}
 		return new LibraryStrategies(strategy);
@@ -126,27 +127,28 @@ public class CustomLayersProvider {
 				Element element = (Element) item;
 				String id = element.getAttribute("id");
 				String layer = (element.getAttribute("layer").isEmpty() ? id : element.getAttribute("layer"));
-				if (item.getChildNodes().getLength() == 0) {
+				if ("default-strategy".equals(element.getTagName())) {
 					try {
 						ResourceStrategy libraryStrategy = ResourceStrategies.defaultStrategy(id, layer);
 						strategy.put(id, libraryStrategy);
-						continue;
 					}
 					catch (Exception ex) {
 						throw new IllegalArgumentException("No default strategy found for id '" + id
 								+ "' and custom strategy definition must not be empty.");
 					}
 				}
-				NodeList filterList = item.getChildNodes();
-				for (int k = 0; k < filterList.getLength(); k++) {
-					Node filter = filterList.item(k);
-					if (filter instanceof Element) {
-						List<String> includeList = getPatterns(i, (Element) filter, "include");
-						List<String> excludeList = getPatterns(i, (Element) filter, "exclude");
-						addFilter(filters, filter, includeList, excludeList);
+				if ("strategy".equals(element.getTagName())) {
+					NodeList filterList = item.getChildNodes();
+					for (int k = 0; k < filterList.getLength(); k++) {
+						Node filter = filterList.item(k);
+						if (filter instanceof Element) {
+							List<String> includeList = getPatterns(i, (Element) filter, "include");
+							List<String> excludeList = getPatterns(i, (Element) filter, "exclude");
+							addFilter(filters, filter, includeList, excludeList);
+						}
 					}
+					strategy.putIfAbsent(id, new CustomResourceStrategy(layer, filters));
 				}
-				strategy.putIfAbsent(id, new CustomResourceStrategy(layer, filters));
 			}
 		}
 		return new ResourceStrategies(strategy);

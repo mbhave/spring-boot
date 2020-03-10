@@ -1,4 +1,7 @@
-<the_root>
+<layers-configuration xmlns="http://www.springframework.org/schema/layers"
+					  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+					  xsi:schemaLocation="http://www.springframework.org/schema/layers
+					  https://www.springframework.org/schema/layers/layers-configuration.xsd">
 	<layers>
 		<layer>configuration</layer>
 		<layer>application</layer>
@@ -8,31 +11,33 @@
 		<layer>my-dependencies-name</layer>
 	</layers>
 	<libraries>
-		<!--		The default strategy for snapshots-->
-		<strategy id="snapshot-dependencies" layer="snapshot-dependencies"/>
-		<!--		Strategy for including dependencies with given coordinates-->
+		<!-- The default strategy for snapshots-->
+		<default-strategy id="snapshot-dependencies"/>
+		<!-- Strategy for including dependencies with given coordinates-->
 		<strategy id="my-deps" layer="my-deps">
 			<coordinates>
 				<include>com.acme:*</include>
 			</coordinates>
 		</strategy>
-		<!--		Default dependencies strategy with layer name renamed-->
-		<strategy id="dependencies" layer="my-dependencies-name"/>
+		<!-- Default dependencies strategy with layer name renamed-->
+		<default-strategy id="dependencies" layer="my-dependencies-name"/>
 	</libraries>
 	<classes>
-		<!--		Strategy for resources that match a given location-->
-		<strategy id ="my-resources" layer="my-resources">
+		<!-- Strategy for resources that match a given location-->
+		<strategy id="my-resources" layer="my-resources">
 			<locations>
 				<include>META-INF/resources/</include>
 			</locations>
 		</strategy>
-		<!--		Strategy for files that match a given name-->
-		<strategy id ="configuration" layer="configuration">
+		<!--Strategy for files that match a given name-->
+		<strategy id="configuration" layer="configuration">
 			<names>
 				<include>application*.*</include>
 			</names>
 		</strategy>
-		<strategy id="application"/>
-		<!--		Everything else goes in the application layer. If there an explicit application layer defined, another default layer is used as the catch-all. If nothing is left-over from defined layer matching, no catch-all layer is added-->
+		<default-strategy id="application"/>
+		<!-- Everything else goes in the application layer. If there an explicit
+		application layer defined, another default layer is used as the catch-all. If
+		nothing is left-over from defined layer matching, no catch-all layer is added-->
 	</classes>
-</the_root>
+</layers-configuration>
