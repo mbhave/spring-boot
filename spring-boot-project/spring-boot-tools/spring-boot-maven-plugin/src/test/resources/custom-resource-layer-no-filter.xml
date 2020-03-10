@@ -1,0 +1,13 @@
+<layers-configuration xmlns="http://www.springframework.org/schema/layers"
+					  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+					  xsi:schemaLocation="http://www.springframework.org/schema/layers
+					  https://www.springframework.org/schema/layers/layers-configuration.xsd">
+	<layers>
+		<layer>application</layer>
+		<layer>my-resources</layer>
+	</layers>
+	<classes>
+		<default-strategy id="my-resources" layer="my-layer"/>
+		<default-strategy id="application"/>
+	</classes>
+</layers-configuration>
