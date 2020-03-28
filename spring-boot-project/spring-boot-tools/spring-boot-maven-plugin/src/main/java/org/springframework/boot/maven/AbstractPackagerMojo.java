@@ -43,7 +43,6 @@ import org.springframework.boot.loader.tools.Layout;
 import org.springframework.boot.loader.tools.LayoutFactory;
 import org.springframework.boot.loader.tools.Layouts.Expanded;
 import org.springframework.boot.loader.tools.Layouts.Jar;
-import org.springframework.boot.loader.tools.Layouts.LayeredJar;
 import org.springframework.boot.loader.tools.Layouts.None;
 import org.springframework.boot.loader.tools.Layouts.War;
 import org.springframework.boot.loader.tools.Libraries;
@@ -145,7 +144,7 @@ public abstract class AbstractPackagerMojo extends AbstractDependencyFilterMojo 
 							+ this.layers.getConfiguration().getAbsolutePath(), ex);
 				}
 			}
-			packager.setLayout(new LayeredJar());
+			packager.setIncludeLayersIndex(true);
 			packager.setIncludeRelevantJarModeJars(this.layers.isIncludeLayerTools());
 		}
 		return packager;

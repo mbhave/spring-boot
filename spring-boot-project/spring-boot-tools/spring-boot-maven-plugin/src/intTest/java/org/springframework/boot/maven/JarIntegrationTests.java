@@ -17,15 +17,20 @@ package org.springframework.boot.maven;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
 
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.boot.loader.tools.FileUtils;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.util.FileSystemUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -290,37 +295,56 @@ class JarIntegrationTests extends AbstractArchiveIntegrationTests {
 	}
 
 	@TestTemplate
-	void whenJarIsRepackagedWithTheLayeredLayoutTheJarContainsLayers(MavenBuild mavenBuild) {
+	void whenJarIsRepackagedWithLayersEnabledTheJarContainsTheLayersIndex(MavenBuild mavenBuild) {
 		mavenBuild.project("jar-layered").execute((project) -> {
 			File repackaged = new File(project, "jar/target/jar-layered-0.0.1.BUILD-SNAPSHOT.jar");
-			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/layers/application/classes/")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/dependencies/lib/jar-release")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/snapshot-dependencies/lib/jar-snapshot")
-					.hasEntryWithNameStartingWith(
-							"BOOT-INF/layers/dependencies/lib/spring-boot-jarmode-layertools.jar");
+			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/classes/")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-release")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-snapshot")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/spring-boot-jarmode-layertools.jar");
+			try {
+				JarFile jarFile = new JarFile(repackaged);
+				ZipEntry entry = jarFile.getEntry("BOOT-INF/layers.idx");
+				InputStream inputStream = jarFile.getInputStream(entry);
+				InputStreamReader reader = new InputStreamReader(inputStream);
+				String[] lines = FileCopyUtils.copyToString(reader).split("\\n");
+				assertThat(Arrays.stream(lines).map((n) -> n.split(" ")[0]).distinct()).containsExactly("dependencies",
+						"spring-boot-loader", "snapshot-dependencies", "application");
+			}
+			catch (IOException e) {
+			}
 		});
 	}
 
 	@TestTemplate
-	void whenJarIsRepackagedWithTheLayeredLayoutAndLayerToolsExcluded(MavenBuild mavenBuild) {
+	void whenJarIsRepackagedWithTheLayersEnabledAndLayerToolsExcluded(MavenBuild mavenBuild) {
 		mavenBuild.project("jar-layered-no-layer-tools").execute((project) -> {
 			File repackaged = new File(project, "jar/target/jar-layered-0.0.1.BUILD-SNAPSHOT.jar");
-			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/layers/application/classes/")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/dependencies/lib/jar-release")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/snapshot-dependencies/lib/jar-snapshot")
-					.doesNotHaveEntryWithNameStartingWith(
-							"BOOT-INF/layers/dependencies/lib/spring-boot-jarmode-layertools.jar");
+			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/classes/")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-release")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-snapshot")
+					.doesNotHaveEntryWithNameStartingWith("BOOT-INF/lib/spring-boot-jarmode-layertools.jar");
 		});
 	}
 
 	@TestTemplate
-	void whenJarIsRepackagedWithTheCustomLayeredLayout(MavenBuild mavenBuild) {
+	void whenJarIsRepackagedWithTheCustomLayers(MavenBuild mavenBuild) {
 		mavenBuild.project("jar-layered-custom").execute((project) -> {
 			File repackaged = new File(project, "jar/target/jar-layered-0.0.1.BUILD-SNAPSHOT.jar");
-			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/layers/application/classes/")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/my-dependencies-name/lib/jar-release")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/snapshot-dependencies/lib/jar-snapshot")
-					.hasEntryWithNameStartingWith("BOOT-INF/layers/configuration/classes/application.yml");
+			assertThat(jar(repackaged)).hasEntryWithNameStartingWith("BOOT-INF/classes/")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-release")
+					.hasEntryWithNameStartingWith("BOOT-INF/lib/jar-snapshot");
+			try {
+				JarFile jarFile = new JarFile(repackaged);
+				ZipEntry entry = jarFile.getEntry("BOOT-INF/layers.idx");
+				InputStream inputStream = jarFile.getInputStream(entry);
+				InputStreamReader reader = new InputStreamReader(inputStream);
+				String[] lines = FileCopyUtils.copyToString(reader).split("\\n");
+				assertThat(Arrays.stream(lines).map((n) -> n.split(" ")[0]).distinct()).containsExactly(
+						"my-dependencies-name", "snapshot-dependencies", "configuration", "application");
+			}
+			catch (IOException e) {
+			}
 		});
 	}
 
