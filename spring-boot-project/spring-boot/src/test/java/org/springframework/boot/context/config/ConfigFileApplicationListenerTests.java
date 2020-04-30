@@ -716,7 +716,7 @@ class ConfigFileApplicationListenerTests {
 				"spring.config.location=classpath*:override.properties");
 		assertThatIllegalStateException()
 				.isThrownBy(() -> this.initializer.postProcessEnvironment(this.environment, this.application))
-				.withMessage("Classpath wildard patterns cannot be used as a search location");
+				.withMessage("Classpath wildcard patterns cannot be used as a search location");
 	}
 
 	@Test
@@ -1030,6 +1030,37 @@ class ConfigFileApplicationListenerTests {
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
 				"spring.config.location=" + location);
 		this.initializer.postProcessEnvironment(this.environment, this.application);
+	}
+
+	@Test
+	void directoryLocationsWithWildcardShouldHaveWildcardAsLastCharacterBeforeSlash() {
+		String location = "file:src/test/resources/*/config/";
+		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
+				"spring.config.location=" + location);
+		assertThatIllegalStateException()
+				.isThrownBy(() -> this.initializer.postProcessEnvironment(this.environment, this.application))
+				.withMessage("Wildcard patterns must end with '*/'");
+	}
+
+	@Test
+	void directoryLocationsWithMultipleWildcardsShouldThrowException() {
+		String location = "file:src/test/resources/config/**/";
+		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
+				"spring.config.location=" + location);
+		assertThatIllegalStateException()
+				.isThrownBy(() -> this.initializer.postProcessEnvironment(this.environment, this.application))
+				.withMessage("Wildard pattern with multiple '*'s cannot be used as search location");
+	}
+
+	@Test
+	void locationsWithWildcardDirectoriesShouldRestrictToOneLevelDeep() {
+		String location = "file:src/test/resources/config/*/";
+		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
+				"spring.config.location=" + location);
+		this.initializer.setSearchNames("testproperties");
+		this.initializer.postProcessEnvironment(this.environment, this.application);
+		String second = this.environment.getProperty("second.property");
+		assertThat(this.environment.getProperty("third.property")).isNull();
 	}
 
 	@Test
