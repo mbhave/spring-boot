@@ -177,6 +177,15 @@ class Log4J2LoggingSystemTests extends AbstractLoggingSystemTests {
 	}
 
 	@Test
+	void getLoggingConfigurationForNonExistentLoggerShouldReturnNull() {
+		this.loggingSystem.beforeInitialize();
+		this.loggingSystem.initialize(null, null, null);
+		this.loggingSystem.setLogLevel(getClass().getName(), LogLevel.DEBUG);
+		LoggerConfiguration configuration = this.loggingSystem.getLoggerConfiguration("doesnotexist");
+		assertThat(configuration).isEqualTo(null);
+	}
+
+	@Test
 	void setLevelOfUnconfiguredLoggerDoesNotAffectRootConfiguration(CapturedOutput output) {
 		this.loggingSystem.beforeInitialize();
 		this.loggingSystem.initialize(null, null, null);
