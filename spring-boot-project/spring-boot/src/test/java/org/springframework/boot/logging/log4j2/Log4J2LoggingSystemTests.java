@@ -101,7 +101,8 @@ class Log4J2LoggingSystemTests extends AbstractLoggingSystemTests {
 	void withFile(CapturedOutput output) {
 		this.loggingSystem.beforeInitialize();
 		this.logger.info("Hidden");
-		this.loggingSystem.initialize(null, null, getLogFile(null, tmpDir()));
+		this.loggingSystem.initialize(null, "classpath:org/springframework/boot/logging/log4j2/log4j2-file.xml",
+				getLogFile(null, tmpDir()));
 		this.logger.info("Hello world");
 		Configuration configuration = this.loggingSystem.getConfiguration();
 		assertThat(output).contains("Hello world").doesNotContain("Hidden");
@@ -197,39 +198,45 @@ class Log4J2LoggingSystemTests extends AbstractLoggingSystemTests {
 
 	@Test
 	void configLocationsWithNoExtraDependencies() {
-		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2.properties", "log4j2.xml");
+		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2-test.properties",
+				"log4j2-test.xml", "log4j2.properties", "log4j2.xml");
 	}
 
 	@Test
 	void configLocationsWithJacksonDatabind() {
 		this.loggingSystem.availableClasses(ObjectMapper.class.getName());
-		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2.json", "log4j2.jsn", "log4j2.xml");
+		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2-test.json", "log4j2-test.jsn",
+				"log4j2.json", "log4j2.jsn", "log4j2.xml");
 	}
 
 	@Test
 	void configLocationsWithJacksonDataformatYaml() {
 		this.loggingSystem.availableClasses("com.fasterxml.jackson.dataformat.yaml.YAMLParser");
-		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2.yaml", "log4j2.yml", "log4j2.xml");
+		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2-test.yaml", "log4j2-test.yml",
+				"log4j2.yaml", "log4j2.yml", "log4j2.xml");
 	}
 
 	@Test
 	void configLocationsWithJacksonDatabindAndDataformatYaml() {
 		this.loggingSystem.availableClasses("com.fasterxml.jackson.dataformat.yaml.YAMLParser",
 				ObjectMapper.class.getName());
-		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2.yaml", "log4j2.yml", "log4j2.json",
-				"log4j2.jsn", "log4j2.xml");
+		assertThat(this.loggingSystem.getStandardConfigLocations()).contains("log4j2-test.yaml", "log4j2-test.yml",
+				"log4j2-test.json", "log4j2-test.jsn", "log4j2.yaml", "log4j2.yml", "log4j2.json", "log4j2.jsn",
+				"log4j2.xml");
 	}
 
 	@Test
 	void springConfigLocations() {
 		String[] locations = getSpringConfigLocations(this.loggingSystem);
-		assertThat(locations).containsExactly("log4j2-spring.properties", "log4j2-spring.xml");
+		assertThat(locations).containsExactly("log4j2-test-spring.properties", "log4j2-test-spring.xml",
+				"log4j2-spring.properties", "log4j2-spring.xml");
 	}
 
 	@Test
 	void exceptionsIncludeClassPackaging(CapturedOutput output) {
 		this.loggingSystem.beforeInitialize();
-		this.loggingSystem.initialize(null, null, getLogFile(null, tmpDir()));
+		this.loggingSystem.initialize(null, "classpath:org/springframework/boot/logging/log4j2/log4j2-file.xml",
+				getLogFile(null, tmpDir()));
 		this.logger.warn("Expected exception", new RuntimeException("Expected"));
 		String fileContents = contentOf(new File(tmpDir() + "/spring.log"));
 		assertThat(fileContents).contains("[junit-");
@@ -249,7 +256,8 @@ class Log4J2LoggingSystemTests extends AbstractLoggingSystemTests {
 		try {
 			this.loggingSystem.beforeInitialize();
 			this.logger.info("Hidden");
-			this.loggingSystem.initialize(null, null, getLogFile(null, tmpDir()));
+			this.loggingSystem.initialize(null, "classpath:org/springframework/boot/logging/log4j2/log4j2-file.xml",
+					getLogFile(null, tmpDir()));
 			this.logger.warn("Expected exception", new RuntimeException("Expected", new RuntimeException("Cause")));
 			String fileContents = contentOf(new File(tmpDir() + "/spring.log"));
 			assertThat(fileContents).contains("java.lang.RuntimeException: Expected").doesNotContain("Wrapped by:");

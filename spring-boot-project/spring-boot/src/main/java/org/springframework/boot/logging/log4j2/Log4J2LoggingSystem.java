@@ -109,6 +109,7 @@ public class Log4J2LoggingSystem extends Slf4JLoggingSystem {
 
 	private String[] getCurrentlySupportedConfigLocations() {
 		List<String> supportedConfigLocations = new ArrayList<>();
+		addTestFiles(supportedConfigLocations);
 		supportedConfigLocations.add("log4j2.properties");
 		if (isClassAvailable("com.fasterxml.jackson.dataformat.yaml.YAMLParser")) {
 			Collections.addAll(supportedConfigLocations, "log4j2.yaml", "log4j2.yml");
@@ -118,6 +119,16 @@ public class Log4J2LoggingSystem extends Slf4JLoggingSystem {
 		}
 		supportedConfigLocations.add("log4j2.xml");
 		return StringUtils.toStringArray(supportedConfigLocations);
+	}
+
+	private void addTestFiles(List<String> supportedConfigLocations) {
+		Collections.addAll(supportedConfigLocations, "log4j2-test.properties", "log4j2-test.xml");
+		if (isClassAvailable("com.fasterxml.jackson.dataformat.yaml.YAMLParser")) {
+			Collections.addAll(supportedConfigLocations, "log4j2-test.yaml", "log4j2-test.yml");
+		}
+		if (isClassAvailable("com.fasterxml.jackson.databind.ObjectMapper")) {
+			Collections.addAll(supportedConfigLocations, "log4j2-test.json", "log4j2-test.jsn");
+		}
 	}
 
 	protected boolean isClassAvailable(String className) {
