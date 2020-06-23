@@ -1,4 +1,34 @@
+---
+spring:
+  profile:
+    active: "production"
+    group:
+      production:
+        - "livedb"
+        - "livemq"
+---
+spring:
+  config:
+    activate:
+      on-profile: "foo"
+    import: "another.yml"
+---
+spring:
+  config:
+    activate:
+      on-cloud-platform: "kubernetes"
+    import: "volumemount:/etc"
+---
+spring:
+  config:
+    activate:
+      on-operating-system: "windows"
+  main:
+    banner-mode: off 
+---
 name: Phil
 sample.name: Andy
-
 spring.banner.image.bitdepth: 8
+---
+something here
+---
