@@ -25,7 +25,6 @@ import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.LivenessState;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationEventMulticaster;
@@ -60,7 +59,9 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 		this.application = application;
 		this.args = args;
 		this.initialMulticaster = new SimpleApplicationEventMulticaster();
-		addApplicationListeners();
+		for (ApplicationListener<?> listener : application.getListeners()) {
+			this.initialMulticaster.addApplicationListener(listener);
+		}
 	}
 
 	@Override
@@ -70,17 +71,19 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void starting() {
-		multicastEvent(new ApplicationStartingEvent(this.application, this.args));
+		this.initialMulticaster.multicastEvent(new ApplicationStartingEvent(this.application, this.args));
 	}
 
 	@Override
 	public void environmentPrepared(ConfigurableEnvironment environment) {
-		multicastEvent(new ApplicationEnvironmentPreparedEvent(this.application, this.args, environment));
+		this.initialMulticaster
+				.multicastEvent(new ApplicationEnvironmentPreparedEvent(this.application, this.args, environment));
 	}
 
 	@Override
 	public void contextPrepared(ConfigurableApplicationContext context) {
-		multicastEvent(new ApplicationContextInitializedEvent(this.application, this.args, context));
+		this.initialMulticaster
+				.multicastEvent(new ApplicationContextInitializedEvent(this.application, this.args, context));
 	}
 
 	@Override
@@ -91,7 +94,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 			}
 			context.addApplicationListener(listener);
 		}
-		multicastEvent(new ApplicationPreparedEvent(this.application, this.args, context));
+		this.initialMulticaster.multicastEvent(new ApplicationPreparedEvent(this.application, this.args, context));
 	}
 
 	@Override
@@ -125,17 +128,6 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 			}
 			this.initialMulticaster.setErrorHandler(new LoggingErrorHandler());
 			this.initialMulticaster.multicastEvent(event);
-		}
-	}
-
-	private void multicastEvent(ApplicationEvent event) {
-		this.initialMulticaster.multicastEvent(event);
-		addApplicationListeners();
-	}
-
-	private void addApplicationListeners() {
-		for (ApplicationListener<?> listener : this.application.getListeners()) {
-			this.initialMulticaster.addApplicationListener(listener);
 		}
 	}
 
