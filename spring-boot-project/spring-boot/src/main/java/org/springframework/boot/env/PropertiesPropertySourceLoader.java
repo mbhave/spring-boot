@@ -17,6 +17,7 @@
 package org.springframework.boot.env;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,21 +45,30 @@ public class PropertiesPropertySourceLoader implements PropertySourceLoader {
 
 	@Override
 	public List<PropertySource<?>> load(String name, Resource resource) throws IOException {
-		Map<String, ?> properties = loadProperties(resource);
+		List<Map<String, ?>> properties = loadProperties(resource);
 		if (properties.isEmpty()) {
 			return Collections.emptyList();
 		}
-		return Collections
-				.singletonList(new OriginTrackedMapPropertySource(name, Collections.unmodifiableMap(properties), true));
+		List<PropertySource<?>> propertySources = new ArrayList<>(properties.size());
+		for (int i = 0; i < properties.size(); i++) {
+			String documentNumber = (properties.size() != 1) ? " (document #" + i + ")" : "";
+			propertySources.add(new OriginTrackedMapPropertySource(name + documentNumber,
+					Collections.unmodifiableMap(properties.get(i)), true));
+		}
+		return propertySources;
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private Map<String, ?> loadProperties(Resource resource) throws IOException {
+	private List<Map<String, ?>> loadProperties(Resource resource) throws IOException {
 		String filename = resource.getFilename();
+		List<Map<String, ?>> result = new ArrayList<>();
 		if (filename != null && filename.endsWith(XML_FILE_EXTENSION)) {
-			return (Map) PropertiesLoaderUtils.loadProperties(resource);
+			result.add((Map) PropertiesLoaderUtils.loadProperties(resource));
 		}
-		return new OriginTrackedPropertiesLoader(resource).load();
+		else {
+			result.addAll(new OriginTrackedPropertiesLoader(resource).load());
+		}
+		return result;
 	}
 
 }
