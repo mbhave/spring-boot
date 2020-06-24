@@ -16,10 +16,16 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.Arrays;
+
+import org.apache.commons.logging.Log;
+
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.log.LogMessage;
 
 /**
  * {@link EnvironmentPostProcessor} used to load external configuration.
@@ -27,14 +33,42 @@ import org.springframework.core.env.ConfigurableEnvironment;
  * @author Phillip Webb
  * @since 2.4.0
  */
-public class ExternalConfigurationEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+public class ExternalConfigEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
 	/**
 	 * The default order for the processor.
 	 */
 	public static final int DEFAULT_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
+	/**
+	 * The "config name" property name.
+	 */
+	public static final String NAME_PROPERTY = "spring.config.name";
+
+	/**
+	 * The "config location" property name.
+	 */
+	public static final String LOCATION_PROPERTY = "spring.config.location";
+
+	/**
+	 * The "config additional location" property name.
+	 */
+	public static final String ADDITIONAL_LOCATION_PROPERTY = "spring.config.additional-location";
+
+	private static final String[] DEFAULT_LOCATIONS = { "classpath:/", "classpath:/config/", "file:./",
+			"file:./config/*/", "file:./config/" };
+
+	private static final String[] DEFAULT_NAMES = { "application" };
+
+	private static final String[] NO_LOCATIONS = {};
+
+	private final Log logger;
+
 	private int order = DEFAULT_ORDER;
+
+	public ExternalConfigEnvironmentPostProcessor(Log logger) {
+		this.logger = logger;
+	}
 
 	@Override
 	public int getOrder() {
@@ -43,7 +77,13 @@ public class ExternalConfigurationEnvironmentPostProcessor implements Environmen
 
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-		processUsingLegacyMethod(environment, application);
+		Binder binder = Binder.get(environment);
+		String[] names = binder.bind(NAME_PROPERTY, String[].class).orElse(DEFAULT_NAMES);
+		String[] locations = binder.bind(LOCATION_PROPERTY, String[].class).orElse(DEFAULT_LOCATIONS);
+		String[] additionalLocations = binder.bind(ADDITIONAL_LOCATION_PROPERTY, String[].class).orElse(NO_LOCATIONS);
+		this.logger.info(LogMessage.of(() -> "Names: " + Arrays.asList(names)));
+		this.logger.info(LogMessage.of(() -> "Locations: " + Arrays.asList(locations)));
+		this.logger.info(LogMessage.of(() -> "Additional Location: " + Arrays.asList(additionalLocations)));
 	}
 
 	@SuppressWarnings("deprecation")

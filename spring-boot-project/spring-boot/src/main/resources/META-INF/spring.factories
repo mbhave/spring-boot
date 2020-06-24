@@ -27,15 +27,15 @@ org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor,\
 org.springframework.boot.context.FileEncodingApplicationListener,\
 org.springframework.boot.context.config.AnsiOutputApplicationListener,\
 org.springframework.boot.context.config.DelegatingApplicationListener,\
-org.springframework.boot.context.config.EnvironmentPostProcessorApplicationListener,\
 org.springframework.boot.context.logging.ClasspathLoggingApplicationListener,\
 org.springframework.boot.context.logging.LoggingApplicationListener,\
+org.springframework.boot.env.EnvironmentPostProcessorApplicationListener,\
 org.springframework.boot.liquibase.LiquibaseServiceLocatorApplicationListener
 
 # Environment Post Processors
 org.springframework.boot.env.EnvironmentPostProcessor=\
 org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor,\
-org.springframework.boot.context.config.ExternalConfigurationEnvironmentPostProcessor,\
+org.springframework.boot.context.config.ExternalConfigEnvironmentPostProcessor,\
 org.springframework.boot.env.SpringApplicationJsonEnvironmentPostProcessor,\
 org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor,\
 org.springframework.boot.reactor.DebugAgentEnvironmentPostProcessor

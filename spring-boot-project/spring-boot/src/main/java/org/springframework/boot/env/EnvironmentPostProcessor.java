@@ -16,6 +16,8 @@
 
 package org.springframework.boot.env;
 
+import org.apache.commons.logging.Log;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
@@ -26,12 +28,14 @@ import org.springframework.core.env.Environment;
  * <p>
  * EnvironmentPostProcessor implementations have to be registered in
  * {@code META-INF/spring.factories}, using the fully qualified name of this class as the
- * key.
+ * key. Implementations may implement the {@link org.springframework.core.Ordered Ordered}
+ * interface or use an {@link org.springframework.core.annotation.Order @Order} annotation
+ * if they wish to be invoked in specific order.
  * <p>
- * {@code EnvironmentPostProcessor} processors are encouraged to detect whether Spring's
- * {@link org.springframework.core.Ordered Ordered} interface has been implemented or if
- * the {@link org.springframework.core.annotation.Order @Order} annotation is present and
- * to sort instances accordingly if so prior to invocation.
+ * Since Spring Boot 2.4, {@code EnvironmentPostProcessor} implementations may optionally
+ * take a single {@link Log} instance as a constructor argument. The injected {@link Log}
+ * instance will defer output until the application has been full prepared to allow the
+ * environment iteself to configure logging levels.
  *
  * @author Andy Wilkinson
  * @author Stephane Nicoll
