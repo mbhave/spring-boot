@@ -16,19 +16,9 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.List;
-
 /**
- * @author pwebb
+ * @author Phillip Webb
  */
-public interface ConfigurationDataLoader {
-
-	// FIXME how do make sure we don't load the same thing twice
-	// FIXME how do we deal with relative locations
-	// Perhaps we need a Location type and a Location resolver
-	// The location could actually be build from properties as well as the Spring.
-	// Different properties mean different locations
-
-	List<ConfigurationData> load(ConfigurationDataLoaderContext context, ConfigurationData current, String location);
+class ResourceConfigDataLocation extends ConfigDataLocation {
 
 }

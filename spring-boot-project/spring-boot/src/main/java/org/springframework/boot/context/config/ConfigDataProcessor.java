@@ -15,9 +15,14 @@
  */
 
 package org.springframework.boot.context.config;
+
 /**
  * @author pwebb
  */
-public class ConfigurationDataProcessor {
+public class ConfigDataProcessor {
+
+	public ConfigDataProcessor() {
+		// Set it up with things from the environment
+	}
 
 }

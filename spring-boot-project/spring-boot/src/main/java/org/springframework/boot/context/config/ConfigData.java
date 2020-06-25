@@ -15,9 +15,22 @@
  */
 
 package org.springframework.boot.context.config;
+
+import java.util.List;
+
+import org.apache.logging.log4j.util.PropertySource;
+
 /**
- * @author pwebb
+ * @author Phillip Webb
  */
-public interface ConfigurationData {
+public interface ConfigData {
+
+	// FIXME class
+
+	ConfigDataLocation getLocation();
+
+	List<PropertySource> getPropertySources();
+
+	// FIXME possibly some flags such as don't resolve
 
 }

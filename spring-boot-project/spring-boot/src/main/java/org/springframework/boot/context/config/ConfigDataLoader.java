@@ -16,14 +16,15 @@
 
 package org.springframework.boot.context.config;
 
-/**
- * @author pwebb
- */
-public class ConfigurationFileLoader implements ConfigurationDataLoader {
+import java.util.List;
 
-	@Override
-	public ConfigurationData load(ConfigurationDataLoaderContext context, String location) {
-		throw new UnsupportedOperationException("Auto-generated method stub");
-	}
+/**
+ * @author Phillip Webb
+ * @since 2.4.0
+ * @param <L> The location type the the loader supports
+ */
+public interface ConfigDataLoader {
+
+	List<ConfigData> load(ConfigDataContext context, String location);
 
 }

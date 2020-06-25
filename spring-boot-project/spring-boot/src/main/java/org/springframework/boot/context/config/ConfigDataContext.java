@@ -15,9 +15,14 @@
  */
 
 package org.springframework.boot.context.config;
+
+import org.springframework.boot.context.properties.bind.Binder;
+
 /**
  * @author pwebb
  */
-public interface ConfigurationDataLoaderContext {
+public interface ConfigDataContext {
+
+	Binder getBinder();
 
 }
