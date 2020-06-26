@@ -275,6 +275,10 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 */
 	private static class PropertySourceOrderingPostProcessor implements BeanFactoryPostProcessor, Ordered {
 
+		// FIXME this doesn't seem to have anything to do with ConfigFiles. Seems like a
+		// SpringApplication concern. Makes me wonder if default properties should even be
+		// added early. Perhaps we just should add them at the end?
+
 		private ConfigurableApplicationContext context;
 
 		PropertySourceOrderingPostProcessor(ConfigurableApplicationContext context) {
@@ -336,25 +340,26 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 
 		void load() {
 			FilteredPropertySource.apply(this.environment, DEFAULT_PROPERTIES, LOAD_FILTERED_PROPERTY,
-					(defaultProperties) -> {
-						this.profiles = new LinkedList<>();
-						this.processedProfiles = new LinkedList<>();
-						this.activatedProfiles = false;
-						this.loaded = new LinkedHashMap<>();
-						initializeProfiles();
-						while (!this.profiles.isEmpty()) {
-							Profile profile = this.profiles.poll();
-							if (isDefaultProfile(profile)) {
-								addProfileToEnvironment(profile.getName());
-							}
-							load(profile, this::getPositiveProfileFilter,
-									addToLoaded(MutablePropertySources::addLast, false));
-							this.processedProfiles.add(profile);
-						}
-						load(null, this::getNegativeProfileFilter, addToLoaded(MutablePropertySources::addFirst, true));
-						addLoadedPropertySources();
-						applyActiveProfiles(defaultProperties);
-					});
+					this::loadWithFilteredProperties);
+		}
+
+		private void loadWithFilteredProperties(PropertySource<?> defaultProperties) {
+			this.profiles = new LinkedList<>();
+			this.processedProfiles = new LinkedList<>();
+			this.activatedProfiles = false;
+			this.loaded = new LinkedHashMap<>();
+			initializeProfiles();
+			while (!this.profiles.isEmpty()) {
+				Profile profile = this.profiles.poll();
+				if (isDefaultProfile(profile)) {
+					addProfileToEnvironment(profile.getName());
+				}
+				load(profile, this::getPositiveProfileFilter, addToLoaded(MutablePropertySources::addLast, false));
+				this.processedProfiles.add(profile);
+			}
+			load(null, this::getNegativeProfileFilter, addToLoaded(MutablePropertySources::addFirst, true));
+			addLoadedPropertySources();
+			applyActiveProfiles(defaultProperties);
 		}
 
 		/**

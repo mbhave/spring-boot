@@ -33,7 +33,7 @@ import org.springframework.core.log.LogMessage;
  * @author Phillip Webb
  * @since 2.4.0
  */
-public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+public class XConfigDataEnvironmentPostProcessor2 implements EnvironmentPostProcessor, Ordered {
 
 	/**
 	 * The default order for the processor.
@@ -66,7 +66,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 
 	private int order = DEFAULT_ORDER;
 
-	public ConfigDataEnvironmentPostProcessor(Log logger) {
+	public XConfigDataEnvironmentPostProcessor2(Log logger) {
 		this.logger = logger;
 	}
 

@@ -16,16 +16,55 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.List;
+
 /**
  * @author pwebb
  */
-interface Profiles {
+public class XDonno2 {
 
-	// get the active profiles (including by who). This one should be public to the loader
+	void testName() {
 
-	// get the profile groups
-	// set activate profiles
+		// The initial snapshot is
+		// all the property sources
 
-	// some kind of strictness setting
+		// Round one
+		// get the config locations
+		// load each one
+		// setup the context with the CP and OS
+		// create a new SNAPSHOT with new shit
+
+		// Round two
+		// run the import loop until we done
+
+		// Round three
+		// update the context with the Profiles
+
+		// Round four
+		// update the import loop until we done
+
+	}
+
+	static class Snapshot {
+
+		private List<Thing> things;
+
+	}
+
+	static abstract class Thing {
+
+	}
+
+	static class PropertySourceThing {
+
+	}
+
+	static class InitialImportsThing {
+
+	}
+
+	static class ConfigDataThing {
+
+	}
 
 }
