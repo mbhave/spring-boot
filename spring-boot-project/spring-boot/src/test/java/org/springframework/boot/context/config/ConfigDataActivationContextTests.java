@@ -66,92 +66,22 @@ class ConfigDataActivationContextTests {
 	}
 
 	@Test
-	void getActiveProfilesWhenNotActivatedReturnsNull() {
-		Environment environment = new MockEnvironment();
-		ConfigDataActivationContext context = createContext(environment);
-		assertThat(context.hasActivatedProfiles()).isFalse();
-		assertThat(context.getActiveProfiles()).isNull();
-	}
-
-	@Test
-	void getActiveProfilesWhenNoEnvironmentProfilesAndNoPropertyReturnsEmptyArray() {
+	void getProfilesWhenWithoutProfilesReturnsNull() {
 		Environment environment = new MockEnvironment();
 		Binder binder = Binder.get(environment);
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).isEmpty();
+		ConfigDataActivationContext context = new ConfigDataActivationContext(environment, binder);
+		assertThat(context.getProfiles()).isNull();
 	}
 
 	@Test
-	void getActiveProfilesWhenNoEnvironmentProfilesAndBinderProperty() {
-		Environment environment = new MockEnvironment();
-		Binder binder = new Binder(
-				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.active", "a,b,c")));
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void getActiveProfilesWhenNoEnvironmentProfilesAndEnvironmentProperty() {
-		MockEnvironment environment = new MockEnvironment();
-		environment.setProperty("spring.profiles.active", "a,b,c");
-		Binder binder = Binder.get(environment);
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void getActiveProfilesWhenEnvironmentProfilesAndBinderProperty() {
+	void getProfilesWhenWithProfilesReturnsProfiles() {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setActiveProfiles("a", "b", "c");
-		Binder binder = new Binder(
-				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.active", "d,e,f")));
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void getActiveProfilesWhenEnvironmentProfilesAndEnvironmentProperty() {
-		MockEnvironment environment = new MockEnvironment();
-		environment.setActiveProfiles("a", "b", "c");
-		environment.setProperty("spring.profiles.active", "d,e,f");
 		Binder binder = Binder.get(environment);
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void getActiveProfilesWhenNoEnvironmentProfilesAndEnvironmentPropertyInBindNotation() {
-		MockEnvironment environment = new MockEnvironment();
-		environment.setProperty("spring.profiles.active[0]", "a");
-		environment.setProperty("spring.profiles.active[1]", "b");
-		environment.setProperty("spring.profiles.active[2]", "c");
-		Binder binder = Binder.get(environment);
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void getActiveProfilesWhenEnvironmentProfilesInBindNotationAndEnvironmentPropertyReturnsEnvironmentProfiles() {
-		MockEnvironment environment = new MockEnvironment();
-		environment.setActiveProfiles("a", "b", "c");
-		environment.setProperty("spring.profiles.active[0]", "d");
-		environment.setProperty("spring.profiles.active[1]", "e");
-		environment.setProperty("spring.profiles.active[2]", "f");
-		Binder binder = Binder.get(environment);
-		ConfigDataActivationContext context = createContext(environment).withActivedProfiles(environment, binder);
-		assertThat(context.hasActivatedProfiles()).isTrue();
-		assertThat(context.getActiveProfiles()).containsExactly("a", "b", "c");
-	}
-
-	private ConfigDataActivationContext createContext(Environment environment) {
-		Binder binder = Binder.get(environment);
-		return new ConfigDataActivationContext(environment, binder);
+		ConfigDataActivationContext context = new ConfigDataActivationContext(environment, binder);
+		Profiles profiles = new Profiles(environment, binder);
+		context = context.withProfiles(profiles);
+		assertThat(context.getProfiles()).isEqualTo(profiles);
 	}
 
 	private MockEnvironment createKuberntesEnvironment() {

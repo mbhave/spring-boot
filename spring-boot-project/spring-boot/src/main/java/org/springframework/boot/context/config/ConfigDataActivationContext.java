@@ -16,15 +16,9 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import org.springframework.boot.cloud.CloudPlatform;
 import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.util.StringUtils;
 
 /**
  * Context information used when determining when to activate
@@ -34,11 +28,9 @@ import org.springframework.util.StringUtils;
  */
 class ConfigDataActivationContext {
 
-	private static final String[] NO_PROFILES = {};
-
 	private final CloudPlatform cloudPlatform;
 
-	private final String[] activeProfiles;
+	private final Profiles profiles;
 
 	/**
 	 * Create a new {@link ConfigDataActivationContext} instance before any profiles have
@@ -48,12 +40,12 @@ class ConfigDataActivationContext {
 	 */
 	ConfigDataActivationContext(Environment environment, Binder binder) {
 		this.cloudPlatform = deduceCloudPlatform(environment, binder);
-		this.activeProfiles = null;
+		this.profiles = null;
 	}
 
-	private ConfigDataActivationContext(CloudPlatform cloudPlatform, String[] activeProfiles) {
+	private ConfigDataActivationContext(CloudPlatform cloudPlatform, Profiles profiles) {
 		this.cloudPlatform = cloudPlatform;
-		this.activeProfiles = activeProfiles;
+		this.profiles = profiles;
 	}
 
 	private CloudPlatform deduceCloudPlatform(Environment environment, Binder binder) {
@@ -66,31 +58,12 @@ class ConfigDataActivationContext {
 	}
 
 	/**
-	 * Return a new {@link ConfigDataActivationContext} with acivated profiles.
-	 * @param environment the source environment
-	 * @param binder a binder providing access to relevant config data contributions
-	 * @return a new {@link ConfigDataActivationContext} with activated profiles
+	 * Return a new {@link ConfigDataActivationContext} with specific profiles.
+	 * @param profiles the profiles
+	 * @return a new {@link ConfigDataActivationContext} with specific profiles
 	 */
-	ConfigDataActivationContext withActivedProfiles(Environment environment, Binder binder) {
-		return new ConfigDataActivationContext(this.cloudPlatform, deduceActiveProfiles(environment, binder));
-	}
-
-	private String[] deduceActiveProfiles(Environment environment, Binder binder) {
-		if (hasExplicitActiveProfiles(environment)) {
-			return environment.getActiveProfiles();
-		}
-		return binder.bind(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, String[].class).orElse(NO_PROFILES);
-	}
-
-	private boolean hasExplicitActiveProfiles(Environment environment) {
-		String propertyValue = environment.getProperty(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME);
-		Set<String> activeProfiles = new LinkedHashSet<>(Arrays.asList(environment.getActiveProfiles()));
-		if (!StringUtils.hasLength(propertyValue)) {
-			return !activeProfiles.isEmpty();
-		}
-		Set<String> propertyProfiles = StringUtils
-				.commaDelimitedListToSet(StringUtils.trimAllWhitespace(propertyValue));
-		return !propertyProfiles.equals(activeProfiles);
+	ConfigDataActivationContext withProfiles(Profiles profiles) {
+		return new ConfigDataActivationContext(this.cloudPlatform, profiles);
 	}
 
 	/**
@@ -102,19 +75,11 @@ class ConfigDataActivationContext {
 	}
 
 	/**
-	 * Return {@code true} if profiles have been activated.
-	 * @return if profiles have been activated
+	 * Return profile information if it is available.
+	 * @return profile information or {@code null}
 	 */
-	boolean hasActivatedProfiles() {
-		return this.activeProfiles != null;
-	}
-
-	/**
-	 * Return the active profiles or {@code null} if no profiles have been activated yet.
-	 * @return the active profiles
-	 */
-	String[] getActiveProfiles() {
-		return this.activeProfiles;
+	Profiles getProfiles() {
+		return this.profiles;
 	}
 
 }
