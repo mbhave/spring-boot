@@ -16,21 +16,18 @@
 
 package org.springframework.boot.context.config;
 
-import org.springframework.core.ResolvableType;
+import org.springframework.core.io.Resource;
 
 /**
- * Strategy class that can be used used to load {@link ConfigData} instances from a
- * {@link ConfigDataLocation location}.
+ * {@link ConfigDataLoader} for {@link Resource} backed locations.
  *
  * @author Phillip Webb
- * @param <L> the location type
  */
-public interface ConfigDataLoader<L extends ConfigDataLocation> {
+class ConfigResourceLoader implements ConfigDataLoader<ConfigResourceLocation> {
 
-	default boolean isLocationSupported(L location) {
-		return ResolvableType.forClass(getClass()).as(ConfigDataLoader.class).resolve().isInstance(location);
+	@Override
+	public ConfigData load(ConfigResourceLocation location) {
+		throw new UnsupportedOperationException("Auto-generated method stub");
 	}
-
-	ConfigData load(L location);
 
 }

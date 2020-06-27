@@ -166,7 +166,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 */
 	public static final int DEFAULT_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
-	private final DeferredLog logger = new DeferredLog();
+	private final Log logger;
 
 	private static final Resource[] EMPTY_RESOURCES = {};
 
@@ -177,6 +177,14 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	private String names;
 
 	private int order = DEFAULT_ORDER;
+
+	public ConfigFileApplicationListener() {
+		this(new DeferredLog());
+	}
+
+	ConfigFileApplicationListener(Log logger) {
+		this.logger = logger;
+	}
 
 	@Override
 	public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
@@ -213,7 +221,9 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	}
 
 	private void onApplicationPreparedEvent(ApplicationEvent event) {
-		this.logger.switchTo(ConfigFileApplicationListener.class);
+		if (this.logger instanceof DeferredLog) {
+			((DeferredLog) this.logger).switchTo(ConfigFileApplicationListener.class);
+		}
 		addPostProcessors(((ApplicationPreparedEvent) event).getApplicationContext());
 	}
 

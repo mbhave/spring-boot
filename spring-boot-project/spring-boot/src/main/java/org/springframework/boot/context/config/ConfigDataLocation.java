@@ -17,7 +17,11 @@
 package org.springframework.boot.context.config;
 
 /**
- * @author pwebb
+ * A location from which {@link ConfigData} can be loaded. Implementations must implement
+ * a valid {@link #equals(Object) equals}, {@link #hashCode() hashCode} and
+ * {@link #toString() toString} methods.
+ *
+ * @author Phillip Webb
  */
 public abstract class ConfigDataLocation {
 

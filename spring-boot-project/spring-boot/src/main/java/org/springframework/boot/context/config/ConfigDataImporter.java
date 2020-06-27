@@ -16,26 +16,40 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.boot.context.properties.bind.Binder;
 
 /**
- * Strategy interface used to resolve {@link ConfigDataLocation locations} from a String
- * based location address.
- *
- * @author Phillip Webb
- * @since 2.4.0
+ * @author pwebb
  */
-public interface ConfigDataLocationResolver {
+class ConfigDataImporter {
 
-	List<ConfigDataLocation> resolveLocation(Binder binder, ConfigDataLocation parent, String address);
+	/**
+	 * @param environmentBinder
+	 */
+	public ConfigDataImporter(Binder binder) {
+		// we need all the resolvers here
+		// TODO Auto-generated constructor stub
+	}
 
-	default List<ConfigDataLocation> resolveProfileSpecificLocations(Binder binder, ConfigDataLocation parent,
-			String address, Collection<String> activeProfiles) {
-		return Collections.emptyList();
+	/**
+	 * @param context
+	 * @param binder
+	 * @param location
+	 * @param imports
+	 * @return
+	 */
+	public List<ConfigDataEnvironmentContributor> loadImports(ConfigDataActivationContext context, Binder binder,
+			ConfigDataLocation location, List<String> imports) {
+
+		// Resolve each import
+		// Load if not already loaded
+		// reverse the order
+		// adapt
+
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Auto-generated method stub");
 	}
 
 }

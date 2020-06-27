@@ -16,21 +16,17 @@
 
 package org.springframework.boot.context.config;
 
-import org.springframework.core.ResolvableType;
+import org.springframework.boot.env.PropertySourceLoader;
+import org.springframework.core.io.Resource;
 
 /**
- * Strategy class that can be used used to load {@link ConfigData} instances from a
- * {@link ConfigDataLocation location}.
+ * {@link ConfigDataLocation} backed by a {@link Resource}
  *
  * @author Phillip Webb
- * @param <L> the location type
  */
-public interface ConfigDataLoader<L extends ConfigDataLocation> {
+class ConfigResourceLocation extends ConfigDataLocation {
 
-	default boolean isLocationSupported(L location) {
-		return ResolvableType.forClass(getClass()).as(ConfigDataLoader.class).resolve().isInstance(location);
+	ConfigResourceLocation(String location, Resource resource, PropertySourceLoader propertySourceLoader) {
 	}
-
-	ConfigData load(L location);
 
 }
