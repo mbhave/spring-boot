@@ -103,4 +103,93 @@ class ProfilesTests {
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
+	@Test
+	void getDefaultWhenNoEnvironmentProfilesAndNoPropertyReturnsEmptyArray() {
+		Environment environment = new MockEnvironment();
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("default");
+	}
+
+	@Test
+	void getDefaultWhenNoEnvironmentProfilesAndBinderProperty() {
+		Environment environment = new MockEnvironment();
+		Binder binder = new Binder(
+				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.default", "a,b,c")));
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenNoEnvironmentProfilesAndEnvironmentProperty() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setProperty("spring.profiles.default", "a,b,c");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenEnvironmentProfilesAndBinderProperty() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setDefaultProfiles("a", "b", "c");
+		Binder binder = new Binder(
+				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.default", "d,e,f")));
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenEnvironmentProfilesAndEnvironmentProperty() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setDefaultProfiles("a", "b", "c");
+		environment.setProperty("spring.profiles.default", "d,e,f");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenNoEnvironmentProfilesAndEnvironmentPropertyInBindNotation() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setProperty("spring.profiles.default[0]", "a");
+		environment.setProperty("spring.profiles.default[1]", "b");
+		environment.setProperty("spring.profiles.default[2]", "c");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenEnvironmentProfilesInBindNotationAndEnvironmentPropertyReturnsEnvironmentProfiles() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setDefaultProfiles("a", "b", "c");
+		environment.setProperty("spring.profiles.default[0]", "d");
+		environment.setProperty("spring.profiles.default[1]", "e");
+		environment.setProperty("spring.profiles.default[2]", "f");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getAllReturnsAllProperties() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setActiveProfiles("a", "b", "c");
+		environment.setDefaultProfiles("d", "e", "f");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat(profiles.getAll()).containsExactly("a", "b", "c", "d", "e", "f");
+	}
+
+	@Test
+	void iteratorIteratesAllProperties() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setActiveProfiles("a", "b", "c");
+		environment.setDefaultProfiles("d", "e", "f");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder);
+		assertThat((Iterable<String>) profiles).containsExactly("a", "b", "c", "d", "e", "f");
+	}
+
 }
