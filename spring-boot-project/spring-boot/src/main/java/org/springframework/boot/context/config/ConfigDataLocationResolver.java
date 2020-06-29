@@ -16,7 +16,6 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,10 +30,10 @@ import org.springframework.boot.context.properties.bind.Binder;
  */
 public interface ConfigDataLocationResolver {
 
-	List<ConfigDataLocation> resolveLocation(Binder binder, ConfigDataLocation parent, String address);
+	List<ConfigDataLocation> resolve(Binder binder, ConfigDataLocation parent, String location);
 
-	default List<ConfigDataLocation> resolveProfileSpecificLocations(Binder binder, ConfigDataLocation parent,
-			String address, Collection<String> activeProfiles) {
+	default List<ConfigDataLocation> resolveProfileSpecific(Binder binder, ConfigDataLocation parent, String location,
+			Profiles profiles) {
 		return Collections.emptyList();
 	}
 

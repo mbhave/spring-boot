@@ -16,75 +16,131 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.core.env.Environment;
 
 /**
- * A single element that may eventually contribute configuration data in some way to the
- * {@link Environment}. Atomic unit of work.
+ * A single element that may directly or indirectly contribute configuration data to the
+ * {@link Environment}. Contributors are immutable and will be replaced with new versions
+ * as they are consumed.
+ * <p>
+ * The following types of contributor are expected:
+ * <ul>
+ * <li>A wrapper around an existing {@link Environment} property source that is used to
+ * provide values for use when {@link ConfigDataLocationResolver resolving}
+ * locations.</li>
+ * <li>A wrapper around a {@link ConfigData} property source that provides access to
+ * values and exposes import/condition properties.</li>
+ * <li>A set of initial imports that need to be processed.</li>
+ * </ul>
+ * <p>
+ * Contributors may expose a set of imports that should be processed. There are two
+ * distinct import phases:
+ * <ul>
+ * <li>{@link ImportPhase#BEFORE_PROFILE_ACTIVATION Before} profiles have been
+ * activated.</li>
+ * <li>{@link ImportPhase#AFTER_PROFILE_ACTIVATION After} profiles have been
+ * activated.</li>
+ * </ul>
+ * In each phase <em>all</em> imports will be resolved before they are loaded.
  *
  * @author Phillip Webb
  */
 class ConfigDataEnvironmentContributor {
 
-	private List<String> imports;
+	private final List<String> imports;
 
-	private EnumSet<ImportPhase> consumedImports;
+	private final Set<ImportPhase> consumedImports;
 
-	public ConfigDataEnvironmentContributor() {
+	/**
+	 * Create a new {@link ConfigDataEnvironmentContributors} that provides imports
+	 * without and properties.
+	 * @param imports the imports provided
+	 */
+	ConfigDataEnvironmentContributor(String... imports) {
+		this.imports = Collections.unmodifiableList(Arrays.asList(imports));
+		this.consumedImports = Collections.unmodifiableSet(EnumSet.noneOf(ImportPhase.class));
 	}
 
+	private ConfigDataEnvironmentContributor(List<String> imports, Set<ImportPhase> consumedImports) {
+		this.imports = imports;
+		this.consumedImports = consumedImports;
+	}
+
+	/**
+	 * Return the {@link ConfigDataLocation} of the contributor or {@code null} the
+	 * contributor is not backed by {@link ConfigData}.
+	 * @return the config data location
+	 */
+	ConfigDataLocation getLocation() {
+		return null;
+	}
+
+	/**
+	 * Returns unconsumed imports in the given phase. If the phase has already been
+	 * consumed then an empty list is returned.
+	 * @param phase the import phase
+	 * @return the imports
+	 */
 	List<String> getImports(ImportPhase phase) {
-		return null;
+		return hasUnconsumedImports(phase) ? this.imports : Collections.emptyList();
 	}
 
+	/**
+	 * Return {@code true} if there are unconsumed imports for the given phase.
+	 * @param phase the phase to check
+	 * @return if there are unconsumed imports
+	 */
+	boolean hasUnconsumedImports(ImportPhase phase) {
+		return !this.imports.isEmpty() && !this.consumedImports.contains(phase);
+	}
+
+	boolean isActive(ConfigDataActivationContext activationContext) {
+		return true;
+	}
+
+	/**
+	 * Return a new {@link ConfigDataEnvironmentContributors} from this one with imports
+	 * consumed in the given phase.
+	 * @param phase the phase consumed
+	 * @return a new {@link ConfigDataEnvironmentContributors} instance
+	 */
 	ConfigDataEnvironmentContributor withConsumedImports(ImportPhase phase) {
-		return null;
+		Set<ImportPhase> consumedImports = EnumSet.noneOf(ImportPhase.class);
+		consumedImports.addAll(this.consumedImports);
+		consumedImports.add(phase);
+		return new ConfigDataEnvironmentContributor(this.imports, consumedImports);
 	}
 
+	/**
+	 * Import phases that can be used when obtaining imports.
+	 */
 	enum ImportPhase {
 
+		/**
+		 * The phase before profiles have been activated.
+		 */
 		BEFORE_PROFILE_ACTIVATION,
 
+		/**
+		 * The phase after profiles have been activated.
+		 */
 		AFTER_PROFILE_ACTIVATION;
 
 		/**
-		 * @param context
-		 * @return
+		 * Return the {@link ImportPhase} based on the given activation context.
+		 * @param activationContext the activation context
+		 * @return the import phase
 		 */
-		static ImportPhase get(ConfigDataActivationContext context) {
-			// TODO Auto-generated method stub
-			throw new UnsupportedOperationException("Auto-generated method stub");
+		static ImportPhase get(ConfigDataActivationContext activationContext) {
+			return (activationContext.getProfiles() != null) ? AFTER_PROFILE_ACTIVATION : BEFORE_PROFILE_ACTIVATION;
 		}
 
-	}
-
-	/**
-	 * @param phase
-	 * @return
-	 */
-	public boolean hasUnconsumedImports(ImportPhase phase) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Auto-generated method stub");
-	}
-
-	/**
-	 * @param context
-	 * @return
-	 */
-	public boolean isActive(ConfigDataActivationContext context) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Auto-generated method stub");
-	}
-
-	/**
-	 * @return
-	 */
-	public ConfigDataLocation getLocation() {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Auto-generated method stub");
 	}
 
 }

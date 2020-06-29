@@ -24,43 +24,50 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.env.Environment;
 
 /**
- * A collection of {@link ConfigDataEnvironmentContributor} instances that will ultimately
- * contribute to the {@link Environment}.
+ * An immutable collection of {@link ConfigDataEnvironmentContributor} instances that will
+ * ultimately contribute to the {@link Environment}.
  *
  * @author Phillip Webb
  */
 class ConfigDataEnvironmentContributors {
 
-	/**
-	 * @param contributors
-	 */
-	public ConfigDataEnvironmentContributors(List<ConfigDataEnvironmentContributor> contributors) {
-		// TODO Auto-generated constructor stub
+	ConfigDataEnvironmentContributors(List<ConfigDataEnvironmentContributor> contributors) {
 	}
 
-	public ConfigDataEnvironmentContributors processImports(ConfigDataImporter importer,
-			ConfigDataActivationContext context) {
-		ImportPhase phase = ImportPhase.get(context);
+	ConfigDataEnvironmentContributors processImports(ConfigDataImporter importer,
+			ConfigDataActivationContext activationContext) {
+		ImportPhase phase = ImportPhase.get(activationContext);
 		ConfigDataEnvironmentContributors current = this;
 		while (true) {
-			List<ConfigDataEnvironmentContributor> next = null;
-			for (int i = 0; i < current.size(); i++) {
-				ConfigDataEnvironmentContributor contributor = current.get(i);
-				if (contributor.isActive(context) && contributor.hasUnconsumedImports(phase)) {
-					next = new ArrayList<>(current.size() + 10);
-					next.addAll(current.getAllBefore(i));
-					next.addAll(importer.loadImports(context, current.getBinder(), contributor.getLocation(),
-							contributor.getImports(phase)));
-					next.add(contributor.withConsumedImports(phase));
-					next.addAll(current.getAllAfter(i));
-					break;
-				}
-			}
+			List<ConfigDataEnvironmentContributor> next = processImports(current, phase, importer, activationContext);
 			if (next == null) {
 				return current;
 			}
 			current = new ConfigDataEnvironmentContributors(next);
 		}
+	}
+
+	private List<ConfigDataEnvironmentContributor> processImports(ConfigDataEnvironmentContributors contributors,
+			ImportPhase phase, ConfigDataImporter importer, ConfigDataActivationContext activationContext) {
+		for (int i = 0; i < contributors.size(); i++) {
+			ConfigDataEnvironmentContributor contributor = contributors.get(i);
+			if (contributor.isActive(activationContext) && contributor.hasUnconsumedImports(phase)) {
+				List<ConfigData> loaded = importer.loadImports(activationContext, contributors.getBinder(),
+						contributor.getLocation(), contributor.getImports(phase));
+				List<ConfigDataEnvironmentContributor> result = new ArrayList<>(contributors.size() + 10);
+				result.addAll(contributors.getAllBefore(i));
+				result.addAll(asContributors(loaded));
+				result.add(contributor.withConsumedImports(phase));
+				result.addAll(contributors.getAllAfter(i));
+				return result;
+			}
+		}
+		return null;
+	}
+
+	private List<ConfigDataEnvironmentContributor> asContributors(List<ConfigData> loaded) {
+		List<ConfigDataEnvironmentContributor> contributors;
+		return null;
 	}
 
 	private ConfigDataEnvironmentContributor get(int i) {
@@ -83,8 +90,14 @@ class ConfigDataEnvironmentContributors {
 		return null;
 	}
 
-	Binder getBinder(boolean failOnBindToInactiveSource) {
+	Binder getBinder(BinderOption... binderOptions) {
 		return null;
+	}
+
+	enum BinderOption {
+
+		FAIL_ON_BIND_TO_INACTIVE_SOURCE;
+
 	}
 
 }

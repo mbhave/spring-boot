@@ -45,7 +45,7 @@ class ConfigResourceLocationResolver implements ConfigDataLocationResolver {
 	}
 
 	@Override
-	public List<ConfigDataLocation> resolveLocation(Binder binder, ConfigDataLocation parent, String address) {
+	public List<ConfigDataLocation> resolve(Binder binder, ConfigDataLocation parent, String address) {
 		// Deals with pattern searching and ends with '/' etc
 		return null;
 	}

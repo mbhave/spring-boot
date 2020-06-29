@@ -16,40 +16,47 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.boot.context.properties.bind.Binder;
 
 /**
- * @author pwebb
+ * Imports {@link ConfigData} by {@link ConfigDataLocationResolver resolving} and
+ * {@link ConfigDataLoader loading} imports. {@link ConfigDataLocation locations} are
+ * tracked to ensure that they are not imported multiple times.
+ *
+ * @author Phillip Webb
  */
 class ConfigDataImporter {
 
-	/**
-	 * @param environmentBinder
-	 */
-	public ConfigDataImporter(Binder binder) {
-		// we need all the resolvers here
-		// TODO Auto-generated constructor stub
+	private ConfigDataLocationResolvers locationResolvers;
+
+	private ConfigDataLoaders loaders;
+
+	private Set<ConfigDataLocation> loadedLocations = new HashSet<>();
+
+	ConfigDataImporter(Binder binder) {
+		this.locationResolvers = new ConfigDataLocationResolvers(binder);
 	}
 
-	/**
-	 * @param context
-	 * @param binder
-	 * @param location
-	 * @param imports
-	 * @return
-	 */
-	public List<ConfigDataEnvironmentContributor> loadImports(ConfigDataActivationContext context, Binder binder,
-			ConfigDataLocation location, List<String> imports) {
+	List<ConfigData> loadImports(ConfigDataActivationContext context, Binder binder, ConfigDataLocation parent,
+			List<String> locations) {
+		return load(this.locationResolvers.resolveAll(binder, parent, locations, context.getProfiles()));
+	}
 
-		// Resolve each import
-		// Load if not already loaded
-		// reverse the order
-		// adapt
-
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Auto-generated method stub");
+	private List<ConfigData> load(List<ConfigDataLocation> locations) {
+		List<ConfigData> result = new ArrayList<>();
+		for (ConfigDataLocation location : locations) {
+			if (this.loadedLocations.add(location)) {
+				result.add(this.loaders.load(location));
+			}
+		}
+		Collections.reverse(result);
+		return result;
 	}
 
 }

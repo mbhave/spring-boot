@@ -27,10 +27,20 @@ import org.springframework.core.ResolvableType;
  */
 public interface ConfigDataLoader<L extends ConfigDataLocation> {
 
+	/**
+	 * Returns if the specified location is supported by the loader.
+	 * @param location the location to check.
+	 * @return if the location is supported by this loader
+	 */
 	default boolean isLocationSupported(L location) {
 		return ResolvableType.forClass(getClass()).as(ConfigDataLoader.class).resolve().isInstance(location);
 	}
 
+	/**
+	 * Load {@link ConfigData} for the given location.
+	 * @param location the location to load
+	 * @return the loaded config data or {@code null} if the location should be skipped
+	 */
 	ConfigData load(L location);
 
 }

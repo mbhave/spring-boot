@@ -16,26 +16,19 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.List;
-
-import org.springframework.boot.context.properties.bind.Binder;
-
 /**
- * A collection of {@link ConfigDataLocationResolver location resolvers} loaded via
- * {@code spring.factories}.
- *
- * @author Phillip Webb
+ * @author pwebb
  */
-class ConfigDataLocationResolvers {
+public class ConfigDataLoaders {
 
-	private List<ConfigDataLocationResolver> resolvers;
-
-	ConfigDataLocationResolvers(Binder binder) {
-	}
-
-	List<ConfigDataLocation> resolveAll(Binder binder, ConfigDataLocation parent, List<String> location,
-			Profiles profiles) {
-		return null;
+	/**
+	 * @param location
+	 * @return
+	 */
+	public ConfigData load(ConfigDataLocation location) {
+		// FIXME deal with null
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Auto-generated method stub");
 	}
 
 }
