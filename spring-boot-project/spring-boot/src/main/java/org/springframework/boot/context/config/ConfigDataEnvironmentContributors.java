@@ -21,11 +21,9 @@ import java.util.List;
 
 import org.springframework.boot.context.config.ConfigDataEnvironmentContributor.ImportPhase;
 import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.core.env.Environment;
 
 /**
- * An immutable collection of {@link ConfigDataEnvironmentContributor} instances that will
- * ultimately contribute to the {@link Environment}.
+ * An immutable collection of {@link ConfigDataEnvironmentContributor} instances.
  *
  * @author Phillip Webb
  */
@@ -67,6 +65,8 @@ class ConfigDataEnvironmentContributors {
 
 	private List<ConfigDataEnvironmentContributor> asContributors(List<ConfigData> loaded) {
 		List<ConfigDataEnvironmentContributor> contributors;
+		// FIXME add in reverse
+		// Collections.reverse(result);
 		return null;
 	}
 

@@ -17,14 +17,22 @@
 package org.springframework.boot.context.config;
 
 /**
- * A collection of {@link ConfigDataLoader} instances loaded via {@code spring.factories}.
+ * Exception throw if a {@link ConfigDataLocation} is not supported.
  *
  * @author Phillip Webb
+ * @since 2.4.0
  */
-class ConfigDataLoaders {
+public class UnsupportedConfigDataLocationException extends RuntimeException {
 
-	public ConfigData load(ConfigDataLocation location) {
-		return null;
+	private final String location;
+
+	UnsupportedConfigDataLocationException(String location) {
+		super("Unsupported config data location '" + location + "'");
+		this.location = location;
+	}
+
+	public String getLocation() {
+		return this.location;
 	}
 
 }

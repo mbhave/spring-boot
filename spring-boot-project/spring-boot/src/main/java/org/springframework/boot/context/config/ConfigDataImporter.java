@@ -17,7 +17,6 @@
 package org.springframework.boot.context.config;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,14 +32,19 @@ import org.springframework.boot.context.properties.bind.Binder;
  */
 class ConfigDataImporter {
 
-	private ConfigDataLocationResolvers locationResolvers;
+	private final ConfigDataLocationResolvers locationResolvers;
 
-	private ConfigDataLoaders loaders;
+	private final ConfigDataLoaders loaders;
 
 	private Set<ConfigDataLocation> loadedLocations = new HashSet<>();
 
 	ConfigDataImporter(Binder binder) {
-		this.locationResolvers = new ConfigDataLocationResolvers(binder);
+		this(new ConfigDataLocationResolvers(binder), new ConfigDataLoaders());
+	}
+
+	ConfigDataImporter(ConfigDataLocationResolvers locationResolvers, ConfigDataLoaders loaders) {
+		this.locationResolvers = locationResolvers;
+		this.loaders = loaders;
 	}
 
 	List<ConfigData> loadImports(ConfigDataActivationContext context, Binder binder, ConfigDataLocation parent,
@@ -55,7 +59,6 @@ class ConfigDataImporter {
 				result.add(this.loaders.load(location));
 			}
 		}
-		Collections.reverse(result);
 		return result;
 	}
 

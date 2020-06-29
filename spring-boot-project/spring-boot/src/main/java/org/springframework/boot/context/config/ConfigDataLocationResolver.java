@@ -20,18 +20,52 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 
 /**
  * Strategy interface used to resolve {@link ConfigDataLocation locations} from a String
- * based location address.
+ * based location address. Implementations should be added as a {@code spring.factories}
+ * entries. A single {@link Binder} constructor argument may be used if the resolver needs
+ * to obtain values from the initial {@link Environment}.
+ * <p>
+ * Resolvers may implement {@link Ordered} or use the {@link Order @Order} annotation. The
+ * first resolver that supports the given location will be used.
  *
  * @author Phillip Webb
  * @since 2.4.0
  */
 public interface ConfigDataLocationResolver {
 
+	/**
+	 * Returns if the specified location address can be resolved by this resolver.
+	 * @param binder a binder that can be used to obtain previously contributed values
+	 * @param parent the parent location that specified the location or {@code null}
+	 * @param location the location to check.
+	 * @return if the location is supported by this loader
+	 */
+	boolean isResolvable(Binder binder, ConfigDataLocation parent, String location);
+
+	/**
+	 * Resolve a location string into one or more {@link ConfigDataLocation} instances.
+	 * @param binder a binder that can be used to obtain previously contributed values
+	 * @param parent the parent location that specified the location or {@code null}
+	 * @param location the location that should be resolved
+	 * @return a list of resolved locations in ascending priority order.
+	 */
 	List<ConfigDataLocation> resolve(Binder binder, ConfigDataLocation parent, String location);
 
+	/**
+	 * Resolve a location string into one or more {@link ConfigDataLocation} instances
+	 * based on available profiles. This method is called once profiles have been deduced
+	 * from the contributed values. By default this method returns an empty list.
+	 * @param binder a binder that can be used to obtain previously contributed values
+	 * @param parent the parent location that specified the location or {@code null}
+	 * @param location the location that should be resolved
+	 * @param profiles profile information
+	 * @return a list of resolved locations in ascending priority order.
+	 */
 	default List<ConfigDataLocation> resolveProfileSpecific(Binder binder, ConfigDataLocation parent, String location,
 			Profiles profiles) {
 		return Collections.emptyList();

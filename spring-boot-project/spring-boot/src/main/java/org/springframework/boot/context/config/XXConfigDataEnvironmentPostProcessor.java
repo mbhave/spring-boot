@@ -33,7 +33,7 @@ import org.springframework.core.env.PropertySources;
 /**
  * @author Phillip Webb
  */
-public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+public class XXConfigDataEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
 	/**
 	 * The default order for the processor.
@@ -44,7 +44,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 
 	private final Log logger;
 
-	public ConfigDataEnvironmentPostProcessor(Log logger) {
+	public XXConfigDataEnvironmentPostProcessor(Log logger) {
 		this.logger = logger;
 	}
 

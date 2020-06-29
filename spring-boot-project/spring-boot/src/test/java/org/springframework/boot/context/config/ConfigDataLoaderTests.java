@@ -16,15 +16,20 @@
 
 package org.springframework.boot.context.config;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.fail;
+
 /**
- * A collection of {@link ConfigDataLoader} instances loaded via {@code spring.factories}.
+ * Tests for {@link ConfigDataLoader}.
  *
  * @author Phillip Webb
  */
-class ConfigDataLoaders {
+class ConfigDataLoaderTests {
 
-	public ConfigData load(ConfigDataLocation location) {
-		return null;
+	@Test
+	void test() {
+		fail("Not yet implemented");
 	}
 
 }
