@@ -65,32 +65,37 @@ class ConfigDataEnvironmentContributors {
 
 	private List<ConfigDataEnvironmentContributor> asContributors(List<ConfigData> loaded) {
 		List<ConfigDataEnvironmentContributor> contributors;
-		// FIXME add in reverse
-		// Collections.reverse(result);
+		// FIXME adapt and add in reverse
 		return null;
 	}
 
 	private ConfigDataEnvironmentContributor get(int i) {
+		// FIXME
 		return null;
 	}
 
 	private int size() {
+		// FIXME
 		return -1;
 	}
 
 	private List<ConfigDataEnvironmentContributor> getAllBefore(int i) {
+		// FIXME
 		return null;
 	}
 
 	private List<ConfigDataEnvironmentContributor> getAllAfter(int i) {
+		// FIXME
 		return null;
 	}
 
 	Binder getBinder() {
+		// FIXME
 		return null;
 	}
 
 	Binder getBinder(BinderOption... binderOptions) {
+		// FIXME
 		return null;
 	}
 

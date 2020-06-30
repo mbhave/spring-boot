@@ -45,10 +45,10 @@ class ConfigDataLocationResolvers {
 	 * @param binder {@link Binder} providing values from the initial {@link Environment}
 	 */
 	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder) {
-		this(binder, SpringFactoriesLoader.loadFactoryNames(ConfigDataLocationResolver.class, null));
+		this(logFactory, binder, SpringFactoriesLoader.loadFactoryNames(ConfigDataLocationResolver.class, null));
 	}
 
-	ConfigDataLocationResolvers(Binder binder, List<String> names) {
+	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder, List<String> names) {
 		List<ConfigDataLocationResolver> resolvers = new ArrayList<>(names.size());
 		for (String name : names) {
 			resolvers.add(createResolver(name, binder));

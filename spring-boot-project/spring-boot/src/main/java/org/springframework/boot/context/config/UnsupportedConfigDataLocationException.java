@@ -31,6 +31,10 @@ public class UnsupportedConfigDataLocationException extends RuntimeException {
 		this.location = location;
 	}
 
+	/**
+	 * Return the unsupported location.
+	 * @return the unsupported location
+	 */
 	public String getLocation() {
 		return this.location;
 	}
