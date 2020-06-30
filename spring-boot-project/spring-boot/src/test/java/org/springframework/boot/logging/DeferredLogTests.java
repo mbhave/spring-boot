@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -171,23 +172,41 @@ class DeferredLogTests {
 		verifyNoInteractions(log2);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
+	@SuppressWarnings("unchecked")
 	void switchTo() {
 		List<String> lines = (List<String>) ReflectionTestUtils.getField(this.deferredLog, "lines");
 		assertThat(lines).isEmpty();
-
 		this.deferredLog.error(this.message, this.throwable);
 		assertThat(lines).hasSize(1);
-
 		this.deferredLog.switchTo(this.log);
 		assertThat(lines).isEmpty();
-
 		this.deferredLog.info("Message2");
 		assertThat(lines).isEmpty();
-
 		verify(this.log).error(this.message, this.throwable);
 		verify(this.log).info("Message2", null);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void switchOver() {
+		this.deferredLog = new DeferredLog(() -> this.log);
+		List<String> lines = (List<String>) ReflectionTestUtils.getField(this.deferredLog, "lines");
+		assertThat(lines).isEmpty();
+		this.deferredLog.error(this.message, this.throwable);
+		assertThat(lines).hasSize(1);
+		this.deferredLog.switchOver();
+		assertThat(lines).isEmpty();
+		this.deferredLog.info("Message2");
+		assertThat(lines).isEmpty();
+		verify(this.log).error(this.message, this.throwable);
+		verify(this.log).info("Message2", null);
+	}
+
+	@Test
+	void switchOverWhenUsingDefaultConstructorThrowsException() {
+		assertThatIllegalStateException().isThrownBy(() -> this.deferredLog.switchOver())
+				.withMessageContaining("No destination");
 	}
 
 }

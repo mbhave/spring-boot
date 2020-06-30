@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -43,7 +44,7 @@ class ConfigDataLocationResolvers {
 	 * Create a new {@link ConfigDataLocationResolvers} instance.
 	 * @param binder {@link Binder} providing values from the initial {@link Environment}
 	 */
-	ConfigDataLocationResolvers(Binder binder) {
+	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder) {
 		this(binder, SpringFactoriesLoader.loadFactoryNames(ConfigDataLocationResolver.class, null));
 	}
 

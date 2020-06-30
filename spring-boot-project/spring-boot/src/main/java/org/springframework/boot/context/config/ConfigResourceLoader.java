@@ -16,6 +16,11 @@
 
 package org.springframework.boot.context.config;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.springframework.boot.env.PropertySourceLoader;
+import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
 
 /**
@@ -26,7 +31,12 @@ import org.springframework.core.io.Resource;
 class ConfigResourceLoader implements ConfigDataLoader<ConfigResourceLocation> {
 
 	@Override
-	public ConfigData load(ConfigResourceLocation location) {
+	public ConfigData load(ConfigResourceLocation location) throws IOException {
+		PropertySourceLoader loader = null;
+		String name = null;
+		Resource resource = null;
+		List<PropertySource<?>> load = loader.load(name, resource);
+		// FIXME adapt to ConfigData;
 		throw new UnsupportedOperationException("Auto-generated method stub");
 	}
 

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.logging.DeferredLogFactory;
 
 /**
  * Imports {@link ConfigData} by {@link ConfigDataLocationResolver resolving} and
@@ -38,8 +39,8 @@ class ConfigDataImporter {
 
 	private Set<ConfigDataLocation> loadedLocations = new HashSet<>();
 
-	ConfigDataImporter(Binder binder) {
-		this(new ConfigDataLocationResolvers(binder), new ConfigDataLoaders());
+	ConfigDataImporter(DeferredLogFactory logFactory, Binder binder) {
+		this(new ConfigDataLocationResolvers(logFactory, binder), new ConfigDataLoaders(logFactory));
 	}
 
 	ConfigDataImporter(ConfigDataLocationResolvers locationResolvers, ConfigDataLoaders loaders) {

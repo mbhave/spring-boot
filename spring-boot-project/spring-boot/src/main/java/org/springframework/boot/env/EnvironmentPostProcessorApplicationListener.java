@@ -19,6 +19,7 @@ package org.springframework.boot.env;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.commons.logging.Log;
 
@@ -27,6 +28,7 @@ import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEven
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.logging.DeferredLog;
+import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.Ordered;
@@ -35,8 +37,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -53,9 +53,13 @@ public class EnvironmentPostProcessorApplicationListener implements SmartApplica
 	 */
 	public static final int DEFAULT_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
+	private final EnvironmentPostProcessorDeferredLogFactory deferredLogFactory;
+
 	private int order = DEFAULT_ORDER;
 
-	private final MultiValueMap<SpringApplication, LoggingPostProcessor> loggingPostProcessors = new LinkedMultiValueMap<>();
+	public EnvironmentPostProcessorApplicationListener() {
+		this.deferredLogFactory = null;
+	}
 
 	@Override
 	public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
@@ -108,26 +112,28 @@ public class EnvironmentPostProcessorApplicationListener implements SmartApplica
 			throws Exception {
 		Class<?> type = ClassUtils.forName(name, getClass().getClassLoader());
 		Assert.isAssignable(EnvironmentPostProcessor.class, type);
-		for (Constructor<?> constructor : type.getDeclaredConstructors()) {
-			if (hasSingleLogParameter(constructor)) {
-				LoggingPostProcessor loggingPostProcessor = new LoggingPostProcessor(type, constructor);
-				this.loggingPostProcessors.add(application, loggingPostProcessor);
-				return loggingPostProcessor.getPostProcessor();
+		Constructor<?>[] constructors = type.getDeclaredConstructors();
+		for (Constructor<?> constructor : constructors) {
+			if (constructor.getParameterCount() == 1) {
+				Class<?> cls = constructor.getParameterTypes()[0];
+				if (DeferredLogFactory.class.isAssignableFrom(cls)) {
+					return newInstance(constructor, this.deferredLogFactory);
+				}
+				if (Log.class.isAssignableFrom(cls)) {
+					return newInstance(constructor, this.deferredLogFactory.getLog(type));
+				}
 			}
 		}
 		return (EnvironmentPostProcessor) ReflectionUtils.accessibleConstructor(type).newInstance();
 	}
 
-	private boolean hasSingleLogParameter(Constructor<?> constructor) {
-		return constructor.getParameterCount() == 1 && Log.class.isAssignableFrom(constructor.getParameterTypes()[0]);
+	private EnvironmentPostProcessor newInstance(Constructor<?> constructor, Object... initargs) throws Exception {
+		ReflectionUtils.makeAccessible(constructor);
+		return (EnvironmentPostProcessor) constructor.newInstance(initargs);
 	}
 
 	private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
-		List<LoggingPostProcessor> loggingPostProcessors = this.loggingPostProcessors
-				.remove(event.getSpringApplication());
-		if (loggingPostProcessors != null) {
-			loggingPostProcessors.forEach(LoggingPostProcessor::switchLog);
-		}
+		this.deferredLogFactory.switchOverAll();
 	}
 
 	@Override
@@ -140,25 +146,27 @@ public class EnvironmentPostProcessorApplicationListener implements SmartApplica
 	}
 
 	/**
-	 * Manages a {@link EnvironmentPostProcessor} with an injected {@link Log}.
+	 * {@link DeferredLogFactory} implementation for {@link EnvironmentPostProcessor}
+	 * constructor argument injection.
 	 */
-	private static class LoggingPostProcessor {
+	private static class EnvironmentPostProcessorDeferredLogFactory implements DeferredLogFactory {
 
-		private final DeferredLog log = new DeferredLog();
+		private List<DeferredLog> logs = new ArrayList<>();
 
-		private final EnvironmentPostProcessor postProcessor;
-
-		LoggingPostProcessor(Class<?> type, Constructor<?> constructor) throws Exception {
-			ReflectionUtils.makeAccessible(constructor);
-			this.postProcessor = (EnvironmentPostProcessor) constructor.newInstance(this.log);
+		@Override
+		public DeferredLog getLog(Supplier<Log> destination) {
+			DeferredLog log = new DeferredLog(destination);
+			synchronized (this.logs) {
+				this.logs.add(log);
+			}
+			return log;
 		}
 
-		void switchLog() {
-			this.log.switchTo(this.postProcessor.getClass());
-		}
-
-		EnvironmentPostProcessor getPostProcessor() {
-			return this.postProcessor;
+		public void switchOverAll() {
+			synchronized (this.logs) {
+				this.logs.forEach(DeferredLog::switchOver);
+				this.logs.clear();
+			}
 		}
 
 	}

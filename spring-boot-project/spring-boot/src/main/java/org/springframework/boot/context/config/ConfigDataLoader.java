@@ -16,6 +16,8 @@
 
 package org.springframework.boot.context.config;
 
+import java.io.IOException;
+
 import org.springframework.core.ResolvableType;
 
 /**
@@ -40,7 +42,8 @@ public interface ConfigDataLoader<L extends ConfigDataLocation> {
 	 * Load {@link ConfigData} for the given location.
 	 * @param location the location to load
 	 * @return the loaded config data or {@code null} if the location should be skipped
+	 * @throws IOException on IO error
 	 */
-	ConfigData load(L location);
+	ConfigData load(L location) throws IOException;
 
 }

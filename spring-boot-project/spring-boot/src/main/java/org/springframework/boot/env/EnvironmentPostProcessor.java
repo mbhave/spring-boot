@@ -19,6 +19,7 @@ package org.springframework.boot.env;
 import org.apache.commons.logging.Log;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 
@@ -33,9 +34,9 @@ import org.springframework.core.env.Environment;
  * if they wish to be invoked in specific order.
  * <p>
  * Since Spring Boot 2.4, {@code EnvironmentPostProcessor} implementations may optionally
- * take a single {@link Log} instance as a constructor argument. The injected {@link Log}
- * instance will defer output until the application has been full prepared to allow the
- * environment iteself to configure logging levels.
+ * take a single {@link Log} or {@link DeferredLogFactory} instance as a constructor
+ * argument. The injected {@link Log} instance will defer output until the application has
+ * been full prepared to allow the environment itself to configure logging levels.
  *
  * @author Andy Wilkinson
  * @author Stephane Nicoll

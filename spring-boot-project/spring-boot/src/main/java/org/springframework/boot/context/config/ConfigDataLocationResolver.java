@@ -19,6 +19,8 @@ package org.springframework.boot.context.config;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -27,8 +29,12 @@ import org.springframework.core.env.Environment;
 /**
  * Strategy interface used to resolve {@link ConfigDataLocation locations} from a String
  * based location address. Implementations should be added as a {@code spring.factories}
- * entries. A single {@link Binder} constructor argument may be used if the resolver needs
- * to obtain values from the initial {@link Environment}.
+ * entries. The following constructor parameter types are supported:
+ * <ul>
+ * <li>{@link Log} - if the resolver needs deferred logging</li>
+ * <li>{@link Binder} - if the resolver needs to obtain values from the initial
+ * {@link Environment}</li>
+ * </ul>
  * <p>
  * Resolvers may implement {@link Ordered} or use the {@link Order @Order} annotation. The
  * first resolver that supports the given location will be used.

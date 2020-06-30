@@ -14,28 +14,22 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.context.config;
+package org.springframework.boot.env;
 
-import org.springframework.boot.env.PropertySourceLoader;
-import org.springframework.core.io.Resource;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * {@link ConfigDataLocation} backed by a {@link Resource}
+ * Tests for {@link EnvironmentPostProcessorApplicationListener}.
  *
  * @author Phillip Webb
  */
-class ConfigResourceLocation extends ConfigDataLocation {
+class EnvironmentPostProcessorApplicationListenerTests {
 
-	private final String location;
-
-	private final Resource resource;
-
-	private final PropertySourceLoader propertySourceLoader;
-
-	ConfigResourceLocation(String location, Resource resource, PropertySourceLoader propertySourceLoader) {
-		this.location = location;
-		this.resource = resource;
-		this.propertySourceLoader = propertySourceLoader;
+	@Test
+	void test() {
+		fail("Not yet implemented");
 	}
 
 }

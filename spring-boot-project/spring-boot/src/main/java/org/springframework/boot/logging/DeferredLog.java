@@ -18,9 +18,12 @@ package org.springframework.boot.logging;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.springframework.util.Assert;
 
 /**
  * Deferred {@link Log} that can be used to store messages that shouldn't be written until
@@ -33,7 +36,49 @@ public class DeferredLog implements Log {
 
 	private volatile Log destination;
 
+	private final Supplier<Log> destinationSupplier;
+
 	private final List<Line> lines = new ArrayList<>();
+
+	/**
+	 * Create a new {@link DeferredLog} instance.
+	 */
+	public DeferredLog() {
+		this.destinationSupplier = null;
+	}
+
+	/**
+	 * Create a new {@link DeferredLog} instance that can be {@link #switchOver() switched
+	 * over} to the given destination.
+	 * @param destination the switch-over destination
+	 * @since 2.4.0
+	 */
+	public DeferredLog(Class<?> destination) {
+		Assert.notNull(destination, "Destination must not be null");
+		this.destinationSupplier = () -> LogFactory.getLog(destination);
+	}
+
+	/**
+	 * Create a new {@link DeferredLog} instance that can be {@link #switchOver() switched
+	 * over} to the given destination.
+	 * @param destination the switch-over destination
+	 * @since 2.4.0
+	 */
+	public DeferredLog(Log destination) {
+		Assert.notNull(destination, "Destination must not be null");
+		this.destinationSupplier = () -> destination;
+	}
+
+	/**
+	 * Create a new {@link DeferredLog} instance that can be {@link #switchOver() switched
+	 * over} to the given destination.
+	 * @param destination the switch-over destination
+	 * @since 2.4.0
+	 */
+	public DeferredLog(Supplier<Log> destination) {
+		Assert.notNull(destination, "Destination must not be null");
+		this.destinationSupplier = destination;
+	}
 
 	@Override
 	public boolean isTraceEnabled() {
@@ -146,6 +191,16 @@ public class DeferredLog implements Log {
 				this.lines.add(new Line(level, message, t));
 			}
 		}
+	}
+
+	/**
+	 * Switch over to the destination that was provided during construction.
+	 * @since 2.4.0
+	 */
+	public void switchOver() {
+		Assert.state(this.destinationSupplier != null,
+				"No destination available, ensure the appropriate constructor has been used.");
+		switchTo(this.destinationSupplier.get());
 	}
 
 	/**

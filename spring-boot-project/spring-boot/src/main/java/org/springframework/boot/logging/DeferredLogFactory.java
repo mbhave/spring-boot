@@ -14,28 +14,31 @@
  * limitations under the License.
  */
 
-package org.springframework.boot.context.config;
+package org.springframework.boot.logging;
 
-import org.springframework.boot.env.PropertySourceLoader;
-import org.springframework.core.io.Resource;
+import java.util.function.Supplier;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
- * {@link ConfigDataLocation} backed by a {@link Resource}
+ * Factory that can be used to create {@link DeferredLog} instances that will switch over
+ * when appropriate.
  *
  * @author Phillip Webb
+ * @since 2.4.0
  */
-class ConfigResourceLocation extends ConfigDataLocation {
+@FunctionalInterface
+public interface DeferredLogFactory {
 
-	private final String location;
-
-	private final Resource resource;
-
-	private final PropertySourceLoader propertySourceLoader;
-
-	ConfigResourceLocation(String location, Resource resource, PropertySourceLoader propertySourceLoader) {
-		this.location = location;
-		this.resource = resource;
-		this.propertySourceLoader = propertySourceLoader;
+	default DeferredLog getLog(Class<?> destination) {
+		return getLog(() -> LogFactory.getLog(destination));
 	}
+
+	default DeferredLog getLog(Log destination) {
+		return getLog(() -> destination);
+	}
+
+	DeferredLog getLog(Supplier<Log> destination);
 
 }

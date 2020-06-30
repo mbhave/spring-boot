@@ -16,12 +16,21 @@
 
 package org.springframework.boot.context.config;
 
+import org.springframework.boot.logging.DeferredLogFactory;
+
 /**
  * A collection of {@link ConfigDataLoader} instances loaded via {@code spring.factories}.
  *
  * @author Phillip Webb
  */
 class ConfigDataLoaders {
+
+	/**
+	 * @param logFactory
+	 */
+	public ConfigDataLoaders(DeferredLogFactory logFactory) {
+		// TODO Auto-generated constructor stub
+	}
 
 	public ConfigData load(ConfigDataLocation location) {
 		return null;
