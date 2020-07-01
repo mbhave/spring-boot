@@ -18,9 +18,12 @@ package org.springframework.boot.context.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -43,7 +46,7 @@ import org.springframework.util.StringUtils;
  *
  * @author Phillip Webb
  */
-class ConfigResourceLocationResolver implements ConfigDataLocationResolver {
+class ConfigResourceLocationResolver implements ConfigDataLocationResolver<ConfigResourceLocation> {
 
 	private static final String CONFIG_FILE_URL_PREFIX = "configfile:";
 
@@ -66,8 +69,18 @@ class ConfigResourceLocationResolver implements ConfigDataLocationResolver {
 	ConfigResourceLocationResolver(Log logger, Binder binder) {
 		this.propertySourceLoaders = SpringFactoriesLoader.loadFactories(PropertySourceLoader.class,
 				getClass().getClassLoader());
-		this.configNames = binder.bind(CONFIG_NAME_PROPERTY, String[].class).orElse(DEFAULT_CONFIG_NAMES);
+		this.configNames = getConfigNames(binder);
 		this.resourceLoader = new DefaultResourceLoader();
+	}
+
+	private String[] getConfigNames(Binder binder) {
+		String[] configNames = binder.bind(CONFIG_NAME_PROPERTY, String[].class).orElse(DEFAULT_CONFIG_NAMES);
+		Arrays.stream(configNames).forEach(this::validateConfigName);
+		return configNames;
+	}
+
+	private void validateConfigName(String name) {
+		Assert.state(!name.contains("*"), "Config name '" + name + "' cannot contain '*'");
 	}
 
 	@Override
@@ -76,9 +89,72 @@ class ConfigResourceLocationResolver implements ConfigDataLocationResolver {
 	}
 
 	@Override
-	public List<ConfigDataLocation> resolve(Binder binder, ConfigDataLocation parent, String location) {
-		this.resourceLoader.getResource(location);
-		return null;
+	public List<ConfigResourceLocation> resolve(Binder binder, ConfigDataLocation parent, String location) {
+		List<ConfigResourceLocation> configLocations = new ArrayList<>();
+		Map<String, PropertySourceLoader> loadableLocations = getLoadableLocations(location);
+		for (Map.Entry<String, PropertySourceLoader> file : loadableLocations.entrySet()) {
+			String fileName = file.getKey();
+			Resource[] resources = getResources(fileName);
+			for (Resource resource : resources) {
+				if (resource.exists()) {
+					String name = getLocationName(fileName, resource);
+					PropertySourceLoader loader = file.getValue();
+					configLocations.add(new ConfigResourceLocation(name, resource, loader));
+				}
+			}
+		}
+		return configLocations;
+	}
+
+	private Map<String, PropertySourceLoader> getLoadableLocations(String location) {
+		Map<String, PropertySourceLoader> loadableLocations = new LinkedHashMap<>();
+		boolean isDirectory = location.endsWith("/");
+		if (isDirectory) {
+			for (String name : this.configNames) {
+				for (PropertySourceLoader loader : this.propertySourceLoaders) {
+					String[] fileExtensions = loader.getFileExtensions();
+					Arrays.stream(fileExtensions)
+							.forEach((extension) -> loadableLocations.put(location + name + "." + extension, loader));
+				}
+			}
+		}
+		else {
+			for (PropertySourceLoader loader : this.propertySourceLoaders) {
+				if (canLoadFileExtension(loader, location)) {
+					loadableLocations.put(location, loader);
+					break;
+				}
+			}
+		}
+		return loadableLocations;
+	}
+
+	private Resource[] getResources(String location) {
+		try {
+			if (location.contains("*")) {
+				validateWildcardLocation(location);
+				return getResourcesFromPatternLocation(location);
+			}
+			return new Resource[] { this.resourceLoader.getResource(location) };
+		}
+		catch (IOException ex) {
+			return EMPTY_RESOURCES;
+		}
+	}
+
+	private boolean canLoadFileExtension(PropertySourceLoader loader, String name) {
+		return Arrays.stream(loader.getFileExtensions())
+				.anyMatch((fileExtension) -> StringUtils.endsWithIgnoreCase(name, fileExtension));
+	}
+
+	private String getLocationName(String location, Resource resource) {
+		if (!location.contains("*")) {
+			return location;
+		}
+		if (resource instanceof FileSystemResource) {
+			return ((FileSystemResource) resource).getPath();
+		}
+		return resource.getDescription();
 	}
 
 	@Override
@@ -87,29 +163,29 @@ class ConfigResourceLocationResolver implements ConfigDataLocationResolver {
 		return null;
 	}
 
-	private void dunno(ConfigDataLocation parent, String location) {
-		if (location.startsWith(CONFIG_FILE_URL_PREFIX)) {
-			location = location.substring(CONFIG_FILE_URL_PREFIX.length() + 1);
-		}
-		boolean isDirectory = location.endsWith("/");
-		if (location.startsWith("/") || URL_PREFIX.matcher(location).matches()) {
-			//
-		}
-		Resource parentResource = null;
-		parentResource.createRelative(location);
-	}
-
-	private void dunno() {
-		try {
-			if (location.contains("*")) {
-				return getResourcesFromPatternLocation(location);
-			}
-			return new Resource[] { this.resourceLoader.getResource(location) };
-		}
-		catch (Exception ex) {
-			return EMPTY_RESOURCES;
-		}
-	}
+	// private void dunno(ConfigDataLocation parent, String location) {
+	// if (location.startsWith(CONFIG_FILE_URL_PREFIX)) {
+	// location = location.substring(CONFIG_FILE_URL_PREFIX.length() + 1);
+	// }
+	// boolean isDirectory = location.endsWith("/");
+	// if (location.startsWith("/") || URL_PREFIX.matcher(location).matches()) {
+	// //
+	// }
+	// Resource parentResource = null;
+	// parentResource.createRelative(location);
+	// }
+	//
+	// private void dunno() {
+	// try {
+	// if (location.contains("*")) {
+	// return getResourcesFromPatternLocation(location);
+	// }
+	// return new Resource[] { this.resourceLoader.getResource(location) };
+	// }
+	// catch (Exception ex) {
+	// return EMPTY_RESOURCES;
+	// }
+	// }
 
 	private Resource[] getResourcesFromPatternLocation(String location) throws IOException {
 		String directoryPath = location.substring(0, location.indexOf("*/"));

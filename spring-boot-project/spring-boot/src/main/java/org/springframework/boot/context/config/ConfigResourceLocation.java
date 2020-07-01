@@ -38,4 +38,7 @@ class ConfigResourceLocation extends ConfigDataLocation {
 		this.propertySourceLoader = propertySourceLoader;
 	}
 
+	public String getLocation() {
+		return this.location;
+	}
 }

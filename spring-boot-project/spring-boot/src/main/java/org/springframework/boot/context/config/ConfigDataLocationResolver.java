@@ -42,7 +42,7 @@ import org.springframework.core.env.Environment;
  * @author Phillip Webb
  * @since 2.4.0
  */
-public interface ConfigDataLocationResolver {
+public interface ConfigDataLocationResolver<T extends ConfigDataLocation> {
 
 	/**
 	 * Returns if the specified location address can be resolved by this resolver.
@@ -60,7 +60,7 @@ public interface ConfigDataLocationResolver {
 	 * @param location the location that should be resolved
 	 * @return a list of resolved locations in ascending priority order.
 	 */
-	List<ConfigDataLocation> resolve(Binder binder, ConfigDataLocation parent, String location);
+	List<T> resolve(Binder binder, ConfigDataLocation parent, String location);
 
 	/**
 	 * Resolve a location string into one or more {@link ConfigDataLocation} instances

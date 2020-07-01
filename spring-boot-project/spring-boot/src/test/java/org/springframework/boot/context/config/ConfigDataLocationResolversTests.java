@@ -46,7 +46,7 @@ class ConfigDataLocationResolversTests {
 
 	@Test
 	void createWhenInjectingBinderCreatesResolver() {
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder,
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder,
 				Collections.singletonList(TestBoundResolver.class.getName()));
 		assertThat(resolvers.getResolvers()).hasSize(1);
 		assertThat(resolvers.getResolvers().get(0)).isExactlyInstanceOf(TestBoundResolver.class);
@@ -55,7 +55,7 @@ class ConfigDataLocationResolversTests {
 
 	@Test
 	void createWhenNotInjectingBinderCreatesResolver() {
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder,
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder,
 				Collections.singletonList(TestResolver.class.getName()));
 		assertThat(resolvers.getResolvers()).hasSize(1);
 		assertThat(resolvers.getResolvers().get(0)).isExactlyInstanceOf(TestResolver.class);
@@ -64,7 +64,7 @@ class ConfigDataLocationResolversTests {
 	@Test
 	void createWhenNameIsNotConfigDataLocationResolverThrowsException() {
 		assertThatIllegalArgumentException()
-				.isThrownBy(() -> new ConfigDataLocationResolvers(this.binder,
+				.isThrownBy(() -> new ConfigDataLocationResolvers(null, this.binder,
 						Collections.singletonList(InputStream.class.getName())))
 				.withMessageContaining("Unable to instantiate").havingCause().withMessageContaining("not assignable");
 	}
@@ -75,7 +75,7 @@ class ConfigDataLocationResolversTests {
 		names.add(TestResolver.class.getName());
 		names.add(LowestTestResolver.class.getName());
 		names.add(HighestTestResolver.class.getName());
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder, names);
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder, names);
 		assertThat(resolvers.getResolvers().get(0)).isExactlyInstanceOf(HighestTestResolver.class);
 		assertThat(resolvers.getResolvers().get(1)).isExactlyInstanceOf(TestResolver.class);
 		assertThat(resolvers.getResolvers().get(2)).isExactlyInstanceOf(LowestTestResolver.class);
@@ -83,7 +83,7 @@ class ConfigDataLocationResolversTests {
 
 	@Test
 	void resolveAllResolvesUsingFirstSupportedResolver() {
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder,
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder,
 				Arrays.asList(LowestTestResolver.class.getName(), HighestTestResolver.class.getName()));
 		List<ConfigDataLocation> resolved = resolvers.resolveAll(this.binder, null,
 				Collections.singletonList("LowestTestResolver:test"), null);
@@ -96,7 +96,7 @@ class ConfigDataLocationResolversTests {
 
 	@Test
 	void resolveAllWhenProfileMergesResolvedLocations() {
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder,
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder,
 				Arrays.asList(LowestTestResolver.class.getName(), HighestTestResolver.class.getName()));
 		List<ConfigDataLocation> resolved = resolvers.resolveAll(this.binder, null,
 				Collections.singletonList("LowestTestResolver:test"), this.profiles);
@@ -113,7 +113,7 @@ class ConfigDataLocationResolversTests {
 
 	@Test
 	void resolveWhenNoResolverThrowsException() {
-		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(this.binder,
+		ConfigDataLocationResolvers resolvers = new ConfigDataLocationResolvers(null, this.binder,
 				Arrays.asList(LowestTestResolver.class.getName(), HighestTestResolver.class.getName()));
 		assertThatExceptionOfType(UnsupportedConfigDataLocationException.class)
 				.isThrownBy(
