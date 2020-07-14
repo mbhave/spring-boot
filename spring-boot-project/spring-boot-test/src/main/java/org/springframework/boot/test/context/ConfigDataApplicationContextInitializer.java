@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,38 @@
 
 package org.springframework.boot.test.context;
 
+import java.util.function.Supplier;
+
+import org.springframework.boot.context.config.ConfigData;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
+import org.springframework.boot.env.RandomValuePropertySource;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
  * {@link ApplicationContextInitializer} that can be used with the
- * {@link ContextConfiguration#initializers()} to trigger loading of
- * {@literal application.properties}.
+ * {@link ContextConfiguration#initializers()} to trigger loading of {@link ConfigData}
+ * such as {@literal application.properties}.
  *
  * @author Phillip Webb
- * @since 1.4.0
- * @see org.springframework.boot.context.config.ConfigFileApplicationListener
- * @deprecated since 2.4.0 in favor of {@link ConfigDataApplicationContextInitializer}
+ * @since 2.4.0
+ * @see ConfigDataEnvironmentPostProcessor
  */
-@Deprecated
-public class ConfigFileApplicationContextInitializer
+public class ConfigDataApplicationContextInitializer
 		implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
 	@Override
 	public void initialize(ConfigurableApplicationContext applicationContext) {
-		new org.springframework.boot.context.config.ConfigFileApplicationListener() {
-			public void apply() {
+		RandomValuePropertySource.addToEnvironment(applicationContext.getEnvironment());
+		new ConfigDataEnvironmentPostProcessor(Supplier::get) {
+
+			void apply() {
 				addPropertySources(applicationContext.getEnvironment(), applicationContext);
-				addPostProcessors(applicationContext);
 			}
+
 		}.apply();
+		// FIXME order?
 	}
 
 }

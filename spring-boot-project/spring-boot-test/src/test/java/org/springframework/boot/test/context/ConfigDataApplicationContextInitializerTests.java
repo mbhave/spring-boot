@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2019 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,17 +29,15 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests for {@link ConfigFileApplicationContextInitializer}.
+ * Tests for {@link ConfigDataApplicationContextInitializer}.
  *
  * @author Phillip Webb
  */
-@Deprecated
-@SuppressWarnings("deprecation")
 @ExtendWith(SpringExtension.class)
 @DirtiesContext
-@ContextConfiguration(classes = ConfigFileApplicationContextInitializerTests.Config.class,
-		initializers = ConfigFileApplicationContextInitializer.class)
-class ConfigFileApplicationContextInitializerTests {
+@ContextConfiguration(classes = ConfigDataApplicationContextInitializerTests.Config.class,
+		initializers = ConfigDataApplicationContextInitializer.class)
+class ConfigDataApplicationContextInitializerTests {
 
 	@Autowired
 	private Environment environment;
