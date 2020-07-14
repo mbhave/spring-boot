@@ -39,6 +39,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.Profiles;
+import org.springframework.core.env.SimpleCommandLinePropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
@@ -202,8 +203,11 @@ public class ConfigDataIntegrationTests {
 
 	@Test
 	void commandLinePropertiesShouldTakePrecedence() {
-		ConfigurableApplicationContext context = this.application.run("--the.property=fromcommandline",
-				"--spring.config.name=testproperties");
+		StandardEnvironment environment = new StandardEnvironment();
+		environment.getPropertySources()
+				.addFirst(new SimpleCommandLinePropertySource("--the.property=fromcommandline"));
+		this.application.setEnvironment(environment);
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testproperties");
 		String property = context.getEnvironment().getProperty("the.property");
 		assertThat(property).isEqualTo("fromcommandline");
 	}
@@ -211,8 +215,7 @@ public class ConfigDataIntegrationTests {
 	@Test
 	void systemPropertyShouldTakePrecendence() {
 		System.setProperty("the.property", "fromsystem");
-		ConfigurableApplicationContext context = this.application.run("--the.property=fromcommandline",
-				"--spring.config.name=testproperties");
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testproperties");
 		String property = context.getEnvironment().getProperty("the.property");
 		assertThat(property).isEqualTo("fromsystem");
 	}
@@ -409,7 +412,7 @@ public class ConfigDataIntegrationTests {
 	}
 
 	@Test
-	void loadWhencustomDefaultProfileAndActiveFromCommandLineShouldNotActivateDefault() {
+	void loadWhencustomDefaultProfileAndActiveFromPreviousSourceShouldNotActivateDefault() {
 		ConfigurableApplicationContext context = this.application.run("--spring.profiles.default=customdefault",
 				"--spring.profiles.active=dev");
 		String property = context.getEnvironment().getProperty("my.property");
