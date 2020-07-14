@@ -109,7 +109,9 @@ import org.springframework.util.StringUtils;
  * @author Eddú Meléndez
  * @author Madhura Bhave
  * @since 1.0.0
+ * @deprecated since 2.4.0 in favor of {@link ConfigDataEnvironmentPostProcessor}
  */
+@Deprecated
 public class ConfigFileApplicationListener implements EnvironmentPostProcessor, SmartApplicationListener, Ordered {
 
 	private static final String DEFAULT_PROPERTIES = "defaultProperties";
@@ -164,7 +166,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 */
 	public static final int DEFAULT_ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
 
-	private final DeferredLog logger = new DeferredLog();
+	private final Log logger;
 
 	private static final Resource[] EMPTY_RESOURCES = {};
 
@@ -175,6 +177,14 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	private String names;
 
 	private int order = DEFAULT_ORDER;
+
+	public ConfigFileApplicationListener() {
+		this(new DeferredLog());
+	}
+
+	ConfigFileApplicationListener(Log logger) {
+		this.logger = logger;
+	}
 
 	@Override
 	public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
@@ -193,6 +203,8 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	}
 
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
+		// FIXME we now have two things doing this, we need to remove this code but it
+		// causes failures if we do
 		List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();
 		postProcessors.add(this);
 		AnnotationAwareOrderComparator.sort(postProcessors);
@@ -211,7 +223,9 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	}
 
 	private void onApplicationPreparedEvent(ApplicationEvent event) {
-		this.logger.switchTo(ConfigFileApplicationListener.class);
+		if (this.logger instanceof DeferredLog) {
+			((DeferredLog) this.logger).switchTo(ConfigFileApplicationListener.class);
+		}
 		addPostProcessors(((ApplicationPreparedEvent) event).getApplicationContext());
 	}
 
@@ -273,6 +287,10 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 */
 	private static class PropertySourceOrderingPostProcessor implements BeanFactoryPostProcessor, Ordered {
 
+		// FIXME this doesn't seem to have anything to do with ConfigFiles. Seems like a
+		// SpringApplication concern. Makes me wonder if default properties should even be
+		// added early. Perhaps we just should add them at the end?
+
 		private ConfigurableApplicationContext context;
 
 		PropertySourceOrderingPostProcessor(ConfigurableApplicationContext context) {
@@ -333,25 +351,26 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 
 		void load() {
 			FilteredPropertySource.apply(this.environment, DEFAULT_PROPERTIES, LOAD_FILTERED_PROPERTY,
-					(defaultProperties) -> {
-						this.profiles = new LinkedList<>();
-						this.processedProfiles = new LinkedList<>();
-						this.activatedProfiles = false;
-						this.loaded = new LinkedHashMap<>();
-						initializeProfiles();
-						while (!this.profiles.isEmpty()) {
-							Profile profile = this.profiles.poll();
-							if (isDefaultProfile(profile)) {
-								addProfileToEnvironment(profile.getName());
-							}
-							load(profile, this::getPositiveProfileFilter,
-									addToLoaded(MutablePropertySources::addLast, false));
-							this.processedProfiles.add(profile);
-						}
-						load(null, this::getNegativeProfileFilter, addToLoaded(MutablePropertySources::addFirst, true));
-						addLoadedPropertySources();
-						applyActiveProfiles(defaultProperties);
-					});
+					this::loadWithFilteredProperties);
+		}
+
+		private void loadWithFilteredProperties(PropertySource<?> defaultProperties) {
+			this.profiles = new LinkedList<>();
+			this.processedProfiles = new LinkedList<>();
+			this.activatedProfiles = false;
+			this.loaded = new LinkedHashMap<>();
+			initializeProfiles();
+			while (!this.profiles.isEmpty()) {
+				Profile profile = this.profiles.poll();
+				if (isDefaultProfile(profile)) {
+					addProfileToEnvironment(profile.getName());
+				}
+				load(profile, this::getPositiveProfileFilter, addToLoaded(MutablePropertySources::addLast, false));
+				this.processedProfiles.add(profile);
+			}
+			load(null, this::getNegativeProfileFilter, addToLoaded(MutablePropertySources::addFirst, true));
+			addLoadedPropertySources();
+			applyActiveProfiles(defaultProperties);
 		}
 
 		/**
