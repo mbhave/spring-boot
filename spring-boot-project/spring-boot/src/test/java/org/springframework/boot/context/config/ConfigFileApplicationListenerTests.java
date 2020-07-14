@@ -76,7 +76,8 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  * @author Eddú Meléndez
  * @author Madhura Bhave
  */
-@ExtendWith(OutputCaptureExtension.class)
+@Deprecated
+@ExtendWith({ OutputCaptureExtension.class, UseLegacyProcessing.class })
 class ConfigFileApplicationListenerTests {
 
 	private final BuildOutput buildOutput = new BuildOutput(getClass());

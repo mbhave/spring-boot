@@ -28,8 +28,9 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
  * Exception thrown if legacy processing must be used.
  *
  * @author Phillip Webb
+ * @since 2.4.0
  */
-public class UseLegacyConfigProcessingException extends ConfigDataException {
+public final class UseLegacyConfigProcessingException extends ConfigDataException {
 
 	/**
 	 * The property name used to trigger legacy processing.

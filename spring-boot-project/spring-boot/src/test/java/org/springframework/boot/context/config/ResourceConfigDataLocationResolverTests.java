@@ -187,8 +187,8 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveWhenLocationIsRelativeAndNoMatchingLoaderThrowsException() {
 		String location = "application.other";
 		ClassPathResource parentResource = new ClassPathResource("configdata/application.properties");
-		ResourceConfigDataLocation parent = new ResourceConfigDataLocation("classpath:/configdata/application.properties",
-				parentResource, new PropertiesPropertySourceLoader());
+		ResourceConfigDataLocation parent = new ResourceConfigDataLocation(
+				"classpath:/configdata/application.properties", parentResource, new PropertiesPropertySourceLoader());
 		given(this.context.getParent()).willReturn(parent);
 		assertThatIllegalStateException().isThrownBy(() -> this.resolver.resolve(this.context, location))
 				.withMessageStartingWith("Unable to load config data from 'application.other'")
@@ -207,7 +207,8 @@ public class ResourceConfigDataLocationResolverTests {
 		String location = "classpath:/configdata/properties/";
 		Profiles profiles = mock(Profiles.class);
 		given(profiles.iterator()).willReturn(Collections.singletonList("dev").iterator());
-		List<ResourceConfigDataLocation> locations = this.resolver.resolveProfileSpecific(this.context, location, profiles);
+		List<ResourceConfigDataLocation> locations = this.resolver.resolveProfileSpecific(this.context, location,
+				profiles);
 		assertThat(locations.size()).isEqualTo(1);
 		assertThat(locations).extracting(Object::toString)
 				.containsExactly("class path resource [configdata/properties/application-dev.properties]");
@@ -218,7 +219,8 @@ public class ResourceConfigDataLocationResolverTests {
 		String location = "classpath:/configdata/properties/application.properties";
 		Profiles profiles = mock(Profiles.class);
 		given(profiles.getActive()).willReturn(Collections.singletonList("dev"));
-		List<ResourceConfigDataLocation> locations = this.resolver.resolveProfileSpecific(this.context, location, profiles);
+		List<ResourceConfigDataLocation> locations = this.resolver.resolveProfileSpecific(this.context, location,
+				profiles);
 		assertThat(locations).isEmpty();
 	}
 

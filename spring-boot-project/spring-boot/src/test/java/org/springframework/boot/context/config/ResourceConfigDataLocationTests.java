@@ -63,8 +63,10 @@ public class ResourceConfigDataLocationTests {
 	@Test
 	void equalsWhenResourceIsTheSameReturnsTrue() {
 		Resource resource = new ClassPathResource("config/");
-		ResourceConfigDataLocation location = new ResourceConfigDataLocation("my-location", resource, this.propertySource);
-		ResourceConfigDataLocation other = new ResourceConfigDataLocation("other-location", resource, this.propertySource);
+		ResourceConfigDataLocation location = new ResourceConfigDataLocation("my-location", resource,
+				this.propertySource);
+		ResourceConfigDataLocation other = new ResourceConfigDataLocation("other-location", resource,
+				this.propertySource);
 		assertThat(location).isEqualTo(other);
 	}
 

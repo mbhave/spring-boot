@@ -63,6 +63,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 	protected final void addPropertySources(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
 		try {
 			this.logger.trace("Post-processing environment to add config data");
+			// FIXME inject ResourceLoader
 			new ConfigDataEnvironment(this.logFactory, environment).processAndApply();
 		}
 		catch (UseLegacyConfigProcessingException ex) {
