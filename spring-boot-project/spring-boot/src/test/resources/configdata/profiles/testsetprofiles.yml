@@ -5,6 +5,6 @@ spring:
 my:
   property: fromyamlfile
 ---
-spring.profiles.active.on-profile: dev
+spring.config.activate.on-profile: dev
 my:
   property: fromdevprofile

@@ -24,6 +24,7 @@ import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.log.LogMessage;
 
@@ -63,8 +64,8 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 	protected final void addPropertySources(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
 		try {
 			this.logger.trace("Post-processing environment to add config data");
-			// FIXME inject ResourceLoader
-			new ConfigDataEnvironment(this.logFactory, environment).processAndApply();
+			resourceLoader = (resourceLoader != null) ? resourceLoader : new DefaultResourceLoader();
+			new ConfigDataEnvironment(this.logFactory, environment, resourceLoader).processAndApply();
 		}
 		catch (UseLegacyConfigProcessingException ex) {
 			this.logger.debug(LogMessage.format("Switching to legacy config file processing [%s]",

@@ -28,6 +28,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.util.StringUtils;
 
@@ -86,14 +87,16 @@ class ConfigDataEnvironment {
 	 * Create a new {@link ConfigDataEnvironment} instance.
 	 * @param logFactory the deferred log factory
 	 * @param environment the Spring {@link Environment}.
+	 * @param resourceLoader {@link ResourceLoader} to load resource locations
 	 */
-	ConfigDataEnvironment(DeferredLogFactory logFactory, ConfigurableEnvironment environment) {
+	ConfigDataEnvironment(DeferredLogFactory logFactory, ConfigurableEnvironment environment,
+			ResourceLoader resourceLoader) {
 		Binder binder = Binder.get(environment);
 		UseLegacyConfigProcessingException.throwIfRequested(binder);
 		this.logFactory = logFactory;
 		this.logger = logFactory.getLog(getClass());
 		this.environment = environment;
-		this.resolvers = new ConfigDataLocationResolvers(logFactory, binder);
+		this.resolvers = new ConfigDataLocationResolvers(logFactory, binder, resourceLoader);
 		this.loaders = new ConfigDataLoaders(logFactory);
 		this.contributors = getContributors(binder);
 	}
@@ -132,11 +135,11 @@ class ConfigDataEnvironment {
 	private List<ConfigDataEnvironmentContributor> getInitialImportContributors(Binder binder) {
 		List<ConfigDataEnvironmentContributor> initialContributors = new ArrayList<>();
 		addInitialImportContributors(initialContributors,
-				binder.bind(LOCATION_PROPERTY, String[].class).orElse(DEFAULT_SEARCH_LOCATIONS));
+				binder.bind(SPRING_CONFIG_IMPORT, String[].class).orElse(EMPTY_LOCATIONS));
 		addInitialImportContributors(initialContributors,
 				binder.bind(ADDITIONAL_LOCATION_PROPERTY, String[].class).orElse(EMPTY_LOCATIONS));
 		addInitialImportContributors(initialContributors,
-				binder.bind(SPRING_CONFIG_IMPORT, String[].class).orElse(EMPTY_LOCATIONS));
+				binder.bind(LOCATION_PROPERTY, String[].class).orElse(DEFAULT_SEARCH_LOCATIONS));
 		return initialContributors;
 	}
 

@@ -25,6 +25,7 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ResourceLoader;
 
 /**
  * Strategy interface used to resolve {@link ConfigDataLocation locations} from a String
@@ -34,6 +35,7 @@ import org.springframework.core.env.Environment;
  * <li>{@link Log} - if the resolver needs deferred logging</li>
  * <li>{@link Binder} - if the resolver needs to obtain values from the initial
  * {@link Environment}</li>
+ * <li>{@link ResourceLoader} - if the resolver needs a resource loader</li>
  * </ul>
  * <p>
  * Resolvers may implement {@link Ordered} or use the {@link Order @Order} annotation. The

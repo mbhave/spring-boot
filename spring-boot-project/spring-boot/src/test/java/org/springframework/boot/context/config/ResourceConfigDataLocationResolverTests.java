@@ -26,6 +26,8 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.PropertiesPropertySourceLoader;
 import org.springframework.boot.logging.DeferredLog;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,11 +50,14 @@ public class ResourceConfigDataLocationResolverTests {
 
 	private Binder environmentBinder;
 
+	private ResourceLoader resourceLoader = new DefaultResourceLoader();
+
 	@BeforeEach
 	void setup() {
 		this.environment = new MockEnvironment();
 		this.environmentBinder = Binder.get(this.environment);
-		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder);
+		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder,
+				this.resourceLoader);
 	}
 
 	@Test
@@ -104,7 +109,8 @@ public class ResourceConfigDataLocationResolverTests {
 	void createWhenConfigNameHasWildcardThrowsException() {
 		this.environment.setProperty("spring.config.name", "*/application");
 		assertThatIllegalStateException()
-				.isThrownBy(() -> new ResourceConfigDataLocationResolver(null, this.environmentBinder))
+				.isThrownBy(
+						() -> new ResourceConfigDataLocationResolver(null, this.environmentBinder, this.resourceLoader))
 				.withMessageStartingWith("Config name '").withMessageEndingWith("' cannot contain '*'");
 	}
 
@@ -120,7 +126,7 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveWhenLocationIsWildcardDirectoriesRestrictsToOneLevelDeep() {
 		String location = "file:src/test/resources/config/*/";
 		this.environment.setProperty("spring.config.name", "testproperties");
-		this.resolver = new ResourceConfigDataLocationResolver(null, this.environmentBinder);
+		this.resolver = new ResourceConfigDataLocationResolver(null, this.environmentBinder, this.resourceLoader);
 		List<ResourceConfigDataLocation> locations = this.resolver.resolve(this.context, location);
 		assertThat(locations.size()).isEqualTo(3);
 		assertThat(locations).extracting(Object::toString)
@@ -133,7 +139,7 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveWhenLocationIsWildcardDirectoriesSortsAlphabeticallyBasedOnAbsolutePath() {
 		String location = "file:src/test/resources/config/*/";
 		this.environment.setProperty("spring.config.name", "testproperties");
-		this.resolver = new ResourceConfigDataLocationResolver(null, this.environmentBinder);
+		this.resolver = new ResourceConfigDataLocationResolver(null, this.environmentBinder, this.resourceLoader);
 		List<ResourceConfigDataLocation> locations = this.resolver.resolve(this.context, location);
 		assertThat(locations).extracting(Object::toString).containsExactly(
 				"file [src/test/resources/config/0-empty/testproperties.properties]",
@@ -156,7 +162,8 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveWhenLocationIsRelativeAndFileResolves() {
 		this.environment.setProperty("spring.config.name", "other");
 		String location = "other.properties";
-		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder);
+		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder,
+				this.resourceLoader);
 		ClassPathResource parentResource = new ClassPathResource("configdata/properties/application.properties");
 		ResourceConfigDataLocation parent = new ResourceConfigDataLocation(
 				"classpath:/configdata/properties/application.properties", parentResource,
@@ -172,7 +179,8 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveWhenLocationIsRelativeAndDirectoryResolves() {
 		this.environment.setProperty("spring.config.name", "testproperties");
 		String location = "nested/3-third/";
-		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder);
+		this.resolver = new ResourceConfigDataLocationResolver(new DeferredLog(), this.environmentBinder,
+				this.resourceLoader);
 		ClassPathResource parentResource = new ClassPathResource("config/specific.properties");
 		ResourceConfigDataLocation parent = new ResourceConfigDataLocation("classpath:/config/specific.properties",
 				parentResource, new PropertiesPropertySourceLoader());

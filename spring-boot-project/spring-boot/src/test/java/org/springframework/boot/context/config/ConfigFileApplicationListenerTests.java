@@ -219,7 +219,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void moreSpecificLocationTakesPrecedenceOverRoot() {
-		//??
+		//checking order of default locations
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment, "spring.config.name=specific");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
 		String property = this.environment.getProperty("my.property");
@@ -238,7 +238,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void randomValue() {
-		//?
+		//dont need
 		this.initializer.postProcessEnvironment(this.environment, this.application);
 		String property = this.environment.getProperty("random.value");
 		assertThat(property).isNotNull();
@@ -273,7 +273,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void loadDefaultYamlDocument() {
-		//??
+		//makes sense
 		this.environment.setDefaultProfiles("thedefault");
 		this.initializer.setSearchNames("testprofilesdocument");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
@@ -297,7 +297,7 @@ class ConfigFileApplicationListenerTests {
 				.addFirst(new SimpleCommandLinePropertySource("--the.property=fromcommandline"));
 		this.initializer.setSearchNames("testproperties");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
-		String property = this.environment.getProperty("the.property");
+		String property = this.environment.getProperty("fthe.property");
 		assertThat(property).isEqualTo("fromcommandline");
 	}
 

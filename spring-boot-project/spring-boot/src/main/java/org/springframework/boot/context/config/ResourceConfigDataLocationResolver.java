@@ -33,7 +33,6 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.PropertySourceLoader;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -41,6 +40,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.core.log.LogMessage;
 import org.springframework.util.Assert;
+import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 
 /**
@@ -77,13 +77,14 @@ class ResourceConfigDataLocationResolver implements ConfigDataLocationResolver<R
 	 * Create a new {@link ResourceConfigDataLocationResolver} instance.
 	 * @param logger the logger to use
 	 * @param binder a binder backed by the initial {@link Environment}
+	 * @param resourceLoader a {@link ResourceLoader} used to load resources
 	 */
-	ResourceConfigDataLocationResolver(Log logger, Binder binder) {
+	ResourceConfigDataLocationResolver(Log logger, Binder binder, ResourceLoader resourceLoader) {
 		this.logger = logger;
 		this.propertySourceLoaders = SpringFactoriesLoader.loadFactories(PropertySourceLoader.class,
 				getClass().getClassLoader());
 		this.configNames = getConfigNames(binder);
-		this.resourceLoader = new DefaultResourceLoader();
+		this.resourceLoader = resourceLoader;
 	}
 
 	private String[] getConfigNames(Binder binder) {
@@ -177,8 +178,6 @@ class ResourceConfigDataLocationResolver implements ConfigDataLocationResolver<R
 			return resourceLocation;
 		}
 		ConfigDataLocation parent = context.getParent();
-		Assert.state(parent != null,
-				() -> "Parent cannot be null when resolving relative config data resource location '" + location + "'");
 		if (parent instanceof ResourceConfigDataLocation) {
 			String parentLocation = ((ResourceConfigDataLocation) parent).getLocation();
 			String parentDirectory = parentLocation.substring(0, parentLocation.lastIndexOf("/") + 1);
@@ -216,7 +215,7 @@ class ResourceConfigDataLocationResolver implements ConfigDataLocationResolver<R
 	}
 
 	private List<ResourceConfigDataLocation> resolveNonPattern(String location, Resolvable resolvable) {
-		Resource resource = this.resourceLoader.getResource(resolvable.getResourceLocation());
+		Resource resource = loadResource(resolvable.getResourceLocation());
 		if (resource.exists()) {
 			ResourceConfigDataLocation resolved = createConfigResourceLocation(location, resolvable, resource);
 			return Collections.singletonList(resolved);
@@ -263,7 +262,7 @@ class ResourceConfigDataLocationResolver implements ConfigDataLocationResolver<R
 	private Resource[] getResourcesFromResourceLocationPattern(String resourceLocationPattern) {
 		String directoryPath = resourceLocationPattern.substring(0, resourceLocationPattern.indexOf("*/"));
 		String fileName = resourceLocationPattern.substring(resourceLocationPattern.lastIndexOf("/") + 1);
-		Resource directoryResource = this.resourceLoader.getResource(directoryPath);
+		Resource directoryResource = loadResource(directoryPath);
 		if (!directoryResource.exists()) {
 			return EMPTY_RESOURCES;
 		}
@@ -282,6 +281,14 @@ class ResourceConfigDataLocationResolver implements ConfigDataLocationResolver<R
 			}
 		}
 		return resources.toArray(EMPTY_RESOURCES);
+	}
+
+	private Resource loadResource(String location) {
+		location = StringUtils.cleanPath(location);
+		if (!ResourceUtils.isUrl(location)) {
+			location = ResourceUtils.FILE_URL_PREFIX + location;
+		}
+		return this.resourceLoader.getResource(location);
 	}
 
 	private File getDirectory(String patternLocation, Resource resource) {

@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.util.StringUtils;
 
@@ -42,22 +43,27 @@ class ConfigDataLocationResolvers {
 	 * Create a new {@link ConfigDataLocationResolvers} instance.
 	 * @param logFactory a {@link DeferredLogFactory} used to inject {@link Log} instances
 	 * @param binder a binder providing values from the initial {@link Environment}
+	 * @param resourceLoader {@link ResourceLoader} to load resource locations
 	 */
-	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder) {
-		this(logFactory, binder, SpringFactoriesLoader.loadFactoryNames(ConfigDataLocationResolver.class, null));
+	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder, ResourceLoader resourceLoader) {
+		this(logFactory, binder, resourceLoader,
+				SpringFactoriesLoader.loadFactoryNames(ConfigDataLocationResolver.class, null));
 	}
 
 	/**
 	 * Create a new {@link ConfigDataLocationResolvers} instance.
 	 * @param logFactory a {@link DeferredLogFactory} used to inject {@link Log} instances
 	 * @param binder {@link Binder} providing values from the initial {@link Environment}
+	 * @param resourceLoader {@link ResourceLoader} to load resource locations
 	 * @param names the {@link ConfigDataLocationResolver} class names
 	 */
-	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder, List<String> names) {
+	ConfigDataLocationResolvers(DeferredLogFactory logFactory, Binder binder, ResourceLoader resourceLoader,
+			List<String> names) {
 		Instantiator<ConfigDataLocationResolver<?>> instantiator = new Instantiator<>(ConfigDataLocationResolver.class,
 				(availableParameters) -> {
 					availableParameters.add(Log.class, logFactory::getLog);
 					availableParameters.add(Binder.class, binder);
+					availableParameters.add(ResourceLoader.class, resourceLoader);
 				});
 		this.resolvers = reorder(instantiator.instantiate(names));
 	}

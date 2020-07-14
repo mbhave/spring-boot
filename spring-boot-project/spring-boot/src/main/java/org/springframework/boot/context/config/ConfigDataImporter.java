@@ -24,10 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.boot.logging.DeferredLogFactory;
-import org.springframework.core.env.Environment;
-
 /**
  * Imports {@link ConfigData} by {@link ConfigDataLocationResolver resolving} and
  * {@link ConfigDataLoader loading} imports. {@link ConfigDataLocation locations} are
@@ -42,15 +38,6 @@ class ConfigDataImporter {
 	private final ConfigDataLoaders loaders;
 
 	private final Set<ConfigDataLocation> loadedLocations = new HashSet<>();
-
-	/**
-	 * Create a new {@link ConfigDataImporter} instance.
-	 * @param logFactory the deferred log factory
-	 * @param binder a binder providing values from the initial {@link Environment}
-	 */
-	ConfigDataImporter(DeferredLogFactory logFactory, Binder binder) {
-		this(new ConfigDataLocationResolvers(logFactory, binder), new ConfigDataLoaders(logFactory));
-	}
 
 	/**
 	 * Create a new {@link ConfigDataImporter} instance.

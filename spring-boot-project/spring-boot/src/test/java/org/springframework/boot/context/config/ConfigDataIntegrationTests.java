@@ -28,12 +28,12 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.Condition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.testsupport.system.CapturedOutput;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -54,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
  *
  * @author Madhura Bhave
  */
-public class ConfigDataIntegrationTests {
+class ConfigDataIntegrationTests {
 
 	private SpringApplication application;
 
@@ -64,9 +64,15 @@ public class ConfigDataIntegrationTests {
 		this.application.setWebApplicationType(WebApplicationType.NONE);
 	}
 
+	@AfterEach
+	void tearDown() {
+		System.clearProperty("the.property");
+	}
+
 	@Test
 	void customResourceLoaderShouldBeUsed() {
 		this.application.setResourceLoader(new ResourceLoader() {
+
 			@Override
 			public Resource getResource(String location) {
 				if (location.equals("classpath:/custom.properties")) {
@@ -84,6 +90,7 @@ public class ConfigDataIntegrationTests {
 			public ClassLoader getClassLoader() {
 				return getClass().getClassLoader();
 			}
+
 		});
 		ConfigurableApplicationContext context = this.application.run("--spring.config.name=custom");
 		String property = context.getEnvironment().getProperty("the.property");
@@ -286,7 +293,7 @@ public class ConfigDataIntegrationTests {
 	}
 
 	@Test
-	void profilesAddedToEnvironmentAndViaPropertyWithBracketNotation(CapturedOutput output) {
+	void profilesActivatedViaBracketNotation() {
 		ConfigurableApplicationContext context = this.application.run("--spring.profiles.active[0]=dev",
 				"--spring.profiles.active[1]=other");
 		assertThat(context.getEnvironment().getActiveProfiles()).contains("dev", "other");
@@ -405,10 +412,12 @@ public class ConfigDataIntegrationTests {
 	}
 
 	@Test
-	void relativeConfigLocation() {
+	void relativeConfigLocationShouldUseFileLocation() {
 		String location = "src/test/resources/specificlocation.properties";
 		ConfigurableApplicationContext context = this.application.run("--spring.config.location=" + location);
-		assertThat(context.getEnvironment()).has(matchingPropertySource("applicationConfig: [file:" + location + "]"));
+		assertThat(context.getEnvironment()).has(matchingPropertySource(
+				"Resource config 'src/test/resources/specificlocation.properties' imported via location \"" + location
+						+ "\""));
 	}
 
 	@Test
@@ -421,12 +430,11 @@ public class ConfigDataIntegrationTests {
 	}
 
 	@Test
-	void runWhencustomDefaultProfileAndActiveFromFileShouldActivateBoth() {
+	void runWhenCustomDefaultProfileSameAsActiveFromFileShouldActivateProfile() {
 		ConfigurableApplicationContext context = this.application.run("--spring.profiles.default=customdefault",
 				"--spring.config.name=customprofile");
 		ConfigurableEnvironment environment = context.getEnvironment();
 		assertThat(environment.containsProperty("customprofile")).isTrue();
-		assertThat(environment.containsProperty("customprofile-specific")).isTrue();
 		assertThat(environment.containsProperty("customprofile-customdefault")).isTrue();
 		assertThat(environment.acceptsProfiles(Profiles.of("customdefault"))).isTrue();
 	}
@@ -488,7 +496,7 @@ public class ConfigDataIntegrationTests {
 		StandardEnvironment environment = new StandardEnvironment();
 		environment.getPropertySources().addFirst(propertySource);
 		this.application.setEnvironment(environment);
-		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testactiveprofiles");
+		ConfigurableApplicationContext context = this.application.run();
 		assertThat(context.getEnvironment().getProperty("mapkey")).isEqualTo("mapvalue");
 		assertThat(context.getEnvironment().getProperty("gh17001loaded")).isEqualTo("true");
 	}
