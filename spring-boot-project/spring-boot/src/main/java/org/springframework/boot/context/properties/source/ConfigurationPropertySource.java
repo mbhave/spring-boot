@@ -19,6 +19,7 @@ package org.springframework.boot.context.properties.source;
 import java.util.function.Predicate;
 
 import org.springframework.boot.origin.OriginTrackedValue;
+import org.springframework.core.env.PropertySource;
 
 /**
  * A source of {@link ConfigurationProperty ConfigurationProperties}.
@@ -79,6 +80,18 @@ public interface ConfigurationPropertySource {
 	 */
 	default Object getUnderlyingSource() {
 		return null;
+	}
+
+	/**
+	 * Return a single new {@link ConfigurationPropertySource} adapted from the given
+	 * Spring {@link PropertySource}.
+	 * @param source the Spring property source to adapt
+	 * @return an {@link Iterable} containing a single newly adapted
+	 * {@link SpringConfigurationPropertySource}
+	 * @since 2.4.0
+	 */
+	static ConfigurationPropertySource from(PropertySource<?> source) {
+		return SpringConfigurationPropertySource.from(source);
 	}
 
 }
