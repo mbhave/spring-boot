@@ -370,8 +370,9 @@ class ConfigDataIntegrationTests {
 		assertThat(property).isEqualTo("fromdevprofile");
 		List<String> names = StreamSupport.stream(context.getEnvironment().getPropertySources().spliterator(), false)
 				.map(org.springframework.core.env.PropertySource::getName).collect(Collectors.toList());
-		assertThat(names).contains("applicationConfig: [classpath:/testsetprofiles.yml] (document #0)",
-				"applicationConfig: [classpath:/testsetprofiles.yml] (document #1)");
+		assertThat(names).contains(
+				"Resource config 'classpath:configdata/profiles/testsetprofiles.yml' imported via location \"classpath:configdata/profiles/\" (document #0)",
+				"Resource config 'classpath:configdata/profiles/testsetprofiles.yml' imported via location \"classpath:configdata/profiles/\" (document #1)");
 	}
 
 	@Test
@@ -507,8 +508,9 @@ class ConfigDataIntegrationTests {
 	void configLocationWhenUnknownFileExtensionShouldFailsFast() {
 		String location = "classpath:application.unknown";
 		assertThatIllegalStateException().isThrownBy(() -> this.application.run("--spring.config.location=" + location))
-				.withMessageContaining(location)
-				.withMessageContaining("If the location is meant to reference a directory, it must end in '/'");
+				.withMessageContaining("Unable to load condif data").withMessageContaining(location)
+				.satisfies((ex) -> assertThat(ex.getCause()).hasMessageContaining("File extension is not known")
+						.hasMessageContaining("it must end in '/'"));
 	}
 
 	@Test
