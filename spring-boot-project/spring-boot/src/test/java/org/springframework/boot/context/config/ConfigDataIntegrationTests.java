@@ -508,7 +508,7 @@ class ConfigDataIntegrationTests {
 	void configLocationWhenUnknownFileExtensionShouldFailsFast() {
 		String location = "classpath:application.unknown";
 		assertThatIllegalStateException().isThrownBy(() -> this.application.run("--spring.config.location=" + location))
-				.withMessageContaining("Unable to load condif data").withMessageContaining(location)
+				.withMessageContaining("Unable to load config data").withMessageContaining(location)
 				.satisfies((ex) -> assertThat(ex.getCause()).hasMessageContaining("File extension is not known")
 						.hasMessageContaining("it must end in '/'"));
 	}
