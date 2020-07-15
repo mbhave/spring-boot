@@ -6,7 +6,10 @@ my:
 spring.config.activate.on-profile: dev
 my:
   property: fromdevprofile
+dev:
+  property: devproperty
 ---
 spring.config.activate.on-profile: other
 my:
   property: fromotherprofile
+

@@ -303,7 +303,8 @@ class ConfigDataIntegrationTests {
 	@Test
 	void profileInMultiDocumentFiles() {
 		this.application.setAdditionalProfiles("dev");
-		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testprofiles");
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testprofiles",
+				"--spring.config.location=classpath:configdata/profiles/");
 		String property = context.getEnvironment().getProperty("my.property");
 		assertThat(property).isEqualTo("fromdevprofile");
 		property = context.getEnvironment().getProperty("my.other");
@@ -313,7 +314,8 @@ class ConfigDataIntegrationTests {
 	@Test
 	void multipleActiveProfilesWithMultiDocumentFilesShouldLoadInOrderOfDocument() {
 		this.application.setAdditionalProfiles("other", "dev");
-		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testprofiles");
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testprofiles",
+				"--spring.config.location=classpath:configdata/profiles/");
 		String property = context.getEnvironment().getProperty("my.property");
 		assertThat(property).isEqualTo("fromotherprofile");
 		property = context.getEnvironment().getProperty("my.other");
