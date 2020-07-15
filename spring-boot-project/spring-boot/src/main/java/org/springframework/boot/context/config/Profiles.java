@@ -19,6 +19,7 @@ package org.springframework.boot.context.config;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -33,6 +34,7 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.style.ToStringCreator;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -67,12 +69,13 @@ public class Profiles implements Iterable<String> {
 	 * {@link Binder}.
 	 * @param environment the source environment
 	 * @param binder the binder for profile properties
+	 * @param additionalProfiles and additional active profiles
 	 */
-	Profiles(Environment environment, Binder binder) {
+	Profiles(Environment environment, Binder binder, Collection<String> additionalProfiles) {
 		this.groups = binder.bind("spring.profiles.group", STRING_STRINGS_MAP).orElseGet(LinkedMultiValueMap::new);
-		this.activeProfiles = asList(get(environment, binder, environment::getActiveProfiles,
-				AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, UNSET_ACTIVE));
-		this.defaultProfiles = asList(get(environment, binder, environment::getDefaultProfiles,
+		this.activeProfiles = asUniqueItemList(get(environment, binder, environment::getActiveProfiles,
+				AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, UNSET_ACTIVE), additionalProfiles);
+		this.defaultProfiles = asUniqueItemList(get(environment, binder, environment::getDefaultProfiles,
 				AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME, UNSET_DEFAULT));
 		this.acceptedProfiles = expandAcceptedProfiles(this.activeProfiles, this.defaultProfiles);
 	}
@@ -105,7 +108,7 @@ public class Profiles implements Iterable<String> {
 			acceptedProfiles.add(current);
 			asReversedList(this.groups.get(current)).forEach(stack::push);
 		}
-		return asList(StringUtils.toStringArray(acceptedProfiles));
+		return asUniqueItemList(StringUtils.toStringArray(acceptedProfiles));
 	}
 
 	private List<String> asReversedList(List<String> list) {
@@ -117,8 +120,16 @@ public class Profiles implements Iterable<String> {
 		return Collections.unmodifiableList(reversed);
 	}
 
-	private List<String> asList(String[] array) {
-		return Collections.unmodifiableList(Arrays.asList(array));
+	private List<String> asUniqueItemList(String[] array) {
+		return asUniqueItemList(array, null);
+	}
+
+	private List<String> asUniqueItemList(String[] array, Collection<String> additional) {
+		LinkedHashSet<String> uniqueItems = new LinkedHashSet<>(Arrays.asList(array));
+		if (!CollectionUtils.isEmpty(additional)) {
+			uniqueItems.addAll(additional);
+		}
+		return Collections.unmodifiableList(new ArrayList<>(uniqueItems));
 	}
 
 	/**

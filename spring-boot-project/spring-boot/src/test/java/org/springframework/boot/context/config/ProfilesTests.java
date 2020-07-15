@@ -16,6 +16,7 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class ProfilesTests {
 	void getActiveWhenNoEnvironmentProfilesAndNoPropertyReturnsEmptyArray() {
 		Environment environment = new MockEnvironment();
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).isEmpty();
 	}
 
@@ -48,7 +49,7 @@ class ProfilesTests {
 		Environment environment = new MockEnvironment();
 		Binder binder = new Binder(
 				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.active", "a,b,c")));
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
@@ -57,7 +58,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setProperty("spring.profiles.active", "a,b,c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
@@ -67,7 +68,7 @@ class ProfilesTests {
 		environment.setActiveProfiles("a", "b", "c");
 		Binder binder = new Binder(
 				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.active", "d,e,f")));
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
@@ -77,7 +78,7 @@ class ProfilesTests {
 		environment.setActiveProfiles("a", "b", "c");
 		environment.setProperty("spring.profiles.active", "d,e,f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
@@ -88,7 +89,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.active[1]", "b");
 		environment.setProperty("spring.profiles.active[2]", "c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
 	}
 
@@ -100,15 +101,33 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.active[1]", "e");
 		environment.setProperty("spring.profiles.active[2]", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getActiveWhenHasDuplicatesReturnsUniqueElements() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setProperty("spring.profiles.active", "a,b,a,b,c");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder, null);
+		assertThat(profiles.getActive()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getActiveWhenHasAdditionalIncludesAdditional() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setProperty("spring.profiles.active", "a,b,c");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder, Arrays.asList("d", "e", "f"));
+		assertThat(profiles.getActive()).containsExactly("a", "b", "c", "d", "e", "f");
 	}
 
 	@Test
 	void getDefaultWhenNoEnvironmentProfilesAndNoPropertyReturnsEmptyArray() {
 		Environment environment = new MockEnvironment();
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("default");
 	}
 
@@ -117,7 +136,7 @@ class ProfilesTests {
 		Environment environment = new MockEnvironment();
 		Binder binder = new Binder(
 				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.default", "a,b,c")));
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -126,7 +145,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setProperty("spring.profiles.default", "a,b,c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -136,7 +155,7 @@ class ProfilesTests {
 		environment.setDefaultProfiles("a", "b", "c");
 		Binder binder = new Binder(
 				new MapConfigurationPropertySource(Collections.singletonMap("spring.profiles.default", "d,e,f")));
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -146,7 +165,7 @@ class ProfilesTests {
 		environment.setDefaultProfiles("a", "b", "c");
 		environment.setProperty("spring.profiles.default", "d,e,f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -157,7 +176,16 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.default[1]", "b");
 		environment.setProperty("spring.profiles.default[2]", "c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
+		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
+	}
+
+	@Test
+	void getDefaultWhenHasDuplicatesReturnsUniqueElements() {
+		MockEnvironment environment = new MockEnvironment();
+		environment.setProperty("spring.profiles.default", "a,b,a,b,c");
+		Binder binder = Binder.get(environment);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -169,7 +197,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.default[1]", "e");
 		environment.setProperty("spring.profiles.default[2]", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getDefault()).containsExactly("a", "b", "c");
 	}
 
@@ -179,7 +207,7 @@ class ProfilesTests {
 		environment.setActiveProfiles("a", "b", "c");
 		environment.setDefaultProfiles("d", "e", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles).containsExactly("a", "b", "c");
 	}
@@ -189,7 +217,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setDefaultProfiles("d", "e", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles).containsExactly("d", "e", "f");
 	}
@@ -199,7 +227,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setActiveProfiles("a", "b", "c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles.isAccepted("a")).isTrue();
 	}
@@ -209,7 +237,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setActiveProfiles("a", "b", "c");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles.isAccepted("x")).isFalse();
 	}
@@ -219,7 +247,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setDefaultProfiles("d", "e", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles.isAccepted("d")).isTrue();
 	}
@@ -229,7 +257,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setDefaultProfiles("d", "e", "f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles1 = new Profiles(environment, binder);
+		Profiles profiles1 = new Profiles(environment, binder, null);
 		Profiles profiles = profiles1;
 		assertThat(profiles.isAccepted("x")).isFalse();
 	}
@@ -241,7 +269,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.group.a", "e,f");
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles).containsExactly("a", "e", "x", "y", "f", "b", "c");
 	}
 
@@ -251,7 +279,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.group.a", "e,f");
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles).containsExactly("default");
 	}
 
@@ -260,7 +288,7 @@ class ProfilesTests {
 		MockEnvironment environment = new MockEnvironment();
 		environment.setProperty("spring.profiles.group.default", "e,f");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles).containsExactly("default", "e", "f");
 	}
 
@@ -272,7 +300,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		environment.setDefaultProfiles("g", "h", "i");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getAccepted()).containsExactly("a", "e", "x", "y", "f", "b", "c");
 	}
 
@@ -282,7 +310,7 @@ class ProfilesTests {
 		environment.setDefaultProfiles("d", "e", "f");
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.getAccepted()).containsExactly("d", "e", "x", "y", "f");
 	}
 
@@ -294,7 +322,7 @@ class ProfilesTests {
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		environment.setDefaultProfiles("g", "h", "i");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.isAccepted("a")).isTrue();
 		assertThat(profiles.isAccepted("e")).isTrue();
 		assertThat(profiles.isAccepted("g")).isFalse();
@@ -306,7 +334,7 @@ class ProfilesTests {
 		environment.setDefaultProfiles("d", "e", "f");
 		environment.setProperty("spring.profiles.group.e", "x,y");
 		Binder binder = Binder.get(environment);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		assertThat(profiles.isAccepted("d")).isTrue();
 		assertThat(profiles.isAccepted("x")).isTrue();
 	}

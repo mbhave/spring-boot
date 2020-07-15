@@ -171,7 +171,7 @@ class ConfigDataPropertiesTests {
 		environment.setActiveProfiles("a", "b", "c");
 		environment.setDefaultProfiles("d", "e", "f");
 		Binder binder = Binder.get(environment);
-		return new Profiles(environment, binder);
+		return new Profiles(environment, binder, null);
 	}
 
 }

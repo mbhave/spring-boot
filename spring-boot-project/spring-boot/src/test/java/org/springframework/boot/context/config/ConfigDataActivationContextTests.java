@@ -79,7 +79,7 @@ class ConfigDataActivationContextTests {
 		environment.setActiveProfiles("a", "b", "c");
 		Binder binder = Binder.get(environment);
 		ConfigDataActivationContext context = new ConfigDataActivationContext(environment, binder);
-		Profiles profiles = new Profiles(environment, binder);
+		Profiles profiles = new Profiles(environment, binder, null);
 		context = context.withProfiles(profiles);
 		assertThat(context.getProfiles()).isEqualTo(profiles);
 	}

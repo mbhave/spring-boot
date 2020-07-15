@@ -16,6 +16,8 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.Collection;
+
 import org.apache.commons.logging.Log;
 
 import org.springframework.boot.SpringApplication;
@@ -58,14 +60,16 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-		addPropertySources(environment, application.getResourceLoader());
+		addPropertySources(environment, application.getResourceLoader(), application.getAdditionalProfiles());
 	}
 
-	protected final void addPropertySources(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
+	protected final void addPropertySources(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
+			Collection<String> additionalProfiles) {
 		try {
 			this.logger.trace("Post-processing environment to add config data");
 			resourceLoader = (resourceLoader != null) ? resourceLoader : new DefaultResourceLoader();
-			new ConfigDataEnvironment(this.logFactory, environment, resourceLoader).processAndApply();
+			new ConfigDataEnvironment(this.logFactory, environment, resourceLoader, additionalProfiles)
+					.processAndApply();
 		}
 		catch (UseLegacyConfigProcessingException ex) {
 			this.logger.debug(LogMessage.format("Switching to legacy config file processing [%s]",

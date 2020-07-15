@@ -219,7 +219,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void moreSpecificLocationTakesPrecedenceOverRoot() {
-		//checking order of default locations
+		// checking order of default locations
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment, "spring.config.name=specific");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
 		String property = this.environment.getProperty("my.property");
@@ -238,7 +238,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void randomValue() {
-		//dont need
+		// dont need
 		this.initializer.postProcessEnvironment(this.environment, this.application);
 		String property = this.environment.getProperty("random.value");
 		assertThat(property).isNotNull();
@@ -273,7 +273,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void loadDefaultYamlDocument() {
-		//makes sense
+		// makes sense
 		this.environment.setDefaultProfiles("thedefault");
 		this.initializer.setSearchNames("testprofilesdocument");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
@@ -339,7 +339,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void includedProfilesFromDefaultPropertiesShouldNotTakePrecedence() {
-		//required?
+		// required?
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,
 				"spring.profiles.active=morespecific");
 		this.environment.getPropertySources().addLast(
@@ -468,7 +468,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void profilesAddedToEnvironmentAndViaPropertyDuplicateEnvironmentWins(CapturedOutput output) {
-		//?
+		// ?
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment, "spring.profiles.active=other,dev");
 		this.environment.addActiveProfile("other");
 		this.initializer.postProcessEnvironment(this.environment, this.application);
@@ -707,7 +707,7 @@ class ConfigFileApplicationListenerTests {
 
 	@Test
 	void absoluteResourceDefaultsToFile() {
-		//?
+		// ?
 		String location = new File("src/test/resources/specificlocation.properties").getAbsolutePath().replace("\\",
 				"/");
 		TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment,

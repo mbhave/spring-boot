@@ -17,6 +17,7 @@
 package org.springframework.boot.context.config;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -79,6 +80,8 @@ class ConfigDataEnvironment {
 
 	private final ConfigDataLocationResolvers resolvers;
 
+	private final Collection<String> additionalProfiles;
+
 	private final ConfigDataLoaders loaders;
 
 	private final ConfigDataEnvironmentContributors contributors;
@@ -88,15 +91,17 @@ class ConfigDataEnvironment {
 	 * @param logFactory the deferred log factory
 	 * @param environment the Spring {@link Environment}.
 	 * @param resourceLoader {@link ResourceLoader} to load resource locations
+	 * @param additionalProfiles any additional profiles to activate
 	 */
 	ConfigDataEnvironment(DeferredLogFactory logFactory, ConfigurableEnvironment environment,
-			ResourceLoader resourceLoader) {
+			ResourceLoader resourceLoader, Collection<String> additionalProfiles) {
 		Binder binder = Binder.get(environment);
 		UseLegacyConfigProcessingException.throwIfRequested(binder);
 		this.logFactory = logFactory;
 		this.logger = logFactory.getLog(getClass());
 		this.environment = environment;
 		this.resolvers = new ConfigDataLocationResolvers(logFactory, binder, resourceLoader);
+		this.additionalProfiles = additionalProfiles;
 		this.loaders = new ConfigDataLoaders(logFactory);
 		this.contributors = getContributors(binder);
 	}
@@ -191,7 +196,7 @@ class ConfigDataEnvironment {
 			ConfigDataActivationContext activationContext) {
 		this.logger.trace("Deducing profiles from current config data environment contributors");
 		Binder binder = contributors.getBinder(activationContext, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
-		Profiles profiles = new Profiles(this.environment, binder);
+		Profiles profiles = new Profiles(this.environment, binder, this.additionalProfiles);
 		return activationContext.withProfiles(profiles);
 	}
 
