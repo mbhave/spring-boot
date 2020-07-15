@@ -84,13 +84,15 @@ public interface ConfigurationPropertySource {
 
 	/**
 	 * Return a single new {@link ConfigurationPropertySource} adapted from the given
-	 * Spring {@link PropertySource}.
+	 * Spring {@link PropertySource} or {@code null} if the source cannot be adapted.
 	 * @param source the Spring property source to adapt
-	 * @return an {@link Iterable} containing a single newly adapted
-	 * {@link SpringConfigurationPropertySource}
+	 * @return an adapted source or {@code null} {@link SpringConfigurationPropertySource}
 	 * @since 2.4.0
 	 */
 	static ConfigurationPropertySource from(PropertySource<?> source) {
+		if (source instanceof ConfigurationPropertySourcesPropertySource) {
+			return null;
+		}
 		return SpringConfigurationPropertySource.from(source);
 	}
 
