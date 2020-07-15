@@ -60,7 +60,9 @@ public interface ConfigDataLocationResolver<L extends ConfigDataLocation> {
 	 * Resolve a location string into one or more {@link ConfigDataLocation} instances.
 	 * @param context the location resolver context
 	 * @param location the location that should be resolved
-	 * @return a list of resolved locations in ascending priority order.
+	 * @return a list of resolved locations in ascending priority order. If the same key
+	 * is contained in more than one of the location, then the later source will win.
+	 *
 	 */
 	List<L> resolve(ConfigDataLocationResolverContext context, String location);
 
@@ -71,7 +73,8 @@ public interface ConfigDataLocationResolver<L extends ConfigDataLocation> {
 	 * @param context the location resolver context
 	 * @param location the location that should be resolved
 	 * @param profiles profile information
-	 * @return a list of resolved locations in ascending priority order.
+	 * @return a list of resolved locations in ascending priority order.If the same key is
+	 * contained in more than one of the location, then the later source will win.
 	 */
 	default List<L> resolveProfileSpecific(ConfigDataLocationResolverContext context, String location,
 			Profiles profiles) {

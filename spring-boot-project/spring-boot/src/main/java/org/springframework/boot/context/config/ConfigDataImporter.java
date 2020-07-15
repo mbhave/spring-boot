@@ -70,7 +70,8 @@ class ConfigDataImporter {
 
 	private Map<ConfigDataLocation, ConfigData> load(List<ConfigDataLocation> locations) throws IOException {
 		Map<ConfigDataLocation, ConfigData> result = new LinkedHashMap<>();
-		for (ConfigDataLocation location : locations) {
+		for (int i = locations.size() - 1; i >= 0; i--) {
+			ConfigDataLocation location = locations.get(i);
 			if (this.loadedLocations.add(location)) {
 				result.put(location, this.loaders.load(location));
 			}
