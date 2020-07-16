@@ -101,7 +101,7 @@ class ConfigDataEnvironmentPostProcessorIntegrationTests {
 
 	@Test
 	void runLoadsApplicationYamlOnClasspath() {
-		ConfigurableApplicationContext context = this.application.run();
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=customapplication");
 		String property = context.getEnvironment().getProperty("yamlkey");
 		assertThat(property).isEqualTo("yamlvalue");
 	}
