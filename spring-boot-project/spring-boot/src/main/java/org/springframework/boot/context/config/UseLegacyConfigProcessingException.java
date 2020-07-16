@@ -40,11 +40,11 @@ public final class UseLegacyConfigProcessingException extends ConfigDataExceptio
 
 	private static final Bindable<Boolean> BOOLEAN = Bindable.of(Boolean.class);
 
-	private static final UseLegacyProcessingBindHandler BIND_HANDER = new UseLegacyProcessingBindHandler();
+	private static final UseLegacyProcessingBindHandler BIND_HANDLER = new UseLegacyProcessingBindHandler();
 
 	private final ConfigurationProperty configurationProperty;
 
-	private UseLegacyConfigProcessingException(ConfigurationProperty configurationProperty) {
+	UseLegacyConfigProcessingException(ConfigurationProperty configurationProperty) {
 		super("Legacy processing requested from " + configurationProperty, null);
 		this.configurationProperty = configurationProperty;
 	}
@@ -65,7 +65,7 @@ public final class UseLegacyConfigProcessingException extends ConfigDataExceptio
 	 */
 	static void throwIfRequested(Binder binder) {
 		try {
-			binder.bind(PROPERTY_NAME, BOOLEAN, BIND_HANDER);
+			binder.bind(PROPERTY_NAME, BOOLEAN, BIND_HANDLER);
 		}
 		catch (BindException ex) {
 			if (ex.getCause() instanceof UseLegacyConfigProcessingException) {

@@ -24,7 +24,6 @@ import org.springframework.core.io.Resource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -73,7 +72,13 @@ public class ResourceConfigDataLocationTests {
 
 	@Test
 	void equalsWhenResourceIsDifferentReturnsFalse() {
-		fail("Not yet implemented");
+		Resource resource1 = new ClassPathResource("config/");
+		Resource resource2 = new ClassPathResource("configdata/");
+		ResourceConfigDataLocation location = new ResourceConfigDataLocation("my-location", resource1,
+				this.propertySource);
+		ResourceConfigDataLocation other = new ResourceConfigDataLocation("other-location", resource2,
+				this.propertySource);
+		assertThat(location).isNotEqualTo(other);
 	}
 
 }

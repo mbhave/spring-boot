@@ -68,8 +68,7 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 		try {
 			this.logger.trace("Post-processing environment to add config data");
 			resourceLoader = (resourceLoader != null) ? resourceLoader : new DefaultResourceLoader();
-			new ConfigDataEnvironment(this.logFactory, environment, resourceLoader, additionalProfiles)
-					.processAndApply();
+			getConfigDataEnvironment(environment, resourceLoader, additionalProfiles).processAndApply();
 		}
 		catch (UseLegacyConfigProcessingException ex) {
 			this.logger.debug(LogMessage.format("Switching to legacy config file processing [%s]",
@@ -78,11 +77,19 @@ public class ConfigDataEnvironmentPostProcessor implements EnvironmentPostProces
 		}
 	}
 
+	ConfigDataEnvironment getConfigDataEnvironment(ConfigurableEnvironment environment, ResourceLoader resourceLoader,
+			Collection<String> additionalProfiles) {
+		return new ConfigDataEnvironment(this.logFactory, environment, resourceLoader, additionalProfiles);
+	}
+
 	@SuppressWarnings("deprecation")
 	private void postProcessUsingLegacyApplicationListener(ConfigurableEnvironment environment,
 			ResourceLoader resourceLoader) {
-		new LegacyConfigFileApplicationListener(this.logFactory.getLog(ConfigFileApplicationListener.class))
-				.addPropertySources(environment, resourceLoader);
+		getLegacyListener().addPropertySources(environment, resourceLoader);
+	}
+
+	LegacyConfigFileApplicationListener getLegacyListener() {
+		return new LegacyConfigFileApplicationListener(this.logFactory.getLog(ConfigFileApplicationListener.class));
 	}
 
 	@Deprecated
