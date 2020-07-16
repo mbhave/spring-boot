@@ -31,12 +31,15 @@ import org.mockito.MockitoAnnotations;
 
 import org.springframework.boot.cloud.CloudPlatform;
 import org.springframework.boot.context.config.ConfigDataEnvironmentContributor.Kind;
+import org.springframework.boot.context.config.ConfigDataEnvironmentContributors.BinderOption;
+import org.springframework.boot.context.properties.bind.BindException;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -221,7 +224,7 @@ class ConfigDataEnvironmentContributorsTests {
 	}
 
 	@Test
-	void getBinderIgnoresInactive() {
+	void getBinderWhenHasInactiveIgnoresInactive() {
 		MockPropertySource firstPropertySource = new MockPropertySource();
 		firstPropertySource.setProperty("test", "one");
 		firstPropertySource.setProperty("spring.config.activate.on-profile", "production");
@@ -236,6 +239,95 @@ class ConfigDataEnvironmentContributorsTests {
 				Arrays.asList(firstContributor, secondContributor));
 		Binder binder = contributors.getBinder(this.activationContext);
 		assertThat(binder.bind("test", String.class).get()).isEqualTo("two");
+	}
+
+	@Test
+	void getBinderWhenHasPlaceholderResolvesPlaceholder() {
+		MockPropertySource propertySource = new MockPropertySource();
+		propertySource.setProperty("test", "${other}");
+		propertySource.setProperty("other", "springboot");
+		ConfigDataEnvironmentContributor contributor = ConfigDataEnvironmentContributor.ofExisting(propertySource);
+		ConfigDataEnvironmentContributors contributors = new ConfigDataEnvironmentContributors(this.logFactory,
+				Arrays.asList(contributor));
+		Binder binder = contributors.getBinder(this.activationContext);
+		assertThat(binder.bind("test", String.class).get()).isEqualTo("springboot");
+	}
+
+	@Test
+	void getBinderWhenHasPlaceholderAndInactiveResolvesPlaceholderOnlyFromActive() {
+		MockPropertySource firstPropertySource = new MockPropertySource();
+		firstPropertySource.setProperty("other", "one");
+		firstPropertySource.setProperty("spring.config.activate.on-profile", "production");
+		MockPropertySource secondPropertySource = new MockPropertySource();
+		secondPropertySource.setProperty("other", "two");
+		secondPropertySource.setProperty("test", "${other}");
+		ConfigData configData = new ConfigData(Arrays.asList(firstPropertySource, secondPropertySource));
+		ConfigDataEnvironmentContributor firstContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 0, this.activationContext);
+		ConfigDataEnvironmentContributor secondContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 1, this.activationContext);
+		ConfigDataEnvironmentContributors contributors = new ConfigDataEnvironmentContributors(this.logFactory,
+				Arrays.asList(firstContributor, secondContributor));
+		Binder binder = contributors.getBinder(this.activationContext);
+		assertThat(binder.bind("test", String.class).get()).isEqualTo("two");
+	}
+
+	@Test
+	void getBinderWhenFailOnBindToInactiveSourceWithFirstInactiveThrowsException() {
+		MockPropertySource firstPropertySource = new MockPropertySource();
+		firstPropertySource.setProperty("test", "one");
+		firstPropertySource.setProperty("spring.config.activate.on-profile", "production");
+		MockPropertySource secondPropertySource = new MockPropertySource();
+		secondPropertySource.setProperty("test", "two");
+		ConfigData configData = new ConfigData(Arrays.asList(firstPropertySource, secondPropertySource));
+		ConfigDataEnvironmentContributor firstContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 0, this.activationContext);
+		ConfigDataEnvironmentContributor secondContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 1, this.activationContext);
+		ConfigDataEnvironmentContributors contributors = new ConfigDataEnvironmentContributors(this.logFactory,
+				Arrays.asList(firstContributor, secondContributor));
+		Binder binder = contributors.getBinder(this.activationContext, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
+		assertThatExceptionOfType(BindException.class).isThrownBy(() -> binder.bind("test", String.class))
+				.satisfies((ex) -> assertThat(ex.getCause()).isInstanceOf(InactiveConfigDataAccessException.class));
+	}
+
+	@Test
+	void getBinderWhenFailOnBindToInactiveSourceWithLastInactiveThrowsException() {
+		MockPropertySource firstPropertySource = new MockPropertySource();
+		firstPropertySource.setProperty("test", "one");
+		MockPropertySource secondPropertySource = new MockPropertySource();
+		secondPropertySource.setProperty("spring.config.activate.on-profile", "production");
+		secondPropertySource.setProperty("test", "two");
+		ConfigData configData = new ConfigData(Arrays.asList(firstPropertySource, secondPropertySource));
+		ConfigDataEnvironmentContributor firstContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 0, this.activationContext);
+		ConfigDataEnvironmentContributor secondContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 1, this.activationContext);
+		ConfigDataEnvironmentContributors contributors = new ConfigDataEnvironmentContributors(this.logFactory,
+				Arrays.asList(firstContributor, secondContributor));
+		Binder binder = contributors.getBinder(this.activationContext, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
+		assertThatExceptionOfType(BindException.class).isThrownBy(() -> binder.bind("test", String.class))
+				.satisfies((ex) -> assertThat(ex.getCause()).isInstanceOf(InactiveConfigDataAccessException.class));
+	}
+
+	@Test
+	void getBinderWhenFailOnBindToInactiveSourceWithResolveToInactiveThrowsException() {
+		MockPropertySource firstPropertySource = new MockPropertySource();
+		firstPropertySource.setProperty("other", "one");
+		firstPropertySource.setProperty("spring.config.activate.on-profile", "production");
+		MockPropertySource secondPropertySource = new MockPropertySource();
+		secondPropertySource.setProperty("test", "${other}");
+		secondPropertySource.setProperty("other", "one");
+		ConfigData configData = new ConfigData(Arrays.asList(firstPropertySource, secondPropertySource));
+		ConfigDataEnvironmentContributor firstContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 0, this.activationContext);
+		ConfigDataEnvironmentContributor secondContributor = ConfigDataEnvironmentContributor.ofImported(null,
+				configData, 1, this.activationContext);
+		ConfigDataEnvironmentContributors contributors = new ConfigDataEnvironmentContributors(this.logFactory,
+				Arrays.asList(firstContributor, secondContributor));
+		Binder binder = contributors.getBinder(this.activationContext, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
+		assertThatExceptionOfType(BindException.class).isThrownBy(() -> binder.bind("test", String.class))
+				.satisfies((ex) -> assertThat(ex.getCause()).isInstanceOf(InactiveConfigDataAccessException.class));
 	}
 
 	private static class TestConfigDataLocation extends ConfigDataLocation {

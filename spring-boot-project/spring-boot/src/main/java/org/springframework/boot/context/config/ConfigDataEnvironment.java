@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 
 import org.springframework.boot.context.config.ConfigDataEnvironmentContributors.BinderOption;
+import org.springframework.boot.context.properties.bind.BindException;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -183,7 +184,15 @@ class ConfigDataEnvironment {
 	private ConfigDataActivationContext createActivationContext(ConfigDataEnvironmentContributors contributors) {
 		this.logger.trace("Creating config data activation context from initial contributions");
 		Binder binder = contributors.getBinder(null, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
-		return new ConfigDataActivationContext(this.environment, binder);
+		try {
+			return new ConfigDataActivationContext(this.environment, binder);
+		}
+		catch (BindException ex) {
+			if (ex.getCause() instanceof InactiveConfigDataAccessException) {
+				throw (InactiveConfigDataAccessException) ex.getCause();
+			}
+			throw ex;
+		}
 	}
 
 	private ConfigDataEnvironmentContributors processWithoutProfiles(ConfigDataEnvironmentContributors contributors,
@@ -196,8 +205,16 @@ class ConfigDataEnvironment {
 			ConfigDataActivationContext activationContext) {
 		this.logger.trace("Deducing profiles from current config data environment contributors");
 		Binder binder = contributors.getBinder(activationContext, BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
-		Profiles profiles = new Profiles(this.environment, binder, this.additionalProfiles);
-		return activationContext.withProfiles(profiles);
+		try {
+			Profiles profiles = new Profiles(this.environment, binder, this.additionalProfiles);
+			return activationContext.withProfiles(profiles);
+		}
+		catch (BindException ex) {
+			if (ex.getCause() instanceof InactiveConfigDataAccessException) {
+				throw (InactiveConfigDataAccessException) ex.getCause();
+			}
+			throw ex;
+		}
 	}
 
 	private ConfigDataEnvironmentContributors processWithProfiles(ConfigDataEnvironmentContributors contributors,

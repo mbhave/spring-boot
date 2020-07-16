@@ -24,13 +24,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.commons.logging.Log;
 
 import org.springframework.boot.context.config.ConfigDataEnvironmentContributor.ImportPhase;
+import org.springframework.boot.context.properties.bind.BindContext;
 import org.springframework.boot.context.properties.bind.BindHandler;
+import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.PlaceholdersResolver;
+import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.log.LogMessage;
@@ -143,12 +147,27 @@ class ConfigDataEnvironmentContributors implements Iterable<ConfigDataEnvironmen
 	}
 
 	private Binder getBinder(ConfigDataActivationContext activationContext, Set<BinderOption> options) {
-		Iterable<ConfigurationPropertySource> sources = () -> this.root
-				.iterator(ConfigDataEnvironmentContributor::getConfigurationPropertySource);
+		boolean failOnInactiveSource = options.contains(BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE);
+		Iterable<ConfigurationPropertySource> sources = () -> getBinderSources(activationContext,
+				!failOnInactiveSource);
 		PlaceholdersResolver placeholdersResolver = new ConfigDataEnvironmentContributorPlaceholdersResolver(this.root,
-				activationContext, options.contains(BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE));
-		BindHandler bindHandler = null; // FIXME
+				activationContext, failOnInactiveSource);
+		BindHandler bindHandler = !failOnInactiveSource ? null : new InactiveSourceChecker(activationContext);
 		return new Binder(sources, placeholdersResolver, null, null, bindHandler);
+	}
+
+	private Iterator<ConfigurationPropertySource> getBinderSources(ConfigDataActivationContext activationContext,
+			boolean filterInactive) {
+		Stream<ConfigDataEnvironmentContributor> sources = this.root.stream()
+				.filter(this::hasConfigurationPropertySource);
+		if (filterInactive) {
+			sources = sources.filter((contributor) -> contributor.isActive(activationContext));
+		}
+		return sources.map(ConfigDataEnvironmentContributor::getConfigurationPropertySource).iterator();
+	}
+
+	private boolean hasConfigurationPropertySource(ConfigDataEnvironmentContributor contributor) {
+		return contributor.getConfigurationPropertySource() != null;
 	}
 
 	@Override
@@ -190,6 +209,27 @@ class ConfigDataEnvironmentContributors implements Iterable<ConfigDataEnvironmen
 		@Override
 		public ConfigDataLocation getParent() {
 			return this.contributor.getLocation();
+		}
+
+	}
+
+	private class InactiveSourceChecker implements BindHandler {
+
+		private final ConfigDataActivationContext activationContext;
+
+		InactiveSourceChecker(ConfigDataActivationContext activationContext) {
+			this.activationContext = activationContext;
+		}
+
+		@Override
+		public Object onSuccess(ConfigurationPropertyName name, Bindable<?> target, BindContext context,
+				Object result) {
+			for (ConfigDataEnvironmentContributor contributor : ConfigDataEnvironmentContributors.this) {
+				if (!contributor.isActive(this.activationContext)) {
+					InactiveConfigDataAccessException.throwIfPropertyFound(contributor, name);
+				}
+			}
+			return result;
 		}
 
 	}

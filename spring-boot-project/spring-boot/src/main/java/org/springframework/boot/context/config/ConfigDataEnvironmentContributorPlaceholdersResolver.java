@@ -61,10 +61,13 @@ class ConfigDataEnvironmentContributorPlaceholdersResolver implements Placeholde
 		for (ConfigDataEnvironmentContributor contributor : this.contributors) {
 			PropertySource<?> propertySource = contributor.getPropertySource();
 			Object value = (propertySource != null) ? propertySource.getProperty(placeholder) : null;
-			if (value != null && this.failOnResolveFromInactiveContributor
-					&& !contributor.isActive(this.activationContext)) {
-				Origin origin = OriginLookup.getOrigin(propertySource, placeholder);
-				throw new InactiveConfigDataAccessException(contributor.getLocation(), placeholder, origin);
+			if (value != null && !contributor.isActive(this.activationContext)) {
+				if (this.failOnResolveFromInactiveContributor) {
+					Origin origin = OriginLookup.getOrigin(propertySource, placeholder);
+					throw new InactiveConfigDataAccessException(propertySource, contributor.getLocation(), placeholder,
+							origin);
+				}
+				value = null;
 			}
 			result = (result != null) ? result : value;
 		}

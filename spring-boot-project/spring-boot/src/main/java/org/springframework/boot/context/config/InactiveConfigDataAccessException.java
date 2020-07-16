@@ -16,7 +16,11 @@
 
 package org.springframework.boot.context.config;
 
+import org.springframework.boot.context.properties.source.ConfigurationProperty;
+import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
 import org.springframework.boot.origin.Origin;
+import org.springframework.core.env.PropertySource;
 
 /**
  * Exception thrown when an attempt is made to resolve a property against an inactive
@@ -28,6 +32,8 @@ import org.springframework.boot.origin.Origin;
  */
 public class InactiveConfigDataAccessException extends ConfigDataException {
 
+	private final PropertySource<?> propertySource;
+
 	private final ConfigDataLocation location;
 
 	private final String propertyName;
@@ -36,27 +42,40 @@ public class InactiveConfigDataAccessException extends ConfigDataException {
 
 	/**
 	 * Create a new {@link InactiveConfigDataAccessException} instance.
-	 * @param location the config data location
-	 * @param propertyName the property name that was accessed
-	 * @param origin the orgin of the accessed property
+	 * @param propertySource the inactive property source
+	 * @param location the {@link ConfigDataLocation} of the property source or
+	 * {@code null} if the source was not loaded from {@link ConfigData}.
+	 * @param propertyName the name of the property
+	 * @param origin the origin or the property or {@code null}
 	 */
-	InactiveConfigDataAccessException(ConfigDataLocation location, String propertyName, Origin origin) {
-		super("", null); // FIXME
+	InactiveConfigDataAccessException(PropertySource<?> propertySource, ConfigDataLocation location,
+			String propertyName, Origin origin) {
+		super(getMessage(propertySource, location, propertyName, origin), null);
+		this.propertySource = propertySource;
 		this.location = location;
 		this.propertyName = propertyName;
 		this.origin = origin;
 	}
 
 	/**
-	 * Return the config data location that was accessed.
-	 * @return the config data location
+	 * Return the inactive property source that contained the property.
+	 * @return the property source
+	 */
+	public PropertySource<?> getPropertySource() {
+		return this.propertySource;
+	}
+
+	/**
+	 * Return the {@link ConfigDataLocation} of the property source or {@code null} if the
+	 * source was not loaded from {@link ConfigData}.
+	 * @return the config data location or {@code null}
 	 */
 	public ConfigDataLocation getLocation() {
 		return this.location;
 	}
 
 	/**
-	 * Return the property name that was accessed.
+	 * Return the name of the property.
 	 * @return the property name
 	 */
 	public String getPropertyName() {
@@ -64,11 +83,46 @@ public class InactiveConfigDataAccessException extends ConfigDataException {
 	}
 
 	/**
-	 * Return the origin of the property or {@code null} if the origin is unknown.
+	 * Return the origin or the property or {@code null}.
 	 * @return the property origin
 	 */
 	public Origin getOrigin() {
 		return this.origin;
+	}
+
+	private static String getMessage(PropertySource<?> propertySource, ConfigDataLocation location, String propertyName,
+			Origin origin) {
+		StringBuilder message = new StringBuilder("Inactive property source '");
+		message.append(propertySource.getName());
+		if (location != null) {
+			message.append("' imported from location '");
+			message.append(location);
+		}
+		message.append("' cannot contain property '");
+		message.append(propertyName);
+		if (origin != null) {
+			message.append(" (");
+			message.append(origin);
+			message.append(")");
+		}
+		return message.toString();
+	}
+
+	/**
+	 * Throw a {@link InactiveConfigDataAccessException} if the given
+	 * {@link ConfigDataEnvironmentContributor} contains the property.
+	 * @param contributor the contributor to check
+	 * @param name the name to check
+	 */
+	static void throwIfPropertyFound(ConfigDataEnvironmentContributor contributor, ConfigurationPropertyName name) {
+		ConfigurationPropertySource source = contributor.getConfigurationPropertySource();
+		ConfigurationProperty property = (source != null) ? source.getConfigurationProperty(name) : null;
+		if (property != null) {
+			PropertySource<?> propertySource = contributor.getPropertySource();
+			ConfigDataLocation location = contributor.getLocation();
+			throw new InactiveConfigDataAccessException(propertySource, location, name.toString(),
+					property.getOrigin());
+		}
 	}
 
 }

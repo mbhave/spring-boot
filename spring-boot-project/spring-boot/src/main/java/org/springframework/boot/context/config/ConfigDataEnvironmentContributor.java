@@ -23,7 +23,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
@@ -154,24 +155,23 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 	}
 
 	/**
+	 * Returns a {@link Stream} that traverses this contributor and all its children in
+	 * priority order.
+	 * @return the stream
+	 */
+	public Stream<ConfigDataEnvironmentContributor> stream() {
+		return StreamSupport.stream(spliterator(), false);
+	}
+
+	/**
 	 * Returns an {@link Iterator} that traverses this contributor and all its children in
 	 * priority order.
+	 * @return the iterator
 	 * @see java.lang.Iterable#iterator()
 	 */
 	@Override
 	public Iterator<ConfigDataEnvironmentContributor> iterator() {
-		return iterator(Function.identity());
-	}
-
-	/**
-	 * Returns an {@link Iterator} that traverses and extracts data from this contributor
-	 * and all its children in priority order.
-	 * @param <E> the element type
-	 * @param extractor an extractor used to extract specific data
-	 * @return an iterator that traverses the contributors
-	 */
-	<E> Iterator<E> iterator(Function<ConfigDataEnvironmentContributor, E> extractor) {
-		return new ContributorIterator<>(extractor);
+		return new ContributorIterator();
 	}
 
 	/**
@@ -336,20 +336,17 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 	/**
 	 * Iterator that traverses the contributor tree.
 	 */
-	private class ContributorIterator<E> implements Iterator<E> {
-
-		private final Function<ConfigDataEnvironmentContributor, E> extractor;
+	private final class ContributorIterator implements Iterator<ConfigDataEnvironmentContributor> {
 
 		private ImportPhase phase;
 
 		private Iterator<ConfigDataEnvironmentContributor> children;
 
-		private Iterator<E> current;
+		private Iterator<ConfigDataEnvironmentContributor> current;
 
-		private E next;
+		private ConfigDataEnvironmentContributor next;
 
-		ContributorIterator(Function<ConfigDataEnvironmentContributor, E> extractor) {
-			this.extractor = extractor;
+		private ContributorIterator() {
 			this.phase = ImportPhase.AFTER_PROFILE_ACTIVATION;
 			this.children = getChildren(this.phase).iterator();
 			this.current = Collections.emptyIterator();
@@ -361,8 +358,8 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 		}
 
 		@Override
-		public E next() {
-			E next = fetchIfNecessary();
+		public ConfigDataEnvironmentContributor next() {
+			ConfigDataEnvironmentContributor next = fetchIfNecessary();
 			if (next == null) {
 				throw new NoSuchElementException();
 			}
@@ -370,7 +367,7 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 			return next;
 		}
 
-		private E fetchIfNecessary() {
+		private ConfigDataEnvironmentContributor fetchIfNecessary() {
 			if (this.next != null) {
 				return this.next;
 			}
@@ -379,7 +376,7 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 				return this.next;
 			}
 			if (this.children.hasNext()) {
-				this.current = this.children.next().iterator(this.extractor);
+				this.current = this.children.next().iterator();
 				return fetchIfNecessary();
 			}
 			if (this.phase == ImportPhase.AFTER_PROFILE_ACTIVATION) {
@@ -389,7 +386,7 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 			}
 			if (this.phase == ImportPhase.BEFORE_PROFILE_ACTIVATION) {
 				this.phase = null;
-				this.next = this.extractor.apply(ConfigDataEnvironmentContributor.this);
+				this.next = ConfigDataEnvironmentContributor.this;
 				return this.next;
 			}
 			return null;

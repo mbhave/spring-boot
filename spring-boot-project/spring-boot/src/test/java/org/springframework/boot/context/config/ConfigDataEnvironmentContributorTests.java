@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -135,10 +136,10 @@ class ConfigDataEnvironmentContributorTests {
 	}
 
 	@Test
-	void iteratorWithExtractorReturnsExtractingIterator() {
+	void streamReturnsStream() {
 		ConfigDataEnvironmentContributor contributor = createConfigDataEnvironmentContributor("a");
-		Iterable<String> iterable = () -> contributor.iterator(this::getLocationName);
-		assertThat(iterable).containsExactly("a");
+		Stream<String> stream = contributor.stream().map(this::getLocationName);
+		assertThat(stream).containsExactly("a");
 	}
 
 	@Test
