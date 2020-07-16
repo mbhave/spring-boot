@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Tests for {@link UnsupportedConfigDataLocationException}.
  *
- * @author pwebb
+ * @author Phillip Webb
  */
 class UnsupportedConfigDataLocationExceptionTests {
 

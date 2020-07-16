@@ -19,6 +19,7 @@ package org.springframework.boot.context.config;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for {@link ConfigDataEnvironmentPostProcessor}.
@@ -28,9 +29,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ConfigDataEnvironmentPostProcessorTests {
 
 	@Test
-	@Deprecated
+	@SuppressWarnings("deprecation")
 	void defaultOrderMatchesDeprecatedListener() {
 		assertThat(ConfigDataEnvironmentPostProcessor.ORDER).isEqualTo(ConfigFileApplicationListener.DEFAULT_ORDER);
+	}
+
+	@Test
+	void testName() {
+		fail("Not yet implemented");
 	}
 
 }

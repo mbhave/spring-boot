@@ -32,6 +32,7 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyS
 import org.springframework.core.env.PropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 /**
  * Tests for {@link ConfigDataEnvironmentContributor}.
@@ -42,54 +43,62 @@ class ConfigDataEnvironmentContributorTests {
 
 	@Test
 	void createWithOnlyImportsCreatesInstance() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void createCreatesInstance() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void isActiveWhenAlwaysActiveReturnsTrue() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void getPropertySourceReturnsPropertySource() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void getConfigurationPropertySourceReturnsConfigurationPropertySource() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void getConfigurationPropertySourceWhenPropertySourceIsNullReturnsNull() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void hasUnprocessedImportsWhenNoImportsReturnsFalse() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void hasUnprocessedImportsWhenNoChildrenInImportPhaseReturnsTrue() {
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void hasUnprocessedImportsWhenEmptyChildrenInImportPhaseReturnsTrue() {
-
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void hasUnprocessedImportsWhenChildrenInImportPhaseReturnsTrue() {
-
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void getChildrenWhenNoChildrenInImportPhaseReturnsEmptyList() {
-
+		fail("Not yet implemented");
 	}
 
 	@Test
 	void getChildrenWhenHasChildrenReturnsList() {
-
+		fail("Not yet implemented");
 	}
 
 	@Test
@@ -134,7 +143,7 @@ class ConfigDataEnvironmentContributorTests {
 
 	@Test
 	void withChildrenReturnsNewInstanceWithChildren() {
-
+		fail("Not yet implemented");
 	}
 
 	private List<String> asLocationsList(Iterator<ConfigDataEnvironmentContributor> iterator) {

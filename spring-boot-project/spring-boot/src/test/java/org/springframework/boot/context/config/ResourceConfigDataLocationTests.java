@@ -24,6 +24,7 @@ import org.springframework.core.io.Resource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -72,7 +73,7 @@ public class ResourceConfigDataLocationTests {
 
 	@Test
 	void equalsWhenResourceIsDifferentReturnsFalse() {
-		// FIXME
+		fail("Not yet implemented");
 	}
 
 }
