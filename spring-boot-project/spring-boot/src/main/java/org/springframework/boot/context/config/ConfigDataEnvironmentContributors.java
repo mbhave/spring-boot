@@ -64,10 +64,6 @@ class ConfigDataEnvironmentContributors implements Iterable<ConfigDataEnvironmen
 		this.root = root;
 	}
 
-	private ConfigDataEnvironmentContributor getRoot() {
-		return this.root;
-	}
-
 	/**
 	 * Processes imports from all active contributors and return a new
 	 * {@link ConfigDataEnvironmentContributors} instance.
@@ -128,6 +124,14 @@ class ConfigDataEnvironmentContributors implements Iterable<ConfigDataEnvironmen
 	}
 
 	/**
+	 * Returns the root contributor.
+	 * @return the root contributor.
+	 */
+	ConfigDataEnvironmentContributor getRoot() {
+		return this.root;
+	}
+
+	/**
 	 * Return a {@link Binder} that works against all active contributors.
 	 * @param activationContext the activation context
 	 * @param options binder options to apply
@@ -143,7 +147,7 @@ class ConfigDataEnvironmentContributors implements Iterable<ConfigDataEnvironmen
 				.iterator(ConfigDataEnvironmentContributor::getConfigurationPropertySource);
 		PlaceholdersResolver placeholdersResolver = new ConfigDataEnvironmentContributorPlaceholdersResolver(this.root,
 				activationContext, options.contains(BinderOption.FAIL_ON_BIND_TO_INACTIVE_SOURCE));
-		BindHandler bindHandler = null;
+		BindHandler bindHandler = null; // FIXME
 		return new Binder(sources, placeholdersResolver, null, null, bindHandler);
 	}
 

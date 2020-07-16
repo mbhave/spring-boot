@@ -268,12 +268,13 @@ class ConfigDataEnvironmentContributor implements Iterable<ConfigDataEnvironment
 		UseLegacyConfigProcessingException.throwIfRequested(binder);
 		ConfigDataProperties properties = ConfigDataProperties.get(binder);
 		// FIXME we need to check here for invalid profile properties etc. We probably
-		// need the activation context
+		// need the activation context. Here might not actually be best. Since the user
+		// might flip later
 		if (configData.getOptions().contains(ConfigData.Option.IGNORE_IMPORTS)) {
 			properties = properties.withoutImports();
 		}
-		return new ConfigDataEnvironmentContributor(Kind.IMPORTED, null, propertySource, configurationPropertySource,
-				properties, null);
+		return new ConfigDataEnvironmentContributor(Kind.IMPORTED, location, propertySource,
+				configurationPropertySource, properties, null);
 	}
 
 	/**
