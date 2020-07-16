@@ -78,7 +78,7 @@ class ConfigDataImporterTests {
 		ConfigDataImporter importer = new ConfigDataImporter(this.resolvers, this.loaders);
 		Collection<ConfigData> loaded = importer
 				.resolveAndLoad(this.activationContext, this.locationResolverContext, locations).values();
-		assertThat(loaded).containsExactly(configData1, configData2);
+		assertThat(loaded).containsExactly(configData2, configData1);
 	}
 
 	@Test
@@ -105,7 +105,7 @@ class ConfigDataImporterTests {
 				.resolveAndLoad(this.activationContext, this.locationResolverContext, locations1and2).values();
 		Collection<ConfigData> loaded2and3 = importer
 				.resolveAndLoad(this.activationContext, this.locationResolverContext, locations2and3).values();
-		assertThat(loaded1and2).containsExactly(configData1, configData2);
+		assertThat(loaded1and2).containsExactly(configData2, configData1);
 		assertThat(loaded2and3).containsExactly(configData3);
 	}
 

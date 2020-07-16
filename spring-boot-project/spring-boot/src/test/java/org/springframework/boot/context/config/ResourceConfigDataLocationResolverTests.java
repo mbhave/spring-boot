@@ -204,13 +204,6 @@ public class ResourceConfigDataLocationResolverTests {
 	}
 
 	@Test
-	void resolveWhenLocationIsRelativeAndParentNullReturnsNull() {
-		String location = "testproperties.properties";
-		assertThatIllegalStateException().isThrownBy(() -> this.resolver.resolve(this.context, location)).withMessage(
-				"Parent cannot be null when resolving relative config data resource location '" + location + "'");
-	}
-
-	@Test
 	void resolveProfileSpecificReturnsProfileSpecificFiles() {
 		String location = "classpath:/configdata/properties/";
 		Profiles profiles = mock(Profiles.class);
@@ -226,6 +219,7 @@ public class ResourceConfigDataLocationResolverTests {
 	void resolveProfileSpecificWhenLocationIsFileReturnsEmptyList() {
 		String location = "classpath:/configdata/properties/application.properties";
 		Profiles profiles = mock(Profiles.class);
+		given(profiles.iterator()).willReturn(Collections.emptyIterator());
 		given(profiles.getActive()).willReturn(Collections.singletonList("dev"));
 		List<ResourceConfigDataLocation> locations = this.resolver.resolveProfileSpecific(this.context, location,
 				profiles);
