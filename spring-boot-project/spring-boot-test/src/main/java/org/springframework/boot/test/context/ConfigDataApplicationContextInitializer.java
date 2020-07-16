@@ -43,7 +43,7 @@ public class ConfigDataApplicationContextInitializer
 		new ConfigDataEnvironmentPostProcessor(Supplier::get) {
 
 			void apply() {
-				addPropertySources(applicationContext.getEnvironment(), applicationContext);
+				addPropertySources(applicationContext.getEnvironment(), applicationContext, null);
 			}
 
 		}.apply();
