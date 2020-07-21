@@ -71,6 +71,7 @@ dependencies {
 	optional("org.yaml:snakeyaml")
 	optional("org.jetbrains.kotlin:kotlin-reflect")
 	optional("org.jetbrains.kotlin:kotlin-stdlib")
+	optional("com.ecwid.consul:consul-api:1.4.5")
 
 	testImplementation(project(":spring-boot-project:spring-boot-tools:spring-boot-test-support"))
 	testImplementation("com.google.appengine:appengine-api-1.0-sdk")

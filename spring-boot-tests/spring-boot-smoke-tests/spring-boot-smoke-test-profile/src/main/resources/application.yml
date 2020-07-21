@@ -1,5 +1,8 @@
 logging.level.org.springframework.boot.context.config: trace
 name: Phil
+spring:
+  config:
+    import: consul://localhost:8085
 ---
 spring.config.activate.on-profile: goodbye,dev
 name: Everyone

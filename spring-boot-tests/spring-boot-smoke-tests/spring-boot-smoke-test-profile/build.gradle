@@ -7,6 +7,7 @@ description = "Spring Boot profile smoke test"
 
 dependencies {
 	implementation(project(":spring-boot-project:spring-boot-starters:spring-boot-starter"))
+	implementation("com.ecwid.consul:consul-api:1.4.5")
 
 	testImplementation(project(":spring-boot-project:spring-boot-starters:spring-boot-starter-test"))
 }
