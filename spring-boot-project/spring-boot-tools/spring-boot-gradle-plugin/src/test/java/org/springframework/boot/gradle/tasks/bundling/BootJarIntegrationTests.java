@@ -70,19 +70,27 @@ class BootJarIntegrationTests extends AbstractBootArchiveIntegrationTests {
 	}
 
 	@TestTemplate
-	void notUpToDateWhenBuiltWithoutLayersAndThenWithLayers()
+	void upToDateWhenBuiltWithDefaultLayeredAndThenWithExplicitLayered()
 			throws InvalidRunnerConfigurationException, UnexpectedBuildFailure {
 		assertThat(this.gradleBuild.build("bootJar").task(":bootJar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		assertThat(this.gradleBuild.build("-Playered=true", "bootJar").task(":bootJar").getOutcome())
+		assertThat(this.gradleBuild.build("-PcustomLayered=true", "bootJar").task(":bootJar").getOutcome())
+				.isEqualTo(TaskOutcome.UP_TO_DATE);
+	}
+
+	@TestTemplate
+	void notUpToDateWhenBuiltWithoutLayersAndThenWithLayers()
+			throws InvalidRunnerConfigurationException, UnexpectedBuildFailure {
+		assertThat(this.gradleBuild.build("-PcustomizeLayered=true", "-PdisableLayers=true", "bootJar").task(":bootJar")
+				.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+		assertThat(this.gradleBuild.build("-PcustomizeLayered=true", "bootJar").task(":bootJar").getOutcome())
 				.isEqualTo(TaskOutcome.SUCCESS);
 	}
 
 	@TestTemplate
-	void notUpToDateWhenBuiltWithLayersAndToolsAndThenWithLayersAndWithoutTools()
+	void notUpToDateWhenBuiltWithImplicitLayersAndThenWithLayers()
 			throws InvalidRunnerConfigurationException, UnexpectedBuildFailure {
-		assertThat(this.gradleBuild.build("-Playered=true", "bootJar").task(":bootJar").getOutcome())
-				.isEqualTo(TaskOutcome.SUCCESS);
-		assertThat(this.gradleBuild.build("-Playered=true", "-PexcludeTools=true", "bootJar").task(":bootJar")
+		assertThat(this.gradleBuild.build("bootJar").task(":bootJar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+		assertThat(this.gradleBuild.build("-PcustomizeLayered=true", "-PexcludeTools=true", "bootJar").task(":bootJar")
 				.getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
 	}
 
