@@ -19,6 +19,8 @@ package org.springframework.boot.actuate.autoconfigure.security.servlet;
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
+import org.springframework.boot.actuate.health.HealthEndpoint;
+import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -29,10 +31,12 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAu
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.WebSecurityEnablerConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Spring Security when actuator is
@@ -43,14 +47,24 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  * @since 2.1.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(WebSecurityConfigurerAdapter.class)
-@ConditionalOnMissingBean(WebSecurityConfigurerAdapter.class)
+@ConditionalOnClass({ SecurityFilterChain.class, HttpSecurity.class })
+@ConditionalOnMissingBean({ WebSecurityConfigurerAdapter.class, SecurityFilterChain.class })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @AutoConfigureBefore(SecurityAutoConfiguration.class)
 @AutoConfigureAfter({ HealthEndpointAutoConfiguration.class, InfoEndpointAutoConfiguration.class,
 		WebEndpointAutoConfiguration.class, OAuth2ClientAutoConfiguration.class,
 		OAuth2ResourceServerAutoConfiguration.class, Saml2RelyingPartyAutoConfiguration.class })
-@Import({ ManagementWebSecurityConfigurerAdapter.class, WebSecurityEnablerConfiguration.class })
 public class ManagementWebSecurityAutoConfiguration {
+
+	@Bean
+	SecurityFilterChain managementSecurityFilterChain(HttpSecurity http) throws Exception {
+		http.authorizeRequests((requests) -> {
+			requests.requestMatchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class)).permitAll();
+			requests.anyRequest().authenticated();
+		});
+		http.formLogin(Customizer.withDefaults());
+		http.httpBasic(Customizer.withDefaults());
+		return http.build();
+	}
 
 }

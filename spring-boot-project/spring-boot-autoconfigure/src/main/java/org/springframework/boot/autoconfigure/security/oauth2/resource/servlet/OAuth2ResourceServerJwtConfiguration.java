@@ -21,6 +21,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.IssuerUriCondition;
@@ -37,6 +38,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Configures a {@link JwtDecoder} when a JWK Set URI, OpenID Connect Issuer URI or Public
@@ -96,21 +98,16 @@ class OAuth2ResourceServerJwtConfiguration {
 	}
 
 	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnMissingBean(WebSecurityConfigurerAdapter.class)
-	static class OAuth2WebSecurityConfigurerAdapter {
+	@ConditionalOnClass({ SecurityFilterChain.class, HttpSecurity.class })
+	@ConditionalOnMissingBean({ WebSecurityConfigurerAdapter.class, SecurityFilterChain.class })
+	static class OAuth2SecurityFilterChainConfiguration {
 
 		@Bean
 		@ConditionalOnBean(JwtDecoder.class)
-		WebSecurityConfigurerAdapter jwtDecoderWebSecurityConfigurerAdapter() {
-			return new WebSecurityConfigurerAdapter() {
-
-				@Override
-				protected void configure(HttpSecurity http) throws Exception {
-					http.authorizeRequests((requests) -> requests.anyRequest().authenticated());
-					http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
-				}
-
-			};
+		SecurityFilterChain jwtSecurityFilterChain(HttpSecurity http) throws Exception {
+			http.authorizeRequests((requests) -> requests.anyRequest().authenticated());
+			http.oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt);
+			return http.build();
 		}
 
 	}

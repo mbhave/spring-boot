@@ -16,13 +16,12 @@
 
 package org.springframework.boot.autoconfigure.security.servlet;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.BeanIds;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 /**
  * If there is a bean of type WebSecurityConfigurerAdapter, this adds the
@@ -37,8 +36,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
  * @since 2.0.0
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnBean(WebSecurityConfigurerAdapter.class)
 @ConditionalOnMissingBean(name = BeanIds.SPRING_SECURITY_FILTER_CHAIN)
+@ConditionalOnClass(EnableWebSecurity.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableWebSecurity
 public class WebSecurityEnablerConfiguration {

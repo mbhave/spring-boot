@@ -31,6 +31,8 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.BeanIds;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -133,6 +135,20 @@ public class Saml2RelyingPartyAutoConfigurationTests {
 				.run((context) -> assertThat(hasFilter(context, Saml2WebSsoAuthenticationFilter.class)).isFalse());
 	}
 
+	@Test
+	void samlLoginShouldBackOffWhenASecurityFilterChainBeanIsPresent() {
+		this.contextRunner.withUserConfiguration(TestSecurityFilterChainConfig.class)
+				.withPropertyValues(getPropertyValues())
+				.run((context) -> assertThat(hasFilter(context, Saml2WebSsoAuthenticationFilter.class)).isFalse());
+	}
+
+	@Test
+	void samlLoginShouldShouldBeConditionalOnSecurityWebFilterClass() {
+		this.contextRunner.withClassLoader(new FilteredClassLoader(SecurityFilterChain.class))
+				.withPropertyValues(getPropertyValues())
+				.run((context) -> assertThat(context).doesNotHaveBean(SecurityFilterChain.class));
+	}
+
 	private String[] getPropertyValuesWithoutSigningCredentials(boolean signRequests) {
 		return new String[] { PREFIX
 				+ ".foo.identityprovider.singlesignon.url=https://simplesaml-for-spring-saml.cfapps.io/saml2/idp/SSOService.php",
@@ -171,6 +187,11 @@ public class Saml2RelyingPartyAutoConfigurationTests {
 
 	}
 
+	@EnableWebSecurity
+	static class WebSecurityEnablerConfiguration {
+
+	}
+
 	@Configuration(proxyBeanMethods = false)
 	static class WebSecurityConfigurerAdapterConfiguration {
 
@@ -179,6 +200,17 @@ public class Saml2RelyingPartyAutoConfigurationTests {
 			return new WebSecurityConfigurerAdapter() {
 
 			};
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class TestSecurityFilterChainConfig {
+
+		@Bean
+		SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
+			return http.antMatcher("/**").authorizeRequests((authorize) -> authorize.anyRequest().authenticated())
+					.build();
 		}
 
 	}

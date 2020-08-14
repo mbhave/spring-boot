@@ -30,8 +30,10 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.assertj.AssertableWebApplicationContext;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
@@ -42,6 +44,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,6 +89,15 @@ class ManagementWebSecurityAutoConfigurationTests {
 	}
 
 	@Test
+	void autoConfigIsConditionalOnSecurityFilterChainClass() {
+		this.contextRunner.withClassLoader(new FilteredClassLoader(SecurityFilterChain.class)).run((context) -> {
+			assertThat(context).doesNotHaveBean(ManagementWebSecurityAutoConfiguration.class);
+			HttpStatus status = getResponseStatus(context, "/actuator/health");
+			assertThat(status).isEqualTo(HttpStatus.UNAUTHORIZED);
+		});
+	}
+
+	@Test
 	void usesMatchersBasedOffConfiguredActuatorBasePath() {
 		this.contextRunner.withPropertyValues("management.endpoints.web.base-path=/").run((context) -> {
 			HttpStatus status = getResponseStatus(context, "/health");
@@ -100,6 +112,14 @@ class ManagementWebSecurityAutoConfigurationTests {
 			assertThat(status).isEqualTo(HttpStatus.UNAUTHORIZED);
 			status = getResponseStatus(context, "/foo");
 			assertThat(status).isEqualTo(HttpStatus.OK);
+		});
+	}
+
+	@Test
+	void backsOffIfSecurityFilterChainBeanIsPresent() {
+		this.contextRunner.withUserConfiguration(TestSecurityFilterChainConfig.class).run((context) -> {
+			assertThat(context.getBeansOfType(SecurityFilterChain.class).size()).isEqualTo(1);
+			assertThat(context.containsBean("testSecurityFilterChain")).isTrue();
 		});
 	}
 
@@ -145,6 +165,17 @@ class ManagementWebSecurityAutoConfigurationTests {
 			});
 			http.formLogin(Customizer.withDefaults());
 			http.httpBasic();
+		}
+
+	}
+
+	@Configuration(proxyBeanMethods = false)
+	static class TestSecurityFilterChainConfig {
+
+		@Bean
+		SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
+			return http.antMatcher("/**").authorizeRequests((authorize) -> authorize.anyRequest().authenticated())
+					.build();
 		}
 
 	}
