@@ -62,6 +62,7 @@ public class ReactiveManagementWebSecurityAutoConfiguration {
 			exchanges.matchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class)).permitAll();
 			exchanges.anyExchange().authenticated();
 		});
+		http.cors();
 		http.httpBasic(Customizer.withDefaults());
 		http.formLogin(Customizer.withDefaults());
 		return http.build();
