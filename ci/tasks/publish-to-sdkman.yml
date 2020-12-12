@@ -8,5 +8,7 @@ params:
   BRANCH:
   SDKMAN_CONSUMER_KEY:
   SDKMAN_CONSUMER_TOKEN:
+  GITHUB_PASSWORD:
+  GITHUB_USERNAME:
 run:
   path: git-repo/ci/scripts/publish-to-sdkman.sh

@@ -55,19 +55,15 @@ public class PublishToSdkmanCommand implements Command {
 		logger.debug("Running 'push to SDKMAN' command");
 		List<String> nonOptionArgs = args.getNonOptionArgs();
 		Assert.state(!nonOptionArgs.isEmpty(), "No command argument specified");
-		Assert.state(nonOptionArgs.size() >= 3, "Release type or version not specified");
+		Assert.state(nonOptionArgs.size() == 4, "Release type, version or branch not specified");
 		String releaseType = nonOptionArgs.get(1);
 		ReleaseType type = ReleaseType.from(releaseType);
 		if (!ReleaseType.RELEASE.equals(type)) {
 			return;
 		}
 		String version = nonOptionArgs.get(2);
-		boolean makeDefault = false;
-		if (nonOptionArgs.size() == 4) {
-			String releaseBranch = nonOptionArgs.get(3);
-			makeDefault = ("master".equals(releaseBranch));
-		}
-		this.service.publish(version, makeDefault);
+		String releaseBranch = nonOptionArgs.get(3);
+		this.service.publish(version, releaseBranch);
 	}
 
 }

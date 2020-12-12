@@ -16,16 +16,20 @@
 
 package io.spring.concourse.releasescripts.sdkman;
 
+import io.spring.concourse.releasescripts.github.GithubService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -47,6 +51,9 @@ class SdkmanServiceTests {
 	@Autowired
 	private SdkmanProperties properties;
 
+	@MockBean
+	private GithubService githubService;
+
 	@Autowired
 	private MockRestServiceServer server;
 
@@ -56,24 +63,38 @@ class SdkmanServiceTests {
 	}
 
 	@Test
-	void publishWhenMakeDefaultTrue() throws Exception {
+	void publishWhenBranchMaster() throws Exception {
 		setupExpectation("https://vendors.sdkman.io/release",
 				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"url\": \"https://repo.spring.io/simple/libs-release-local/org/springframework/boot/spring-boot-cli/1.2.3/spring-boot-cli-1.2.3-bin.zip\"}");
 		setupExpectation("https://vendors.sdkman.io/default",
 				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\"}");
 		setupExpectation("https://vendors.sdkman.io/announce/struct",
 				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"hashtag\": \"springboot\"}");
-		this.service.publish("1.2.3", true);
+		this.service.publish("1.2.3", "master");
 		this.server.verify();
 	}
 
 	@Test
-	void publishWhenMakeDefaultFalse() throws Exception {
+	void publishWhenBranchNotMasterAndLatest() throws Exception {
+		given(this.githubService.getLatestBranch()).willReturn("1.2.x");
+		setupExpectation("https://vendors.sdkman.io/release",
+				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"url\": \"https://repo.spring.io/simple/libs-release-local/org/springframework/boot/spring-boot-cli/1.2.3/spring-boot-cli-1.2.3-bin.zip\"}");
+		setupExpectation("https://vendors.sdkman.io/default",
+				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\"}");
+		setupExpectation("https://vendors.sdkman.io/announce/struct",
+				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"hashtag\": \"springboot\"}");
+		this.service.publish("1.2.3", "1.2.x");
+		this.server.verify();
+	}
+
+	@Test
+	void publishWhenBranchNotMasterAndNotLatest() throws Exception {
+		given(this.githubService.getLatestBranch()).willReturn("1.3.x");
 		setupExpectation("https://vendors.sdkman.io/release",
 				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"url\": \"https://repo.spring.io/simple/libs-release-local/org/springframework/boot/spring-boot-cli/1.2.3/spring-boot-cli-1.2.3-bin.zip\"}");
 		setupExpectation("https://vendors.sdkman.io/announce/struct",
 				"{\"candidate\": \"springboot\", \"version\": \"1.2.3\", \"hashtag\": \"springboot\"}");
-		this.service.publish("1.2.3", false);
+		this.service.publish("1.2.3", "1.2.x");
 		this.server.verify();
 	}
 

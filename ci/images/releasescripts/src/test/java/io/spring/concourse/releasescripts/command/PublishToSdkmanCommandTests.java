@@ -51,54 +51,45 @@ class PublishToSdkmanCommandTests {
 	@Test
 	void runWhenReleaseTypeNotSpecifiedShouldThrowException() throws Exception {
 		Assertions.assertThatIllegalStateException()
-				.isThrownBy(() -> this.command.run(new DefaultApplicationArguments("publishGradlePlugin")));
+				.isThrownBy(() -> this.command.run(new DefaultApplicationArguments("publishToSdkman")));
 	}
 
 	@Test
 	void runWhenVersionNotSpecifiedShouldThrowException() throws Exception {
 		Assertions.assertThatIllegalStateException()
-				.isThrownBy(() -> this.command.run(new DefaultApplicationArguments("publishGradlePlugin", "RELEASE")));
+				.isThrownBy(() -> this.command.run(new DefaultApplicationArguments("publishToSdkman", "RELEASE")));
+	}
+
+	@Test
+	void runWhenBranchNotSpecifiedShouldThrowException() throws Exception {
+		Assertions.assertThatIllegalStateException().isThrownBy(
+				() -> this.command.run(new DefaultApplicationArguments("publishToSdkman", "RELEASE", "1.2.3")));
 	}
 
 	@Test
 	void runWhenReleaseTypeMilestoneShouldDoNothing() throws Exception {
-		this.command.run(new DefaultApplicationArguments("publishGradlePlugin", "M", "1.2.3"));
+		this.command.run(new DefaultApplicationArguments("publishToSdkman", "M", "1.2.3", "master"));
 		verifyNoInteractions(this.service);
 	}
 
 	@Test
 	void runWhenReleaseTypeRCShouldDoNothing() throws Exception {
-		this.command.run(new DefaultApplicationArguments("publishGradlePlugin", "RC", "1.2.3"));
+		this.command.run(new DefaultApplicationArguments("publishToSdkman", "RC", "1.2.3", "master"));
 		verifyNoInteractions(this.service);
 	}
 
 	@Test
-	void runWhenBranchNotSpecifiedShouldCallServiceWithMakeDefaultFalse() throws Exception {
-		DefaultApplicationArguments args = new DefaultApplicationArguments("promote", "RELEASE", "1.2.3");
-		testRun(args, false);
-	}
-
-	@Test
-	void runWhenBranchNotMasterShouldCallServiceWithMakeDefaultFalse() throws Exception {
-		DefaultApplicationArguments args = new DefaultApplicationArguments("promote", "RELEASE", "1.2.3", "other");
-		testRun(args, false);
-	}
-
-	@Test
 	void runWhenReleaseTypeReleaseShouldCallService() throws Exception {
-		DefaultApplicationArguments args = new DefaultApplicationArguments("promote", "RELEASE", "1.2.3", "master");
-		testRun(args, true);
-	}
-
-	private void testRun(DefaultApplicationArguments args, boolean makeDefault) throws Exception {
+		DefaultApplicationArguments args = new DefaultApplicationArguments("publishToSdkman", "RELEASE", "1.2.3",
+				"master");
 		ArgumentCaptor<String> versionCaptor = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<Boolean> makeDefaultCaptor = ArgumentCaptor.forClass(Boolean.class);
+		ArgumentCaptor<String> branchCaptor = ArgumentCaptor.forClass(String.class);
 		this.command.run(args);
-		verify(this.service).publish(versionCaptor.capture(), makeDefaultCaptor.capture());
+		verify(this.service).publish(versionCaptor.capture(), branchCaptor.capture());
 		String version = versionCaptor.getValue();
-		Boolean makeDefaultValue = makeDefaultCaptor.getValue();
+		String branch = branchCaptor.getValue();
 		assertThat(version).isEqualTo("1.2.3");
-		assertThat(makeDefaultValue).isEqualTo(makeDefault);
+		assertThat(branch).isEqualTo("master");
 	}
 
 }

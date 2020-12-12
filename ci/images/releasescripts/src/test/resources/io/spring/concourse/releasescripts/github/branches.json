@@ -1,0 +1,50 @@
+[
+  {
+    "name": "1.0.x",
+    "commit": {
+      "sha": "68b55adac044e2f21a13a46315bdcf13013ede61",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/c5b97d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  },
+  {
+    "name": "1.1.x",
+    "commit": {
+      "sha": "4b7c62008fa17016492a42d38a31d4b230be2fad",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/bhsd5d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  },
+  {
+    "name": "2.0.x",
+    "commit": {
+      "sha": "4b7c62008fa17016492a42d38a31d4b230be2fad",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/bhsd5d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  },
+  {
+    "name": "2.1.x",
+    "commit": {
+      "sha": "4b7c62008fa17016492a42d38a31d4b230be2fad",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/bhsd5d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  },
+  {
+    "name": "gh-pages",
+    "commit": {
+      "sha": "68b55adac044e2f21a13a46315bdcf13013ede61",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/c5b97d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  },
+  {
+    "name": "master",
+    "commit": {
+      "sha": "68b55adac044e2f21a13a46315bdcf13013ede61",
+      "url": "https://api.github.com/repos/octocat/Hello-World/commits/c5b97d5ae6c19d5c5df71a34c7fbeeda2479ccbc"
+    },
+    "protected": true
+  }
+]

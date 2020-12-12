@@ -18,6 +18,7 @@ package io.spring.concourse.releasescripts.sdkman;
 
 import java.net.URI;
 
+import io.spring.concourse.releasescripts.github.GithubService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,20 +49,21 @@ public class SdkmanService {
 
 	private final SdkmanProperties properties;
 
+	private final GithubService githubService;
+
 	private final String CONSUMER_KEY_HEADER = "Consumer-Key";
 
 	private final String CONSUMER_TOKEN_HEADER = "Consumer-Token";
 
-	public SdkmanService(RestTemplateBuilder builder, SdkmanProperties properties) {
+	public SdkmanService(RestTemplateBuilder builder, SdkmanProperties properties, GithubService githubService) {
 		this.restTemplate = builder.build();
 		this.properties = properties;
+		this.githubService = githubService;
 	}
 
-	public void publish(String version, boolean makeDefault) {
+	public void publish(String version, String branch) {
 		release(version);
-		if (makeDefault) {
-			makeDefault(version);
-		}
+		makeDefault(version, branch);
 		broadcast(version);
 	}
 
@@ -75,7 +77,11 @@ public class SdkmanService {
 		logger.debug("Broadcast complete");
 	}
 
-	private void makeDefault(String version) {
+	private void makeDefault(String version, String branch) {
+		if (!makeDefault(branch)) {
+			logger.debug("Skipping making this version the default");
+			return;
+		}
 		logger.debug("Making this version the default");
 		Request request = new Request(version);
 		RequestEntity<Request> requestEntity = RequestEntity.post(URI.create(SDKMAN_URL + "default"))
@@ -84,6 +90,14 @@ public class SdkmanService {
 				.contentType(MediaType.APPLICATION_JSON).body(request);
 		this.restTemplate.exchange(requestEntity, String.class);
 		logger.debug("Make default complete");
+	}
+
+	private boolean makeDefault(String branch) {
+		if (("master".equals(branch))) {
+			return true;
+		}
+		String latestBranch = this.githubService.getLatestBranch();
+		return branch.equals(latestBranch);
 	}
 
 	private void release(String version) {

@@ -101,7 +101,7 @@ resources:
 - name: git-repo-windows
   type: git
   icon: github
-  source: 
+  source:
     <<: *git-repo-resource-source
     git_config:
     - name: core.autocrlf
@@ -693,6 +693,8 @@ jobs:
         <<: *sdkman-task-params
         RELEASE_TYPE: RELEASE
         BRANCH: ((branch))
+        GITHUB_PASSWORD: ((github-ci-release-token))
+        GITHUB_USERNAME: ((github-username))
 groups:
 - name: "builds"
   jobs: ["build", "jdk11-build", "jdk15-build", "windows-build"]
