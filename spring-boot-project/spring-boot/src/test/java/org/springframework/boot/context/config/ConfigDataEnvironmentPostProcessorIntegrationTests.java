@@ -187,6 +187,21 @@ class ConfigDataEnvironmentPostProcessorIntegrationTests {
 	}
 
 	@Test
+	void runWhenProfileSpecificMandatoryLocationDoesNotExistShouldNotFail() {
+		ConfigurableApplicationContext context = this.application.run("--spring.config.name=testprofiles",
+				"--spring.config.location=classpath:configdata/profiles/");
+		String property = context.getEnvironment().getProperty("my.property");
+		assertThat(property).isEqualTo("fromyamlfile");
+	}
+
+	@Test
+	void runWhenProfileSpecificMandatoryLocationDoesNotExistShouldFailWhenProfileActive() {
+		this.application.setAdditionalProfiles("prod");
+		assertThatExceptionOfType(ConfigDataResourceNotFoundException.class).isThrownBy(() -> this.application
+				.run("--spring.config.name=testprofiles", "--spring.config.location=classpath:configdata/profiles/"));
+	}
+
+	@Test
 	void runWhenHasActiveProfilesFromMultipleLocationsActivatesProfileFromOneLocation() {
 		ConfigurableApplicationContext context = this.application
 				.run("--spring.config.location=classpath:enableprofile.properties,classpath:enableother.properties");

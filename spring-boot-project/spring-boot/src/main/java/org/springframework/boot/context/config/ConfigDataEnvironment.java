@@ -348,7 +348,9 @@ class ConfigDataEnvironment {
 			ConfigDataActivationContext activationContext) {
 		Set<ConfigDataLocation> mandatoryLocations = new LinkedHashSet<>();
 		for (ConfigDataEnvironmentContributor contributor : contributors) {
-			mandatoryLocations.addAll(getMandatoryImports(contributor));
+			if (contributor.isActive(activationContext)) {
+				mandatoryLocations.addAll(getMandatoryImports(contributor));
+			}
 		}
 		for (ConfigDataEnvironmentContributor contributor : contributors) {
 			if (contributor.getLocation() != null) {
