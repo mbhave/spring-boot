@@ -30,6 +30,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.codec.CodecCustomizer;
@@ -45,7 +46,9 @@ import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 
 /**
@@ -132,6 +135,10 @@ class WebTestClientContextCustomizer implements ContextCustomizer {
 
 		private WebTestClient object;
 
+		private static final String SERVLET_APPLICATION_CONTEXT_CLASS = "org.springframework.web.context.WebApplicationContext";
+
+		private static final String REACTIVE_APPLICATION_CONTEXT_CLASS = "org.springframework.boot.web.reactive.context.ReactiveWebApplicationContext";
+
 		@Override
 		public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 			this.applicationContext = applicationContext;
@@ -158,11 +165,45 @@ class WebTestClientContextCustomizer implements ContextCustomizer {
 		private WebTestClient createWebTestClient() {
 			boolean sslEnabled = isSslEnabled(this.applicationContext);
 			String port = this.applicationContext.getEnvironment().getProperty("local.server.port", "8080");
-			String baseUrl = (sslEnabled ? "https" : "http") + "://localhost:" + port;
+			String baseUrl = getBaseUrl(sslEnabled, port);
 			WebTestClient.Builder builder = WebTestClient.bindToServer();
 			customizeWebTestClientBuilder(builder, this.applicationContext);
 			customizeWebTestClientCodecs(builder, this.applicationContext);
 			return builder.baseUrl(baseUrl).build();
+		}
+
+		private String getBaseUrl(boolean sslEnabled, String port) {
+			String basePath = deduceBasePath();
+			String pathSegment = (StringUtils.hasText(basePath)) ? basePath : "";
+			return (sslEnabled ? "https" : "http") + "://localhost:" + port + pathSegment;
+		}
+
+		private String deduceBasePath() {
+			WebApplicationType webApplicationType = deduceFromApplicationContext(this.applicationContext.getClass());
+			if (webApplicationType == WebApplicationType.REACTIVE) {
+				return this.applicationContext.getEnvironment().getProperty("spring.webflux.base-path");
+			}
+			return this.applicationContext.getEnvironment().getProperty("server.servlet.context-path");
+		}
+
+		// FIXME make WebApplicationType#deduceFromApplicationContext public?
+		static WebApplicationType deduceFromApplicationContext(Class<?> applicationContextClass) {
+			if (isAssignable(SERVLET_APPLICATION_CONTEXT_CLASS, applicationContextClass)) {
+				return WebApplicationType.SERVLET;
+			}
+			if (isAssignable(REACTIVE_APPLICATION_CONTEXT_CLASS, applicationContextClass)) {
+				return WebApplicationType.REACTIVE;
+			}
+			return WebApplicationType.NONE;
+		}
+
+		private static boolean isAssignable(String target, Class<?> type) {
+			try {
+				return ClassUtils.resolveClassName(target, null).isAssignableFrom(type);
+			}
+			catch (Throwable ex) {
+				return false;
+			}
 		}
 
 		private boolean isSslEnabled(ApplicationContext context) {
