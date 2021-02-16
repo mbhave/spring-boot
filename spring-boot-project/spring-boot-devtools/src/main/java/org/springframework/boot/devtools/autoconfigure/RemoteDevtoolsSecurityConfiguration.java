@@ -16,13 +16,18 @@
 
 package org.springframework.boot.devtools.autoconfigure;
 
+import java.util.function.Consumer;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -36,23 +41,53 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration(proxyBeanMethods = false)
 class RemoteDevtoolsSecurityConfiguration {
 
-	@Configuration
-	static class SecurityConfiguration {
+	private final String url;
 
-		private final String url;
+	RemoteDevtoolsSecurityConfiguration(DevToolsProperties devToolsProperties, ServerProperties serverProperties) {
+		ServerProperties.Servlet servlet = serverProperties.getServlet();
+		String servletContextPath = (servlet.getContextPath() != null) ? servlet.getContextPath() : "";
+		this.url = servletContextPath + devToolsProperties.getRemote().getContextPath() + "/restart";
+	}
 
-		SecurityConfiguration(DevToolsProperties devToolsProperties, ServerProperties serverProperties) {
-			ServerProperties.Servlet servlet = serverProperties.getServlet();
-			String servletContextPath = (servlet.getContextPath() != null) ? servlet.getContextPath() : "";
-			this.url = servletContextPath + devToolsProperties.getRemote().getContextPath() + "/restart";
+	@Bean
+	@Order(SecurityProperties.BASIC_AUTH_ORDER - 1)
+	@ConditionalOnMissingBean(WebSecurityConfigurerAdapter.class)
+	@ConditionalOnClass(SecurityFilterChain.class)
+	SecurityFilterChain devtoolsSecurityFilterChain(HttpSecurity http) throws Exception {
+		configure(http);
+		return http.build();
+	}
+
+	private void configure(HttpSecurity http) throws Exception {
+		http.requestMatcher(new AntPathRequestMatcher(this.url)).authorizeRequests().anyRequest().anonymous().and()
+				.csrf().disable();
+	}
+
+//	@Bean
+//	@ConditionalOnBean(WebSecurityConfigurerAdapter.class)
+//	@ConditionalOnClass(WebSecurityConfigurerAdapter.class)
+//	WebSecurityConfigurerAdapter devtoolsWebSecurityConfigurerAdapter() {
+//		return new DevtoolsWebSecurityConfigurerAdapter((http) -> {
+//			try {
+//				configure(http);
+//			}
+//			catch (Exception ex) {
+//			}
+//		});
+//	}
+
+	@Order(SecurityProperties.BASIC_AUTH_ORDER - 1)
+	static class DevtoolsWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapter {
+
+		private final Consumer<HttpSecurity> consumer;
+
+		DevtoolsWebSecurityConfigurerAdapter(Consumer<HttpSecurity> consumer) {
+			this.consumer = consumer;
 		}
 
-		@Bean
-		@Order(SecurityProperties.BASIC_AUTH_ORDER - 1)
-		SecurityFilterChain configure(HttpSecurity http) throws Exception {
-			http.requestMatcher(new AntPathRequestMatcher(this.url)).authorizeRequests().anyRequest().anonymous().and()
-					.csrf().disable();
-			return http.build();
+		@Override
+		protected void configure(HttpSecurity http) throws Exception {
+			this.consumer.accept(http);
 		}
 
 	}
