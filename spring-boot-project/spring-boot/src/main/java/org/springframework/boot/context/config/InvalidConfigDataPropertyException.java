@@ -16,14 +16,18 @@
 
 package org.springframework.boot.context.config;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.commons.logging.Log;
 
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationProperty;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
@@ -38,20 +42,22 @@ import org.springframework.core.env.AbstractEnvironment;
  */
 public class InvalidConfigDataPropertyException extends ConfigDataException {
 
-	private static final Map<ConfigurationPropertyName, ConfigurationPropertyName> WARNINGS;
+	private static final Map<Property, ConfigurationPropertyName> WARNINGS;
 	static {
-		Map<ConfigurationPropertyName, ConfigurationPropertyName> warnings = new LinkedHashMap<>();
-		warnings.put(ConfigurationPropertyName.of("spring.profiles"),
+		Map<Property, ConfigurationPropertyName> warnings = new LinkedHashMap<>();
+		warnings.put(Property.forCollection(ConfigurationPropertyName.of("spring.profiles")),
 				ConfigurationPropertyName.of("spring.config.activate.on-profile"));
 		WARNINGS = Collections.unmodifiableMap(warnings);
 	}
 
-	private static final Set<ConfigurationPropertyName> PROFILE_SPECIFIC_ERRORS;
+	private static final Set<Property> PROFILE_SPECIFIC_ERRORS;
 	static {
-		Set<ConfigurationPropertyName> errors = new LinkedHashSet<>();
-		errors.add(Profiles.INCLUDE_PROFILES);
-		errors.add(ConfigurationPropertyName.of(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME));
-		errors.add(ConfigurationPropertyName.of(AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME));
+		Set<Property> errors = new LinkedHashSet<>();
+		errors.add(Property.forCollection(Profiles.INCLUDE_PROFILES));
+		errors.add(Property
+				.forCollection(ConfigurationPropertyName.of(AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME)));
+		errors.add(Property
+				.forCollection(ConfigurationPropertyName.of(AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME)));
 		PROFILE_SPECIFIC_ERRORS = Collections.unmodifiableSet(errors);
 	}
 
@@ -106,19 +112,29 @@ public class InvalidConfigDataPropertyException extends ConfigDataException {
 	static void throwOrWarn(Log logger, ConfigDataEnvironmentContributor contributor) {
 		ConfigurationPropertySource propertySource = contributor.getConfigurationPropertySource();
 		if (propertySource != null) {
-			WARNINGS.forEach((name, replacement) -> {
-				ConfigurationProperty property = propertySource.getConfigurationProperty(name);
-				if (property != null) {
-					logger.warn(getMessage(property, false, replacement, contributor.getResource()));
-				}
-			});
+			WARNINGS.forEach((property, replacement) -> throwOrWarn(propertySource, property,
+					(p) -> logger.warn(getMessage(p, false, replacement, contributor.getResource()))));
 			if (contributor.isProfileSpecific() && contributor.isNotIgnoringProfiles()) {
-				PROFILE_SPECIFIC_ERRORS.forEach((name) -> {
-					ConfigurationProperty property = propertySource.getConfigurationProperty(name);
-					if (property != null) {
-						throw new InvalidConfigDataPropertyException(property, true, null, contributor.getResource());
-					}
-				});
+				PROFILE_SPECIFIC_ERRORS.forEach((property) -> throwOrWarn(propertySource, property, (p) -> {
+					throw new InvalidConfigDataPropertyException(p, true, null, contributor.getResource());
+				}));
+			}
+		}
+	}
+
+	private static void throwOrWarn(ConfigurationPropertySource propertySource, Property property,
+			Consumer<ConfigurationProperty> action) {
+		ConfigurationProperty configurationProperty = propertySource.getConfigurationProperty(property.getName());
+		if (configurationProperty != null) {
+			action.accept(configurationProperty);
+		}
+		else if (Collection.class.isAssignableFrom(property.getType())) {
+			Collection<?> result = new Binder(propertySource).bind(property.getName(), Bindable.of(Collection.class))
+					.orElse(null);
+			if (result != null) {
+				ConfigurationProperty indexedProperty = propertySource
+						.getConfigurationProperty(property.getName().append("[0]"));
+				action.accept(indexedProperty);
 			}
 		}
 	}
@@ -146,6 +162,31 @@ public class InvalidConfigDataPropertyException extends ConfigDataException {
 			message.append("]");
 		}
 		return message.toString();
+	}
+
+	static class Property {
+
+		private final ConfigurationPropertyName name;
+
+		private final Class<?> type;
+
+		Property(ConfigurationPropertyName name, Class<?> type) {
+			this.name = name;
+			this.type = type;
+		}
+
+		public ConfigurationPropertyName getName() {
+			return this.name;
+		}
+
+		public Class<?> getType() {
+			return this.type;
+		}
+
+		static Property forCollection(ConfigurationPropertyName name) {
+			return new Property(name, Collection.class);
+		}
+
 	}
 
 }
