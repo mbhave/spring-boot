@@ -21,7 +21,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor.OriginAwareSystemEnvironmentPropertySource;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor.OriginAndPrefixAwareSystemEnvironmentPropertySource;
 import org.springframework.boot.origin.SystemEnvironmentOrigin;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -44,7 +45,7 @@ class SystemEnvironmentPropertySourceEnvironmentPostProcessorTests {
 		SystemEnvironmentPropertySourceEnvironmentPostProcessor postProcessor = new SystemEnvironmentPropertySourceEnvironmentPostProcessor();
 		postProcessor.postProcessEnvironment(this.environment, null);
 		PropertySource<?> replaced = this.environment.getPropertySources().get("systemEnvironment");
-		assertThat(replaced).isInstanceOf(OriginAwareSystemEnvironmentPropertySource.class);
+		assertThat(replaced).isInstanceOf(OriginAndPrefixAwareSystemEnvironmentPropertySource.class);
 	}
 
 	@Test
@@ -53,7 +54,7 @@ class SystemEnvironmentPropertySourceEnvironmentPostProcessorTests {
 		SystemEnvironmentPropertySourceEnvironmentPostProcessor postProcessor = new SystemEnvironmentPropertySourceEnvironmentPostProcessor();
 		PropertySource<?> original = this.environment.getPropertySources().get("systemEnvironment");
 		postProcessor.postProcessEnvironment(this.environment, null);
-		OriginAwareSystemEnvironmentPropertySource replaced = (OriginAwareSystemEnvironmentPropertySource) this.environment
+		OriginAndPrefixAwareSystemEnvironmentPropertySource replaced = (OriginAndPrefixAwareSystemEnvironmentPropertySource) this.environment
 				.getPropertySources().get("systemEnvironment");
 		Map<String, Object> originalMap = (Map<String, Object>) original.getSource();
 		Map<String, Object> replacedMap = replaced.getSource();
@@ -68,7 +69,7 @@ class SystemEnvironmentPropertySourceEnvironmentPostProcessorTests {
 	void replacedPropertySourceWhenPropertyAbsentShouldReturnNullOrigin() {
 		SystemEnvironmentPropertySourceEnvironmentPostProcessor postProcessor = new SystemEnvironmentPropertySourceEnvironmentPostProcessor();
 		postProcessor.postProcessEnvironment(this.environment, null);
-		OriginAwareSystemEnvironmentPropertySource replaced = (OriginAwareSystemEnvironmentPropertySource) this.environment
+		OriginAndPrefixAwareSystemEnvironmentPropertySource replaced = (OriginAndPrefixAwareSystemEnvironmentPropertySource) this.environment
 				.getPropertySources().get("systemEnvironment");
 		assertThat(replaced.getOrigin("NON_EXISTENT")).isNull();
 	}
@@ -80,11 +81,56 @@ class SystemEnvironmentPropertySourceEnvironmentPostProcessorTests {
 		this.environment.getPropertySources().replace("systemEnvironment",
 				new SystemEnvironmentPropertySource("systemEnvironment", source));
 		postProcessor.postProcessEnvironment(this.environment, null);
-		OriginAwareSystemEnvironmentPropertySource replaced = (OriginAwareSystemEnvironmentPropertySource) this.environment
+		OriginAndPrefixAwareSystemEnvironmentPropertySource replaced = (OriginAndPrefixAwareSystemEnvironmentPropertySource) this.environment
 				.getPropertySources().get("systemEnvironment");
 		SystemEnvironmentOrigin origin = (SystemEnvironmentOrigin) replaced.getOrigin("foo.bar.baz");
 		assertThat(origin.getProperty()).isEqualTo("FOO_BAR_BAZ");
 		assertThat(replaced.getProperty("foo.bar.baz")).isEqualTo("hello");
+	}
+
+	@Test
+	void replacedPropertySourceShouldBePrefixAware() {
+		testReplacedSource("FOO_BAR_BAZ", "foo");
+	}
+
+	@Test
+	void replacedPropertySourceWhenPrefixUppercase() {
+		testReplacedSource("FOO_BAR_BAZ", "FOO");
+	}
+
+	@Test
+	void replacedPropertySourceWhenPrefixContainsUnderscore() {
+		testReplacedSource("FOO_BING_BAR_BAZ", "FOO_BING");
+	}
+
+	@Test
+	void replacedPropertySourceWhenPrefixEndsWithUnderscore() {
+		testReplacedSource("FOO_BING_BAR_BAZ", "FOO_BING_");
+	}
+
+	@Test
+	void replacedPropertySourceWhenPrefixEndsWithDot() {
+		testReplacedSource("FOO_BING_BAR_BAZ", "foo.bing.");
+	}
+
+	@Test
+	void replacedPropertySourceWhenPrefixEndsWithHypen() {
+		testReplacedSource("FOO_BING_BAR_BAZ", "foo.bing.");
+	}
+
+	private void testReplacedSource(String foo_bar_baz, String foo) {
+		SystemEnvironmentPropertySourceEnvironmentPostProcessor postProcessor = new SystemEnvironmentPropertySourceEnvironmentPostProcessor();
+		Map<String, Object> source = Collections.singletonMap(foo_bar_baz, "hello");
+		this.environment.getPropertySources().replace("systemEnvironment",
+				new SystemEnvironmentPropertySource("systemEnvironment", source));
+		SpringApplication application = new SpringApplication();
+		application.setEnvironmentPrefix(foo);
+		postProcessor.postProcessEnvironment(this.environment, application);
+		OriginAndPrefixAwareSystemEnvironmentPropertySource replaced = (OriginAndPrefixAwareSystemEnvironmentPropertySource) this.environment
+				.getPropertySources().get("systemEnvironment");
+		SystemEnvironmentOrigin origin = (SystemEnvironmentOrigin) replaced.getOrigin("bar.baz");
+		assertThat(origin.getProperty()).isEqualTo(foo_bar_baz);
+		assertThat(replaced.getProperty("bar.baz")).isEqualTo("hello");
 	}
 
 }
