@@ -688,6 +688,13 @@ class ConfigurationPropertiesTests {
 	}
 
 	@Test
+	void loadWhenConfigurationPropertiesWithValidDefaultValuesShouldNotFail() {
+		AnnotationConfigApplicationContext context = load(ValidatorPropertiesWithDefaultValues.class);
+		ValidatorPropertiesWithDefaultValues bean = context.getBean(ValidatorPropertiesWithDefaultValues.class);
+		assertThat(bean.getBar()).isEqualTo("a");
+	}
+
+	@Test
 	void loadWhenSetterThrowsValidationExceptionShouldFail() {
 		assertThatExceptionOfType(BeanCreationException.class)
 				.isThrownBy(() -> load(WithSetterThatThrowsValidationExceptionProperties.class, "test.foo=spam"))
@@ -1826,6 +1833,32 @@ class ConfigurationPropertiesTests {
 
 		void setFoo(String foo) {
 			this.foo = foo;
+		}
+
+	}
+
+	@EnableConfigurationProperties
+	@ConfigurationProperties
+	static class ValidatorPropertiesWithDefaultValues implements Validator {
+
+		private String bar = "a";
+
+		@Override
+		public boolean supports(Class<?> type) {
+			return type == ValidatorPropertiesWithDefaultValues.class;
+		}
+
+		@Override
+		public void validate(Object target, Errors errors) {
+			ValidationUtils.rejectIfEmpty(errors, "bar", "foo.empty");
+		}
+
+		String getBar() {
+			return this.bar;
+		}
+
+		void setBar(String bar) {
+			this.bar = bar;
 		}
 
 	}
