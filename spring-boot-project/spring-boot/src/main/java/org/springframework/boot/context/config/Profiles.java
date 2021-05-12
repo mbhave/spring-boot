@@ -86,32 +86,45 @@ public class Profiles implements Iterable<String> {
 
 	private List<String> getActivatedProfiles(Environment environment, Binder binder,
 			Collection<String> additionalProfiles) {
-		return asUniqueItemList(get(environment, binder, environment::getActiveProfiles,
+		return asUniqueItemList(get(environment, binder, environment::getActiveProfiles, true,
 				AbstractEnvironment.ACTIVE_PROFILES_PROPERTY_NAME, UNSET_ACTIVE), additionalProfiles);
 	}
 
 	private List<String> getDefaultProfiles(Environment environment, Binder binder) {
-		return asUniqueItemList(get(environment, binder, environment::getDefaultProfiles,
+		return asUniqueItemList(get(environment, binder, environment::getDefaultProfiles, false,
 				AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME, UNSET_DEFAULT));
 	}
 
-	private String[] get(Environment environment, Binder binder, Supplier<String[]> supplier, String propertyName,
-			Set<String> unset) {
-		String propertyValue = environment.getProperty(propertyName);
-		if (hasExplicit(supplier, propertyValue, unset)) {
-			return supplier.get();
+	private String[] get(Environment environment, Binder binder, Supplier<String[]> supplier, boolean merge,
+			String propertyName, Set<String> unset) {
+		String[] valueFromProperty = Binder.get(environment).bind(propertyName, String[].class).orElse(new String[] {});
+		Set<String> environmentProfiles = new LinkedHashSet<>(Arrays.asList(supplier.get()));
+		boolean isExplicitInEnvironment = !unset.equals(environmentProfiles);
+		if (isExplicitInEnvironment) {
+			if (!merge) {
+				return StringUtils.toStringArray(environmentProfiles);
+			}
+			return mergeWithEnvironment(environmentProfiles, valueFromProperty, binder, propertyName);
 		}
-		return binder.bind(propertyName, String[].class).orElseGet(() -> StringUtils.toStringArray(unset));
+		if (valueFromProperty.length > 0) {
+			return valueFromProperty;
+		}
+		return binder.bind(propertyName, String[].class).orElse(StringUtils.toStringArray(unset));
 	}
 
-	private boolean hasExplicit(Supplier<String[]> supplier, String propertyValue, Set<String> unset) {
-		Set<String> profiles = new LinkedHashSet<>(Arrays.asList(supplier.get()));
-		if (!StringUtils.hasLength(propertyValue)) {
-			return !unset.equals(profiles);
+	private String[] mergeWithEnvironment(Set<String> environmentProfiles, String[] valueFromProperty, Binder binder,
+			String propertyName) {
+		if (valueFromProperty.length > 0) {
+			return merge(environmentProfiles, valueFromProperty);
 		}
-		Set<String> propertyProfiles = StringUtils
-				.commaDelimitedListToSet(StringUtils.trimAllWhitespace(propertyValue));
-		return !propertyProfiles.equals(profiles);
+		return binder.bind(propertyName, String[].class).map((bound) -> merge(environmentProfiles, bound))
+				.orElse(StringUtils.toStringArray(environmentProfiles));
+	}
+
+	private String[] merge(Set<String> environmentProfiles, String[] bound) {
+		Set<String> result = new LinkedHashSet<>(environmentProfiles);
+		result.addAll(Arrays.asList(bound));
+		return StringUtils.toStringArray(result);
 	}
 
 	private List<String> expandProfiles(List<String> profiles) {
