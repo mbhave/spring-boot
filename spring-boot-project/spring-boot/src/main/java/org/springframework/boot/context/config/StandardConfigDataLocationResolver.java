@@ -243,17 +243,34 @@ public class StandardConfigDataLocationResolver
 			Set<StandardConfigDataReference> references) {
 		Set<StandardConfigDataResource> empty = new LinkedHashSet<>();
 		for (StandardConfigDataReference reference : references) {
-			if (reference.isMandatoryDirectory()) {
-				Resource resource = this.resourceLoader.getResource(reference.getDirectory());
-				if (resource instanceof ClassPathResource) {
-					continue;
-				}
-				StandardConfigDataResource configDataResource = new StandardConfigDataResource(reference, resource);
-				ConfigDataResourceNotFoundException.throwIfDoesNotExist(configDataResource, resource);
-				empty.add(new StandardConfigDataResource(reference, resource, true));
+			if (this.resourceLoader.isPattern(reference.getResourceLocation())) {
+				handlePattern(empty, reference);
+			}
+			else {
+				handleNonPattern(empty, reference);
 			}
 		}
 		return empty;
+	}
+
+	private void handleNonPattern(Set<StandardConfigDataResource> empty, StandardConfigDataReference reference) {
+		Resource resource = this.resourceLoader.getResource(reference.getDirectory());
+		if (resource instanceof ClassPathResource || !resource.exists()) {
+			return;
+		}
+		empty.add(new StandardConfigDataResource(reference, resource, true));
+	}
+
+	private void handlePattern(Set<StandardConfigDataResource> empty, StandardConfigDataReference reference) {
+		Resource[] resources = this.resourceLoader.getResources(reference.getDirectory(), ResourceType.DIRECTORY);
+		Assert.state(resources.length > 0,
+				"No subdirectories found for mandatory directory location '" + reference.getDirectory() + "'.");
+		for (Resource resource : resources) {
+			StandardConfigDataResource configDataResource = new StandardConfigDataResource(reference, resource, true);
+			if (resource.exists()) {
+				empty.add(configDataResource);
+			}
+		}
 	}
 
 	private List<StandardConfigDataResource> resolve(StandardConfigDataReference reference) {
