@@ -17,16 +17,22 @@
 package smoketest.web.secure;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+
+import javax.servlet.Filter;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.filter.ErrorPageSecurityInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
+import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -66,14 +72,27 @@ public class SampleWebSecureApplication implements WebMvcConfigurer {
 		SecurityFilterChain configure(HttpSecurity http) throws Exception {
 			http.authorizeRequests((requests) -> {
 				requests.requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll();
+				requests.antMatchers("/public/**").permitAll();
 				requests.anyRequest().fullyAuthenticated();
 			});
+			http.httpBasic();
 			http.formLogin((form) -> {
 				form.loginPage("/login");
 				form.failureUrl("/login?error").permitAll();
 			});
 			http.logout(LogoutConfigurer::permitAll);
-			return http.build();
+			DefaultSecurityFilterChain chain = http.build();
+			List<Filter> filters = chain.getFilters();
+			FilterSecurityInterceptor securityInterceptor = (FilterSecurityInterceptor) filters.get(filters.size() - 1);
+			addErrorInterceptor(filters, securityInterceptor);
+			return chain;
+		}
+
+		private void addErrorInterceptor(List<Filter> filters, FilterSecurityInterceptor securityInterceptor) {
+			ErrorPageSecurityInterceptor interceptor = new ErrorPageSecurityInterceptor();
+			interceptor.setMetadataSource(securityInterceptor.getSecurityMetadataSource());
+			interceptor.setAccessDecisionManager(securityInterceptor.getAccessDecisionManager());
+			filters.add(filters.size() - 1, interceptor);
 		}
 
 	}
