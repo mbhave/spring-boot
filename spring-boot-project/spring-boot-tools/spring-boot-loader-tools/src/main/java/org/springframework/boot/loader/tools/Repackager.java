@@ -100,6 +100,11 @@ public class Repackager extends Packager {
 		repackage(destination, libraries, launchScript, null);
 	}
 
+	public void repackage(File destination, Libraries libraries, LaunchScript launchScript, FileTime lastModifiedTime)
+			throws IOException {
+		repackage(destination, libraries, launchScript, lastModifiedTime, null);
+	}
+
 	/**
 	 * Repackage to the given destination so that it can be launched using '
 	 * {@literal java -jar}'.
@@ -108,11 +113,13 @@ public class Repackager extends Packager {
 	 * @param launchScript an optional launch script prepended to the front of the jar
 	 * @param lastModifiedTime an optional last modified time to apply to the archive and
 	 * its contents
+	 * @param excludedLibraries the libraries that should be excluded from the repackaged
+	 * archive
 	 * @throws IOException if the file cannot be repackaged
 	 * @since 2.3.0
 	 */
-	public void repackage(File destination, Libraries libraries, LaunchScript launchScript, FileTime lastModifiedTime)
-			throws IOException {
+	public void repackage(File destination, Libraries libraries, LaunchScript launchScript, FileTime lastModifiedTime,
+			Libraries excludedLibraries) throws IOException {
 		Assert.isTrue(destination != null && !destination.isDirectory(), "Invalid destination");
 		getLayout(); // get layout early
 		if (lastModifiedTime != null && getLayout() instanceof War) {
@@ -132,7 +139,7 @@ public class Repackager extends Packager {
 		destination.delete();
 		try {
 			try (JarFile sourceJar = new JarFile(workingSource)) {
-				repackage(sourceJar, destination, libraries, launchScript, lastModifiedTime);
+				repackage(sourceJar, destination, libraries, launchScript, lastModifiedTime, excludedLibraries);
 			}
 		}
 		finally {
@@ -143,9 +150,9 @@ public class Repackager extends Packager {
 	}
 
 	private void repackage(JarFile sourceJar, File destination, Libraries libraries, LaunchScript launchScript,
-			FileTime lastModifiedTime) throws IOException {
+			FileTime lastModifiedTime, Libraries excludedLibraries) throws IOException {
 		try (JarWriter writer = new JarWriter(destination, launchScript, lastModifiedTime)) {
-			write(sourceJar, libraries, writer);
+			write(sourceJar, libraries, writer, excludedLibraries);
 		}
 		if (lastModifiedTime != null) {
 			destination.setLastModified(lastModifiedTime.toMillis());

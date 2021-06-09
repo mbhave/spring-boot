@@ -27,6 +27,7 @@ import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
@@ -90,14 +91,17 @@ public abstract class AbstractJarWriter implements LoaderClassesWriter {
 	 * @throws IOException if the entries cannot be written
 	 */
 	public void writeEntries(JarFile jarFile) throws IOException {
-		writeEntries(jarFile, EntryTransformer.NONE, UnpackHandler.NEVER);
+		writeEntries(jarFile, EntryTransformer.NONE, UnpackHandler.NEVER, Collections.emptySet());
 	}
 
-	final void writeEntries(JarFile jarFile, EntryTransformer entryTransformer, UnpackHandler unpackHandler)
-			throws IOException {
+	final void writeEntries(JarFile jarFile, EntryTransformer entryTransformer, UnpackHandler unpackHandler,
+			Set<String> exclusions) throws IOException {
 		Enumeration<JarEntry> entries = jarFile.entries();
 		while (entries.hasMoreElements()) {
 			JarArchiveEntry entry = new JarArchiveEntry(entries.nextElement());
+			if (exclusions.contains(entry.getName())) {
+				continue;
+			}
 			setUpEntry(jarFile, entry);
 			try (ZipHeaderPeekInputStream inputStream = new ZipHeaderPeekInputStream(jarFile.getInputStream(entry))) {
 				EntryWriter entryWriter = new InputStreamEntryWriter(inputStream);

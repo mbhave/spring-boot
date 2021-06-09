@@ -20,10 +20,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -190,16 +193,29 @@ public abstract class Packager {
 	}
 
 	protected final void write(JarFile sourceJar, Libraries libraries, AbstractJarWriter writer) throws IOException {
+		write(sourceJar, libraries, writer, null);
+	}
+
+	protected final void write(JarFile sourceJar, Libraries libraries, AbstractJarWriter writer,
+			Libraries excludedLibraries) throws IOException {
 		Assert.notNull(libraries, "Libraries must not be null");
 		WritableLibraries writeableLibraries = new WritableLibraries(libraries);
+		Set<String> excludedLibraryNames = getExcludedLibraryNames(excludedLibraries);
 		writer.useLayers(this.layers, this.layersIndex);
 		writer.writeManifest(buildManifest(sourceJar));
 		writeLoaderClasses(writer);
-		writer.writeEntries(sourceJar, getEntityTransformer(), writeableLibraries);
+		writer.writeEntries(sourceJar, getEntityTransformer(), writeableLibraries, excludedLibraryNames);
 		writeableLibraries.write(writer);
 		if (this.layers != null) {
 			writeLayerIndex(writer);
 		}
+	}
+
+	private Set<String> getExcludedLibraryNames(Libraries excludedLibraries) throws IOException {
+		if (excludedLibraries != null) {
+			return new ExcludedLibraries(excludedLibraries).getExclusions();
+		}
+		return Collections.emptySet();
 	}
 
 	private void writeLoaderClasses(AbstractJarWriter writer) throws IOException {
@@ -503,6 +519,25 @@ public abstract class Packager {
 			List<String> names = this.libraries.keySet().stream().map((path) -> "- \"" + path + "\"")
 					.collect(Collectors.toList());
 			writer.writeIndexFile(layout.getClasspathIndexFileLocation(), names);
+		}
+
+	}
+
+	private final class ExcludedLibraries {
+
+		private final Set<String> exclusions = new LinkedHashSet<>();
+
+		ExcludedLibraries(Libraries excludedLibraries) throws IOException {
+			excludedLibraries.doWithLibraries((library) -> {
+				String location = getLayout().getLibraryLocation(library.getName(), library.getScope());
+				if (location != null) {
+					this.exclusions.add(location + library.getName());
+				}
+			});
+		}
+
+		private Set<String> getExclusions() {
+			return this.exclusions;
 		}
 
 	}

@@ -20,8 +20,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -211,14 +214,25 @@ public class RepackageMojo extends AbstractPackagerMojo {
 		File target = getTargetFile(this.finalName, this.classifier, this.outputDirectory);
 		Repackager repackager = getRepackager(source.getFile());
 		Libraries libraries = getLibraries(this.requiresUnpack);
+		Libraries excludedLibraries = getExcludedLibraries();
 		try {
 			LaunchScript launchScript = getLaunchScript();
-			repackager.repackage(target, libraries, launchScript, parseOutputTimestamp());
+			repackager.repackage(target, libraries, launchScript, parseOutputTimestamp(), excludedLibraries);
 		}
 		catch (IOException ex) {
 			throw new MojoExecutionException(ex.getMessage(), ex);
 		}
 		updateArtifact(source, target, repackager.getBackupFile());
+	}
+
+	private Libraries getExcludedLibraries() throws MojoExecutionException {
+		Set<Artifact> excludedArtifacts = new LinkedHashSet<>();
+		for (Artifact artifact : this.project.getArtifacts()) {
+			if (!getFilteredArtifacts().contains(artifact)) {
+				excludedArtifacts.add(artifact);
+			}
+		}
+		return new ArtifactsLibraries(excludedArtifacts, Collections.emptyList(), getLog());
 	}
 
 	private FileTime parseOutputTimestamp() {
