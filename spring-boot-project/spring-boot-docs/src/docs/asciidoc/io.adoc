@@ -1,0 +1,16 @@
+[[io]]
+= IO
+
+include::io/caching.adoc[]
+
+include::io/quartz.adoc[]
+
+include::io/mail.adoc[]
+
+include::io/validation.adoc[]
+
+include::io/rest-client.adoc[]
+
+include::io/webservices.adoc[]
+
+include::io/jta.adoc[]
