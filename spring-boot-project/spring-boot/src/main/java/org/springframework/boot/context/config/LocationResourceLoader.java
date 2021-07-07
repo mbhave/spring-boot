@@ -97,10 +97,13 @@ class LocationResourceLoader {
 		String fileName = location.substring(location.lastIndexOf("/") + 1);
 		Resource directoryResource = getResource(directoryPath);
 		if (!directoryResource.exists()) {
-			return new Resource[] { directoryResource };
+			return EMPTY_RESOURCES;
 		}
-		File directory = getDirectory(location, directoryResource);
-		File[] subDirectories = directory.listFiles(this::isVisibleDirectory);
+		File file = getDirectory(location, directoryResource);
+		if (!file.isDirectory()) {
+			return EMPTY_RESOURCES;
+		}
+		File[] subDirectories = file.listFiles(this::isVisibleDirectory);
 		if (subDirectories == null) {
 			return EMPTY_RESOURCES;
 		}
@@ -133,9 +136,7 @@ class LocationResourceLoader {
 
 	private File getDirectory(String patternLocation, Resource resource) {
 		try {
-			File directory = resource.getFile();
-			Assert.state(directory.isDirectory(), () -> "'" + directory + "' is not a directory");
-			return directory;
+			return resource.getFile();
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException(
